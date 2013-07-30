@@ -130,38 +130,6 @@ int crashLogFD = -1;
 pid_t sysmgrPid;
 
 /**
- * Process ID of the bootup animation process
- * 
- * Set by {@link spawnBootupAnimationProcess() spawnBootupAnimationProcess()}.
- */
-pid_t bootAnimPid;
-
-/**
- * File descriptor of pipe to write to to talk to the boot animation process fork
- */
-int   bootAnimPipeFd=-1;
-
-/**
- * File descriptor for boot animation process fork to read messages from the parent process from
- */
-int   sysmgrPipeFd=-1;
-
-/**
- * File descriptor of pipe to write to to talk to the WebAppManager process fork
- */
-int   WebAppMgrPipeFd=-1;
-
-/**
- * File descriptor for WebAppManager process fork to read messages from the parent process from
- */
-int   IpcServerPipeFd=-1;
-
-/**
- * Message to be passed from parent process to WebAppManager process when the IpcServer is ready
- */
-char  msgOkToContinue = 0xAB;
-
-/**
  * printf for crash logging purposes
  * 
  * Safe printf that does not call malloc (to avoid re-entrancy issue when
@@ -700,88 +668,6 @@ int appArgc = 0;
 char** appArgv = 0;
 
 /**
- * Runs the bootup animation
- * 
- * What this does:
- * - Sets the process name
- * - Lowers the process priority
- * - Starts a QCoreApplication with the global appArgc and appArgv
- * - Initializes a new BootupAnimation and connects it to the global sysmgrPipeFd
- * - Starts the bootup animation
- * - Starts the QCoreApplication
- * 
- * @see QCoreApplication
- * @see BootupAnimation
- * @see sysmgrPipeFd
- * @see appArgc
- * @see appArgv
- * 
- * @param	data			Pointer to data of some sort (currently unused)
- * 
- * @return				Always returns 0
- */
-
-static int RunBootupAnimationTask(void* data)
-{
-	::prctl(PR_SET_NAME, (unsigned long) "BootupAnimation", 0, 0, 0);
-	::prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
-
-	// Set "nice" property
-	setpriority(PRIO_PROCESS,getpid(),1);
-
-	const HostInfo* info = &(HostBase::instance()->getInfo());
-	QCoreApplication bootApp(appArgc, appArgv);
-
-//	BootupAnimation* bootAnim = new BootupAnimation(sysmgrPipeFd);
-	//bootAnim->setFont(QFont("Prelude", 12));
-
-	//bootAnim->resize(info->displayWidth,info->displayHeight);
-	//bootAnim->show();
-	//bootAnim->start();
-
-	bootApp.exec();
-
-	return 0;
-}
-
-/**
- * Forks the process, runs the bootup animation in the forked process, and sets up pipes for IPC
- * 
- * @return				The PID of the forked process
- */
-pid_t spawnBootupAnimationProcess()
-{
-	int fd[2];
-	::pipe(fd);
-
-	pid_t pid = ::fork();
-	if (pid < 0) {
-		return pid;
-	}
-
-	if (pid == 0) {
-		// child closed the WRITE end of the pipe
-		::close(fd[1]);
-		sysmgrPipeFd = fd[0];
-		RunBootupAnimationTask((void*) 0);
-		exit(-1);
-	} else {
-		bootAnimPid = pid;
-		// parent closed the READ end of the pipe
-		::close(fd[0]);
-		bootAnimPipeFd = fd[1];
-	}
-
-	return pid;
-}
-
-gboolean finishBootup(gpointer data)
-{
-    WindowServer::instance()->bootupFinished();
-    return FALSE;
-}
-
-/**
  * Main program entry point
  *
  * This function is the one called by the operating system to start Luna.
@@ -805,35 +691,20 @@ int main( int argc, char** argv)
 
 	g_thread_init(NULL);
 
-	const char *renderMode;
-#if defined(TARGET_DEVICE) && defined(HAVE_OPENGL)
-	::setenv("QT_PLUGIN_PATH", "/usr/plugins", 1);
-	renderMode = "HW egl";
-#elif defined(TARGET_DEVICE) || defined(TARGET_EMULATOR)
-	::setenv("QT_PLUGIN_PATH", "/usr/plugins", 1);	
-	renderMode = "Software";
-#elif defined(HAVE_OPENGL)
-	renderMode = "HW OpenGL";
-#else
-	renderMode = "Software";
-#endif
-
-	WindowServer::markBootStart();
-
-	g_debug("SysMgr compiled against Qt %s, running on %s, %s render mode requested", QT_VERSION_STR, qVersion(), renderMode);
+	g_debug("SysMgr compiled against Qt %s, running on %s", QT_VERSION_STR, qVersion());
 
 	// Command-Line options
-  	parseCommandlineOptions(argc, argv);
+	parseCommandlineOptions(argc, argv);
 
-    if (s_debugTrapStr && 0 == strcasecmp(s_debugTrapStr, "on")) {
-        debugCrashes = true;
-    }
+	if (s_debugTrapStr && 0 == strcasecmp(s_debugTrapStr, "on")) {
+		debugCrashes = true;
+	}
 
 	if (s_mallocStatsFileStr) {
 		setupMallocStats(s_mallocStatsFileStr);
 	}
 
-    sysmgrPid = getpid();
+	sysmgrPid = getpid();
 
 	// Load Settings (first!)
 	Settings* settings = Settings::LunaSettings();
@@ -856,38 +727,11 @@ int main( int argc, char** argv)
 	// resolution may get picked up from the fb driver on arm
 	host->init(settings->displayWidth, settings->displayHeight);
 
-#if defined(TARGET_DEVICE)
-	pid_t animPid= spawnBootupAnimationProcess();
-	if(animPid < 0) { // failed to start the Animation process
-		return -1;
-	}
-#endif
-
-#if defined(TARGET_DEVICE) && defined(HAVE_OPENGL) && defined(HAVE_PALM_QPA)
-	if (settings->forceSoftwareRendering)
-		::setenv("QT_QPA_PLATFORM", "palm-soft", 0);
-	else
-		::setenv("QT_QPA_PLATFORM", "palm", 0);
-#else
-    // Do not override the value if the variable exists
-    ::setenv("QT_QPA_PLATFORM", "palm", 0);
-#endif
-	
-	
-#if defined(TARGET_DEVICE) && defined(HAVE_OPENGL)
-	if (!settings->forceSoftwareRendering)
-		::setenv("QWS_DISPLAY", "egl", 1);
-#endif
-
-
 	// Tie LunaSysMgr to Processor 0
 	setCpuAffinity(getpid(), 1);
 
 	// Safe to create logging threads now
 	logInit();
-
-	// Initialize Ipc Server
-	(void) IpcServer::instance();
 
 #if !defined(TARGET_DESKTOP)
 	// Set "nice" property
@@ -897,26 +741,18 @@ int main( int argc, char** argv)
 #if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 	qInstallMsgHandler(qtMsgHandler);
 #else
-    qInstallMessageHandler(qtMsgHandler);
+	qInstallMessageHandler(qtMsgHandler);
 #endif
 
 	QApplication app(argc, argv);
-	QApplication::setStartDragDistance(settings->tapRadius);
-	QApplication::setDoubleClickInterval (Settings::LunaSettings()->tapDoubleClickDuration);
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    QCoreApplication::setAttribute(Qt::AA_SynthesizeTouchForUnhandledMouseEvents, true);
-#endif
-
-	host->show();
 
 	initMallocStatsCb(HostBase::instance()->mainLoop(), s_mallocStatsInterval);
-
 
 	// Initialize Preferences handler
 	(void) Preferences::instance();
 
-    LocalePreferences* lp = LocalePreferences::instance();
-    QObject::connect(lp, SIGNAL(prefsLocaleChanged()), new ProcessKiller(), SLOT(localeChanged()));
+	LocalePreferences* lp = LocalePreferences::instance();
+	QObject::connect(lp, SIGNAL(prefsLocaleChanged()), new ProcessKiller(), SLOT(localeChanged()));
 
 	// Initialize Localization handler
 	(void) Localization::instance();
@@ -929,8 +765,8 @@ int main( int argc, char** argv)
 	// Initialize Security handler
 	(void) Security::instance();
 
-    // Initialize BackupManager
-    BackupManager::instance()->init(HostBase::instance()->mainLoop());
+	// Initialize BackupManager
+	BackupManager::instance()->init(HostBase::instance()->mainLoop());
 
 	// Initialize the System Service
 	SystemService::instance()->init();
@@ -941,35 +777,13 @@ int main( int argc, char** argv)
 	// Initialize the Application Installer
 	ApplicationInstaller::instance();
 
-	// Start the window manager
-	WindowServer *windowServer = WindowServer::instance();
-	windowServer->installEventFilter(windowServer);
-
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    MouseEventEater *eater = new MouseEventEater();
-    QCoreApplication::instance()->installEventFilter(eater);
-#endif
-
 	// Initialize the SysMgr MemoryMonitor
 	MemoryMonitor::instance();
 
 	// load all set policies
 	EASPolicyManager::instance()->load();
 
-	// Launching of the System UI launcher and headless apps has been moved to WebAppMgrProxy::connectWebAppMgr
-
-	// Did user specify an app to launch
-	if (s_appToLaunchStr) {
-		WebAppMgrProxy::setAppToLaunchUponConnection(s_appToLaunchStr);
-	}
-	else
-	    g_timeout_add_seconds(10, finishBootup, 0);
-	
 	app.exec();
-
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-    delete eater;
-#endif
 
 	return 0;
 }
