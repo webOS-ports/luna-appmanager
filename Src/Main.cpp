@@ -744,7 +744,7 @@ int main( int argc, char** argv)
 	qInstallMessageHandler(qtMsgHandler);
 #endif
 
-	QApplication app(argc, argv);
+	QCoreApplication app(argc, argv);
 
 	initMallocStatsCb(HostBase::instance()->mainLoop(), s_mallocStatsInterval);
 
