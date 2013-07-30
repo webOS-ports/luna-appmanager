@@ -648,6 +648,8 @@ contains(CONFIG_BUILD, napp) {
     DEFINES += HAS_NAPP
 }
 
+INCLUDEPATH += $$(STAGING_INCDIR)/luna-sysmgr-common
+
 DESTDIR = ./$${BUILD_TYPE}-$${MACHINE_NAME}
 
 OBJECTS_DIR = $$DESTDIR/.obj
