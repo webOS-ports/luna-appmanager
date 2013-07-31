@@ -31,7 +31,7 @@ ENV_BUILD_TYPE = $$(BUILD_TYPE)
 CONFIG += no_keywords
 
 CONFIG += link_pkgconfig
-PKGCONFIG = glib-2.0 gthread-2.0 LunaSysMgrIpc
+PKGCONFIG = glib-2.0 gthread-2.0 LunaSysMgrIpc LunaSysMgrCommon
 
 QT = core gui network
 
@@ -648,16 +648,12 @@ contains(CONFIG_BUILD, napp) {
     DEFINES += HAS_NAPP
 }
 
-INCLUDEPATH += $$(STAGING_INCDIR)/luna-sysmgr-common
-
 DESTDIR = ./$${BUILD_TYPE}-$${MACHINE_NAME}
 
 OBJECTS_DIR = $$DESTDIR/.obj
 MOC_DIR = $$DESTDIR/.moc
 
 TARGET = LunaSysMgr
-
-LIBS += -lLunaSysMgrCommon
 
 # Comment these out to get verbose output
 #QMAKE_CXX = @echo Compiling $(@)...; $$QMAKE_CXX
