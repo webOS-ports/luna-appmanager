@@ -114,11 +114,6 @@ ApplicationManager* ApplicationManager::instance()
 		return s_instance;
 	s_instance = new ApplicationManager();
 
-	//LAUNCHER3-ADD:
-	// do NOT reposition this line anywhere!
-	DimensionsSystemInterface::AppMonitor::appMonitor();	//this is enough to kick it off so that it catches signals from the
-															// beginning of execution (scans, etc) of application manager
-	//--end
 	return s_instance;
 }
 
