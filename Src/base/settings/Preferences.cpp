@@ -32,9 +32,8 @@
 #include "HostBase.h"
 #include "Logging.h"
 #include "MutexLocker.h"
-#include "WindowServer.h"
+
 #include "JSONUtils.h"
-#include "VirtualKeyboardPreferences.h"
 #include <QLocale>
 #include "Localization.h"
 
@@ -432,9 +431,7 @@ bool Preferences::serverConnectCallback(LSHandle *sh, LSMessage *message, void *
 													   \"dualRSSI\", \
 													   \"lockTimeout\",\
 													   \"rotationLock\",\
-													   \"muteSound\",\
-													   \"" PALM_VIRTUAL_KEYBOARD_PREFS "\",\
-													   \"" PALM_VIRTUAL_KEYBOARD_SETTINGS "\",\
+                                                       \"muteSound\",\
 					 	 	 	 	 	 	 	 	   \"enableVoiceCommand\",\
 													   \"enableALS\" ]}",
 					 getPreferencesCallback, prefObjPtr, NULL, &error);
@@ -687,13 +684,13 @@ bool Preferences::getPreferencesCallback(LSHandle *sh, LSMessage *message, void 
 		}
 	}
 
-	label = json_object_object_get(json, PALM_VIRTUAL_KEYBOARD_SETTINGS);
-	if ((label) && (!is_error(label)))
-		VirtualKeyboardPreferences::instance().virtualKeyboardSettingsChanged(json_object_get_string(label));
+//	label = json_object_object_get(json, PALM_VIRTUAL_KEYBOARD_SETTINGS);
+//	if ((label) && (!is_error(label)))
+//		VirtualKeyboardPreferences::instance().virtualKeyboardSettingsChanged(json_object_get_string(label));
 
-	label = json_object_object_get(json, PALM_VIRTUAL_KEYBOARD_PREFS);
-	if ((label) && (!is_error(label)))
-		VirtualKeyboardPreferences::instance().virtualKeyboardPreferencesChanged(json_object_get_string(label));
+//	label = json_object_object_get(json, PALM_VIRTUAL_KEYBOARD_PREFS);
+//	if ((label) && (!is_error(label)))
+//		VirtualKeyboardPreferences::instance().virtualKeyboardPreferencesChanged(json_object_get_string(label));
 
 	label = json_object_object_get(json, "enableVoiceCommand");
 	if (label && !is_error(label)) {

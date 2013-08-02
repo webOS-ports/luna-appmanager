@@ -16,9 +16,6 @@
 *
 * LICENSE@@@ */
 
-
-
-
 #include "Common.h"
 
 #include <glib.h>
@@ -37,23 +34,15 @@
 #include "ApplicationManager.h"
 #include "ApplicationDescription.h"
 #include "AnimationSettings.h"
-#include "DisplayManager.h"
 #include "HostBase.h"
 #include "Logging.h"
 #include "Settings.h"
 #include "SystemService.h"
-#include "SystemUiController.h"
 #include "Utils.h"
-#include "WindowServer.h"
-#include "WebAppMgrProxy.h"
+
 #include "MemoryMonitor.h"
 #include "Security.h"
 #include "EASPolicyManager.h"
-#include "StatusBarServicesConnector.h"
-#include "IMEController.h"
-#include "VirtualKeyboardPreferences.h"
-#include "SingleClickGestureRecognizer.h"
-#include "CardWindow.h"
 
 #include "cjson/json.h"
 #include <pbnjson.hpp>
@@ -285,9 +274,9 @@ void SystemService::init()
 	HeapProfilerStart("sysmgr");
 #endif
 
-	connect(SystemUiController::instance(), SIGNAL(signalBootFinished()), this, SLOT(postBootFinished()));
-	connect(SystemUiController::instance(), SIGNAL(signalModalWindowAdded()), this, SLOT(slotModalWindowAdded()));
-	connect(SystemUiController::instance(), SIGNAL(signalModalWindowRemoved()), this, SLOT(slotModalWindowRemoved()));
+    // connect(SystemUiController::instance(), SIGNAL(signalBootFinished()), this, SLOT(postBootFinished()));
+    // connect(SystemUiController::instance(), SIGNAL(signalModalWindowAdded()), this, SLOT(slotModalWindowAdded()));
+    // connect(SystemUiController::instance(), SIGNAL(signalModalWindowRemoved()), this, SLOT(slotModalWindowRemoved()));
 	connect(&sModalLauchCheckTimer, SIGNAL(timeout()), SLOT(slotModalDialogTimerFired()));
 }
 
@@ -812,13 +801,14 @@ void SystemService::postLaunchModalResult(bool timedOut)
 
 		if(false == timedOut) {
 			// if we fail to create the modal [another instance of the modal was running or some other error case] we need to add the right error code
-			bool added = SystemUiController::instance()->wasModalAddedSuccessfully();
+            bool added = false; //SystemUiController::instance()->wasModalAddedSuccessfully();
 			json_object_object_add(json, "returnValue", json_object_new_boolean(added));
-			if(true == added)
-				json_object_object_add(json, (char*) "launchResult", json_object_new_string(SystemUiController::instance()->getModalWindowLaunchErrReason().c_str()));
+            if(true == added) {
+                //json_object_object_add(json, (char*) "launchResult", json_object_new_string(SystemUiController::instance()->getModalWindowLaunchErrReason().c_str()));
+            }
 			else {
-				json_object_object_add(json, (char*) "errorText", json_object_new_string(SystemUiController::instance()->getModalWindowLaunchErrReason().c_str()));
-				json_object_object_add(json, (char*) "errorCode", json_object_new_int(SystemUiController::instance()->getModalWindowLaunchErrReasonCode()));
+                // json_object_object_add(json, (char*) "errorText", json_object_new_string(SystemUiController::instance()->getModalWindowLaunchErrReason().c_str()));
+                // json_object_object_add(json, (char*) "errorCode", json_object_new_int(SystemUiController::instance()->getModalWindowLaunchErrReasonCode()));
 			}
 		}
 		else {
@@ -836,7 +826,7 @@ void SystemService::postLaunchModalResult(bool timedOut)
 	json_object_put(json);
 
 	// Reset the status of the launch result of the modal dialog
-	SystemUiController::instance()->setModalWindowLaunchErrReason(SystemUiController::LaunchUnknown);
+    // SystemUiController::instance()->setModalWindowLaunchErrReason(SystemUiController::LaunchUnknown);
 }
 
 void SystemService::postDismissModalResult(bool timedOut)
@@ -857,7 +847,7 @@ void SystemService::postDismissModalResult(bool timedOut)
 		if(false == timedOut) {
 			json_object_object_add(json, "returnValue", json_object_new_boolean(true));
 			json_object_object_add(json, (char*) "returnMessage", json_object_new_string(SystemService::instance()->getModalDismissReturnValue().c_str()));
-			json_object_object_add(json, (char*) "dismissResult", json_object_new_string(SystemUiController::instance()->getModalWindowDismissErrReason().c_str()));
+            //json_object_object_add(json, (char*) "dismissResult", json_object_new_string(SystemUiController::instance()->getModalWindowDismissErrReason().c_str()));
 		}
 		else {
 			json_object_object_add(json, "returnValue", json_object_new_boolean(false));
@@ -874,7 +864,7 @@ void SystemService::postDismissModalResult(bool timedOut)
 	json_object_put(json);
 
 	// Reset the status of the launch result of the modal dialog
-	SystemUiController::instance()->setModalWindowDismissErrReason(SystemUiController::DismissUnknown);
+    //SystemUiController::instance()->setModalWindowDismissErrReason(SystemUiController::DismissUnknown);
 }
 
 void SystemService::postAppRestoredNeeded()
@@ -915,18 +905,18 @@ void SystemService::shutdownDevice()
 	json_object_put(json);
 
 	// shutdown sysmgr ASAP
-	WindowServer::instance()->shutdown();
+    //WindowServer::instance()->shutdown();
 }
 
 void SystemService::enterMSM()
 {
-	DisplayManager* dm = DisplayManager::instance();
-	if (Settings::LunaSettings()->uiType == Settings::UI_MINIMAL ||
-		brickMode() ||
-		!dm->isUSBCharging() ||
-		dm->isOnCall() ||
-		SystemUiController::instance()->isScreenLocked())
-		return;
+//	DisplayManager* dm = DisplayManager::instance();
+//	if (Settings::LunaSettings()->uiType == Settings::UI_MINIMAL ||
+//		brickMode() ||
+//		!dm->isUSBCharging() ||
+//		dm->isOnCall() ||
+//		SystemUiController::instance()->isScreenLocked())
+//		return;
 
 	LSError lsError;
 	LSErrorInit(&lsError);
@@ -1184,104 +1174,104 @@ static bool cbSystemUi(LSHandle* lshandle, LSMessage *message, void *user_data)
 
 	if (CONV_OK == root["launcheraction"].asString(launcherAction))
 	{
-		if (launcherAction == "showAppMenu")
-			SystemUiController::instance()->launcherAction(SystemUiController::LAUNCHERACT_MENUACTIVE);
-		else if (launcherAction == "showAppInfo")
-			SystemUiController::instance()->launcherAction(SystemUiController::LAUNCHERACT_INFOACTIVE);
-		else if (launcherAction == "editPageTitle")
-			SystemUiController::instance()->launcherAction(SystemUiController::LAUNCHERACT_EDITINGCARDTITLE);
+//		if (launcherAction == "showAppMenu")
+//			SystemUiController::instance()->launcherAction(SystemUiController::LAUNCHERACT_MENUACTIVE);
+//		else if (launcherAction == "showAppInfo")
+//			SystemUiController::instance()->launcherAction(SystemUiController::LAUNCHERACT_INFOACTIVE);
+//		else if (launcherAction == "editPageTitle")
+//			SystemUiController::instance()->launcherAction(SystemUiController::LAUNCHERACT_EDITINGCARDTITLE);
 	}
-	else if (root["virtualkeyboard"].isObject()) {
-		VirtualKeyboard * kb = VirtualKeyboardPreferences::instance().virtualKeyboard();
-		if (kb)
-		{
-			pbnjson::JValue reply = pbnjson::Object();
-			pbnjson::JValue vkb = root["virtualkeyboard"];
-			bool	sizeAndHeightDone = false;
-			for (pbnjson::JValue::ObjectIterator pair = vkb.begin(); pair != vkb.end(); pair++)
-			{
-				std::string	name;
-				if (VERIFY((*pair).first.asString(name) == CONV_OK))
-				{
-					if (name == "get")
-					{
-						std::string	valueName;
-						if ((*pair).second.asString(valueName) == CONV_OK)
-						{
-							std::string value;
-							if (kb->getValue(valueName, value))
-								reply.put(valueName, value);
-							else
-								reply.put(valueName, "<unsupported name>");
-						}
-						else
-							reply.put("get", "Invalid value type. Expecting a name (string).");
-					}
-					else
-					{
-						bool boolValue;
-						int intValue;
-						if ((*pair).second.asNumber(intValue) == CONV_OK)
-						{
-							if (name == "height" || name == "size")
-							{
-								if (!sizeAndHeightDone)
-								{
-									sizeAndHeightDone = true;
-									int otherInt;
-									if (name == "height")
-									{
-										if (VERIFY(intValue >= 50))
-										{
-											if (CONV_OK == vkb["size"].asNumber(otherInt))
-											{
-												kb->changePresetHeightForSize(otherInt, intValue);
-												kb->requestSize(otherInt);
-											}
-											else
-												kb->requestHeight(intValue);
-										}
-									}
-									else if (name == "size")
-									{
-										if (CONV_OK == vkb["height"].asNumber(otherInt) && VERIFY(otherInt >= 50))
-											kb->changePresetHeightForSize(intValue, otherInt);
-										kb->requestSize(intValue);
-									}
-								}
-							}
-							else
-							{
-								if (!kb->setIntOption(name, intValue))
-									reply.put(name, "Virtual keyboard: integer option not supported");
-							}
-						}
-						else if ((*pair).second.asBool(boolValue) == CONV_OK)
-						{
-							if (name == "hide")
-							{
-								if (boolValue)
-									kb->hide();
-							}
-							else
-							{
-								if (!kb->setBoolOption(name, boolValue))
-									reply.put(name, "Virtual keyboard: boolean option not supported");
-							}
-						}
-						else
-							reply.put(name, "Invalid value type. Need boolean or integer value.");
-					}
-				}
-			}
-			if (reply.begin() != reply.end())
-				payload.put("virtualkeyboard", reply);
-		}
-	}
+//	else if (root["virtualkeyboard"].isObject()) {
+//		VirtualKeyboard * kb = VirtualKeyboardPreferences::instance().virtualKeyboard();
+//		if (kb)
+//		{
+//			pbnjson::JValue reply = pbnjson::Object();
+//			pbnjson::JValue vkb = root["virtualkeyboard"];
+//			bool	sizeAndHeightDone = false;
+//			for (pbnjson::JValue::ObjectIterator pair = vkb.begin(); pair != vkb.end(); pair++)
+//			{
+//				std::string	name;
+//				if (VERIFY((*pair).first.asString(name) == CONV_OK))
+//				{
+//					if (name == "get")
+//					{
+//						std::string	valueName;
+//						if ((*pair).second.asString(valueName) == CONV_OK)
+//						{
+//							std::string value;
+//							if (kb->getValue(valueName, value))
+//								reply.put(valueName, value);
+//							else
+//								reply.put(valueName, "<unsupported name>");
+//						}
+//						else
+//							reply.put("get", "Invalid value type. Expecting a name (string).");
+//					}
+//					else
+//					{
+//						bool boolValue;
+//						int intValue;
+//						if ((*pair).second.asNumber(intValue) == CONV_OK)
+//						{
+//							if (name == "height" || name == "size")
+//							{
+//								if (!sizeAndHeightDone)
+//								{
+//									sizeAndHeightDone = true;
+//									int otherInt;
+//									if (name == "height")
+//									{
+//										if (VERIFY(intValue >= 50))
+//										{
+//											if (CONV_OK == vkb["size"].asNumber(otherInt))
+//											{
+//												kb->changePresetHeightForSize(otherInt, intValue);
+//												kb->requestSize(otherInt);
+//											}
+//											else
+//												kb->requestHeight(intValue);
+//										}
+//									}
+//									else if (name == "size")
+//									{
+//										if (CONV_OK == vkb["height"].asNumber(otherInt) && VERIFY(otherInt >= 50))
+//											kb->changePresetHeightForSize(intValue, otherInt);
+//										kb->requestSize(intValue);
+//									}
+//								}
+//							}
+//							else
+//							{
+//								if (!kb->setIntOption(name, intValue))
+//									reply.put(name, "Virtual keyboard: integer option not supported");
+//							}
+//						}
+//						else if ((*pair).second.asBool(boolValue) == CONV_OK)
+//						{
+//							if (name == "hide")
+//							{
+//								if (boolValue)
+//									kb->hide();
+//							}
+//							else
+//							{
+//								if (!kb->setBoolOption(name, boolValue))
+//									reply.put(name, "Virtual keyboard: boolean option not supported");
+//							}
+//						}
+//						else
+//							reply.put(name, "Invalid value type. Need boolean or integer value.");
+//					}
+//				}
+//			}
+//			if (reply.begin() != reply.end())
+//				payload.put("virtualkeyboard", reply);
+//		}
+//	}
 	else
 	{
 		if (CONV_OK == root["quicklaunch"].asBool(shown)) {
-			SystemUiController::instance()->showOrHideDock(shown);
+            //SystemUiController::instance()->showOrHideDock(shown);
 		}
 		if (CONV_OK == root["universal search"].asBool(shown)) {
 			bool displayLauncher, speedDial = false;
@@ -1289,28 +1279,29 @@ static bool cbSystemUi(LSHandle* lshandle, LSMessage *message, void *user_data)
 				displayLauncher = !shown;
 			if (CONV_OK != root["speedDial"].asBool(speedDial))
 				speedDial = false;
-			payload.put("wasLauncherShown", SystemUiController::instance()->isLauncherShown());
-			SystemUiController::instance()->showOrHideUniversalSearch(shown, displayLauncher, speedDial);
+//			payload.put("wasLauncherShown", SystemUiController::instance()->isLauncherShown());
+//			SystemUiController::instance()->showOrHideUniversalSearch(shown, displayLauncher, speedDial);
 		} else if (CONV_OK == root["launcher"].asBool(shown)) {
-			SystemUiController::instance()->showOrHideLauncher(shown);
-		} else if ((CONV_OK == root["launchermenu"].asString(menuOp)) && (SystemUiController::instance()->isLauncherShown())) {
-			if (menuOp == "addcard")
-				SystemUiController::instance()->launcherMenuOp(SystemUiController::LAUNCHEROP_ADDCARD);
-			else if (menuOp == "reordercards")
-				SystemUiController::instance()->launcherMenuOp(SystemUiController::LAUNCHEROP_REORDER);
-			else if (menuOp == "deletecard")
-				SystemUiController::instance()->launcherMenuOp(SystemUiController::LAUNCHEROP_DELETECARD);
-			else if (menuOp == "invokerenamecard")
-				SystemUiController::instance()->launcherMenuOp(SystemUiController::LAUNCHEROP_INVOKERENAMECARD);
-			else if (menuOp == "other")					//all the other menu options in the launcher menu that don't specifically trigger native launcher code
-				SystemUiController::instance()->launcherMenuOp(SystemUiController::LAUNCHEROP_UNKNOWN);
-		} else if (root["launchertitlechange"].isObject()) {
-			if ((CONV_OK == root["launchertitlechange"]["id"].asNumber(launcherCardId))
-					&& (CONV_OK == root["launchertitlechange"]["label"].asString(launcherCardLabel)))
-			{
-				SystemUiController::instance()->launcherChangeCardTitle(launcherCardId,launcherCardLabel);
-			}
-		}
+            //SystemUiController::instance()->showOrHideLauncher(shown);
+        }
+//        else if ((CONV_OK == root["launchermenu"].asString(menuOp)) && (SystemUiController::instance()->isLauncherShown())) {
+//			if (menuOp == "addcard")
+//				SystemUiController::instance()->launcherMenuOp(SystemUiController::LAUNCHEROP_ADDCARD);
+//			else if (menuOp == "reordercards")
+//				SystemUiController::instance()->launcherMenuOp(SystemUiController::LAUNCHEROP_REORDER);
+//			else if (menuOp == "deletecard")
+//				SystemUiController::instance()->launcherMenuOp(SystemUiController::LAUNCHEROP_DELETECARD);
+//			else if (menuOp == "invokerenamecard")
+//				SystemUiController::instance()->launcherMenuOp(SystemUiController::LAUNCHEROP_INVOKERENAMECARD);
+//			else if (menuOp == "other")					//all the other menu options in the launcher menu that don't specifically trigger native launcher code
+//				SystemUiController::instance()->launcherMenuOp(SystemUiController::LAUNCHEROP_UNKNOWN);
+//		} else if (root["launchertitlechange"].isObject()) {
+//			if ((CONV_OK == root["launchertitlechange"]["id"].asNumber(launcherCardId))
+//					&& (CONV_OK == root["launchertitlechange"]["label"].asString(launcherCardLabel)))
+//			{
+//				SystemUiController::instance()->launcherChangeCardTitle(launcherCardId,launcherCardLabel);
+//			}
+//		}
 	}
 
 	payload.put("returnValue", true);
@@ -1365,11 +1356,10 @@ static bool cbSystemUiDbg(LSHandle* lshandle, LSMessage *message,
 			if (CONV_OK != root["y"].asNumber(yspan))
 				yspan = 4;
 
-			SystemUiController::instance()->launcherDbgActionScreenGrid(SystemUiController::LAUNCHERACT_DBG_ACTIVATE_SCREEN_GRID,
-																xspan,yspan);
+            // SystemUiController::instance()->launcherDbgActionScreenGrid(SystemUiController::LAUNCHERACT_DBG_ACTIVATE_SCREEN_GRID,
+//																xspan,yspan);
 		}
-		else
-			SystemUiController::instance()->launcherDbgActionScreenGrid(SystemUiController::LAUNCHERACT_DBG_DEACTIVATE_SCREEN_GRID);
+        // else SystemUiController::instance()->launcherDbgActionScreenGrid(SystemUiController::LAUNCHERACT_DBG_DEACTIVATE_SCREEN_GRID);
 
 	}
 
@@ -1503,7 +1493,7 @@ static bool cbClearCache(LSHandle* handle, LSMessage * msg, void * data)
 {
     EMPTY_SCHEMA_RETURN(handle, msg);
 
-	WebAppMgrProxy::instance()->clearWebkitCache();
+    // WebAppMgrProxy::instance()->clearWebkitCache();
 
 	json_object* payload = json_object_new_object();
 	json_object_object_add(payload, "returnValue", json_object_new_boolean(true));
@@ -1619,7 +1609,7 @@ static bool cbTakeScreenShot(LSHandle* lshandle, LSMessage *message,
 		filePath = std::string(homeFolder) + "/" + filePath;
 	}
 
-	success = WindowServer::instance()->takeScreenShot(filePath.c_str());
+    //success = WindowServer::instance()->takeScreenShot(filePath.c_str());
 
 Done:
 
@@ -1797,9 +1787,9 @@ static bool cbGetForegroundApplication(LSHandle* lsHandle, LSMessage *message,
 		}
 	}
 
-	title = SystemUiController::instance()->maximizedApplicationName();
-	appMenuName = SystemUiController::instance()->maximizedApplicationMenuName();
-	id = SystemUiController::instance()->maximizedApplicationId();
+//	title = SystemUiController::instance()->maximizedApplicationName();
+//	appMenuName = SystemUiController::instance()->maximizedApplicationMenuName();
+//	id = SystemUiController::instance()->maximizedApplicationId();
 
 	if (!title.empty())
 		json_object_object_add(json, (char*) "title",
@@ -1891,8 +1881,8 @@ static bool cbGetLockStatus(LSHandle* lsHandle, LSMessage* message, void* user_d
 		}
 	}
 
-	json_object_object_add(json, (char*) "locked",
-						   json_object_new_boolean(SystemUiController::instance()->isScreenLocked()));
+    // json_object_object_add(json, (char*) "locked",
+    //					   json_object_new_boolean(SystemUiController::instance()->isScreenLocked()));
 
 Done:
 
@@ -1974,8 +1964,8 @@ static bool cbGetDockModeStatus(LSHandle* lsHandle, LSMessage* message, void* us
 		}
 	}
 
-	json_object_object_add(json, (char*) "enabled",
-						   json_object_new_boolean(SystemUiController::instance()->isInDockMode()));
+//	json_object_object_add(json, (char*) "enabled",
+//						   json_object_new_boolean(SystemUiController::instance()->isInDockMode()));
 
 Done:
 
@@ -2561,8 +2551,8 @@ static bool cbGetBootStatus(LSHandle* lsHandle, LSMessage *message, void *user_d
 		}
 	}
 
-	json_object_object_add(json, (char*) "finished",
-						   json_object_new_boolean(SystemUiController::instance()->bootFinished()));
+//	json_object_object_add(json, (char*) "finished",
+//						   json_object_new_boolean(SystemUiController::instance()->bootFinished()));
 	json_object_object_add(json, (char*) "firstUse",
 						   json_object_new_boolean(Settings::LunaSettings()->uiType == Settings::UI_MINIMAL));
 
@@ -2635,7 +2625,7 @@ static bool cbRunProgressAnimation(LSHandle* lsHandle, LSMessage *message, void 
 	json_object* root = 0;
 	json_object* state = 0;
 	json_object* type = 0;
-    ProgressAnimation::Type pType = ProgressAnimation::TypeHp;
+    // ProgressAnimation::Type pType = ProgressAnimation::TypeHp;
 	LSError lsError;
 
     // {"type":string, "state":string}
@@ -2658,10 +2648,10 @@ static bool cbRunProgressAnimation(LSHandle* lsHandle, LSMessage *message, void 
 
         std::string typeStr = json_object_get_string(type);
         if (typeStr == "msm") {
-            pType = ProgressAnimation::TypeMsm;
+           // pType = ProgressAnimation::TypeMsm;
         }
         else if (typeStr == "fsck") {
-            pType = ProgressAnimation::TypeFsck;
+          //  pType = ProgressAnimation::TypeFsck;
         }
     }
 
@@ -2672,10 +2662,10 @@ static bool cbRunProgressAnimation(LSHandle* lsHandle, LSMessage *message, void 
 
 		std::string newState = json_object_get_string(state);
 		if(newState == "start") {
-			WindowServer::instance()->startProgressAnimation(pType);
+            // WindowServer::instance()->startProgressAnimation(pType);
 		}
 		else if (newState == "stop") {
-			WindowServer::instance()->stopProgressAnimation();
+            // WindowServer::instance()->stopProgressAnimation();
 		}
 	}
 
@@ -2698,7 +2688,7 @@ static bool cbDebugger(LSHandle* lsHandle, LSMessage *message,void *user_data)
 {
     EMPTY_SCHEMA_RETURN(lsHandle, message);
 
-	WebAppMgrProxy::instance()->enableDebugger( true );
+    // WebAppMgrProxy::instance()->enableDebugger( true );
 
 	LSError err;
 	LSErrorInit(&err);
@@ -2786,7 +2776,7 @@ static bool cbSetJavascriptFlags(LSHandle* lsHandle, LSMessage *message, void *u
 		jflags = json_object_object_get(root, "flags");
 		if (jflags && !is_error(jflags)) {
 			std::string flags = json_object_get_string(jflags);
-			WebAppMgrProxy::instance()->setJavascriptFlags( flags.c_str() );
+            // WebAppMgrProxy::instance()->setJavascriptFlags( flags.c_str() );
 			success = true;
 		}
 		json_object_put(root);
@@ -3578,7 +3568,7 @@ bool cbLogTouchEvents(LSHandle* lsHandle, LSMessage *message, void *user_data)
 
 				if (label && json_object_is_type(label, json_type_boolean))
 				{
-					SingleClickGestureRecognizer::g_logSingleClick = json_object_get_boolean(label);
+                    // SingleClickGestureRecognizer::g_logSingleClick = json_object_get_boolean(label);
 					failed = false;
 				}
 			}
@@ -3631,7 +3621,7 @@ bool cbEnableFpsCounter(LSHandle* lsHandle, LSMessage *message, void *user_data)
 
 			if (label && json_object_is_type(label, json_type_boolean))
 			{
-				WindowServer::enableFpsCounter(json_object_get_boolean(label));
+                // WindowServer::enableFpsCounter(json_object_get_boolean(label));
 				failed = false;
 			}
 		}
@@ -3640,13 +3630,13 @@ bool cbEnableFpsCounter(LSHandle* lsHandle, LSMessage *message, void *user_data)
 			if (json_object_is_type(val, json_type_int))
 			{
 				reset = json_object_get_int(val);
-				WindowServer::resetFpsBuffer(reset);
+                // WindowServer::resetFpsBuffer(reset);
 				failed = false;
 			}
 		}
 		if (strcmp(key, "dump") == 0)
 		{
-			WindowServer::dumpFpsHistory();
+            // WindowServer::dumpFpsHistory();
 			failed = false;
 		}
 	}
@@ -3676,14 +3666,14 @@ bool cbEnableTouchPlot(LSHandle* lsHandle, LSMessage *message, void *user_data)
                                message,
                                SCHEMA_3(OPTIONAL(collection, boolean), OPTIONAL(trails, boolean), OPTIONAL(crosshairs, boolean)));
 
-	static struct touchPlotOptions_t {
-		TouchPlot::TouchPlotOption_t type;
-		const char *name;
-	} touchPlotOptions[] = {
-		{TouchPlot::TouchPlotOption_Collection, "collection"},
-		{TouchPlot::TouchPlotOption_Trails, "trails"},
-		{TouchPlot::TouchPlotOption_Crosshairs, "crosshairs"},
-	};
+//	static struct touchPlotOptions_t {
+//		TouchPlot::TouchPlotOption_t type;
+//		const char *name;
+//	} touchPlotOptions[] = {
+//		{TouchPlot::TouchPlotOption_Collection, "collection"},
+//		{TouchPlot::TouchPlotOption_Trails, "trails"},
+//		{TouchPlot::TouchPlotOption_Crosshairs, "crosshairs"},
+//	};
 
 	const char* str = LSMessageGetPayload(message);
 	if (!str)
@@ -3697,22 +3687,22 @@ bool cbEnableTouchPlot(LSHandle* lsHandle, LSMessage *message, void *user_data)
 	if (!root || is_error(root))
 		goto Done;
 
-	// iterate through the elements
-	json_object_object_foreach(root, key, val)
-	{
-		for(uint i = 0; i < sizeof(touchPlotOptions)/sizeof(touchPlotOptions[0]); i++) {
-			if (strcmp(key, touchPlotOptions[i].name) == 0)
-			{
-				label = json_object_object_get(root, touchPlotOptions[i].name);
+//	// iterate through the elements
+//	json_object_object_foreach(root, key, val)
+//	{
+//		for(uint i = 0; i < sizeof(touchPlotOptions)/sizeof(touchPlotOptions[0]); i++) {
+//			if (strcmp(key, touchPlotOptions[i].name) == 0)
+//			{
+//				label = json_object_object_get(root, touchPlotOptions[i].name);
 
-				if (label && json_object_is_type(label, json_type_boolean))
-				{
-					WindowServer::enableTouchPlotOption(touchPlotOptions[i].type, json_object_get_boolean(label));
-					failed = false;
-				}
-			}
-		}
-	}
+//				if (label && json_object_is_type(label, json_type_boolean))
+//				{
+//                    // WindowServer::enableTouchPlotOption(touchPlotOptions[i].type, json_object_get_boolean(label));
+//					failed = false;
+//				}
+//			}
+//		}
+//	}
 
 Done:
 
@@ -3813,7 +3803,7 @@ bool cbSetBenchmarkFlags(LSHandle *lsHandle, LSMessage *message, void *user_data
 		bool allowVsync;
         request["vsync"].asBool(allowVsync);
 
-		DisplayManager::instance()->forceVsyncOff(!allowVsync);
+        //DisplayManager::instance()->forceVsyncOff(!allowVsync);
 
 		if (allowVsync)
 			g_debug("regular vsync mode");
@@ -3867,11 +3857,13 @@ Done:
 void constructSystemStatusPayload(pbnjson::JValue& obj)
 {
     pbnjson::JValue imeObj = pbnjson::Object();
-    imeObj.put("visible", IMEController::instance()->isIMEOpened());
+    //imeObj.put("visible", IMEController::instance()->isIMEOpened());
     obj.put("ime", imeObj);
 
     // report the ui orientation of the device
     pbnjson::JValue orientationObj = pbnjson::Object();
+
+    /*
     switch (WindowServer::instance()->getUiOrientation()) {
     case OrientationEvent::Orientation_Up:     orientationObj.put("ui", "up"); break;
     case OrientationEvent::Orientation_Down:   orientationObj.put("ui", "down"); break;
@@ -3891,6 +3883,8 @@ void constructSystemStatusPayload(pbnjson::JValue& obj)
     case OrientationEvent::Orientation_FaceDown: orientationObj.put("device", "facedown"); break;
     default: orientationObj.put("device", "unknown"); break;
     }
+    */
+
     obj.put("orientation", orientationObj);
 }
 
@@ -4088,7 +4082,7 @@ bool cbDismissModalApp(LSHandle *lsHandle, LSMessage *message, void *user_data)
 	bool success = false;
 	std::string errMsg, modalId, retValue = "";
 	json_object *root = NULL;
-	SystemUiController* uiController = NULL;
+    //SystemUiController* uiController = NULL;
 
 	LSError lserror;
 	LSErrorInit(&lserror);
@@ -4113,22 +4107,22 @@ bool cbDismissModalApp(LSHandle *lsHandle, LSMessage *message, void *user_data)
 		goto done;
 	}
 
-	// Get a handle to SystemUiController
-	uiController = SystemUiController::instance();
-	if(!uiController)
-	{
-		errMsg = "Unable to get SystemUiController instance";
-		goto done;
-	}
+//	// Get a handle to SystemUiController
+//	uiController = SystemUiController::instance();
+//	if(!uiController)
+//	{
+//		errMsg = "Unable to get SystemUiController instance";
+//		goto done;
+//	}
 
-	// Check to see if SystemUiController thinks it has an active modal window.
-	if(false == uiController->isModalWindowActive())
-	{
-		errMsg = "No modal window is active";
-		// reset the fact that we have a modal window active.
-		SystemService::instance()->resetModalDialogInfo();
-		goto done;
-	}
+//	// Check to see if SystemUiController thinks it has an active modal window.
+//	if(false == uiController->isModalWindowActive())
+//	{
+//		errMsg = "No modal window is active";
+//		// reset the fact that we have a modal window active.
+//		SystemService::instance()->resetModalDialogInfo();
+//		goto done;
+//	}
 
 	// Get the json string
 	root = json_tokener_parse( messageStr );
@@ -4284,13 +4278,13 @@ bool cbLaunchModalApp(LSHandle *lsHandle, LSMessage *message, void *user_data)
 	bool subscribed = true;
 	bool returnError = true;
 	std::string errMsg, modalId, launchId, callerId, params, parentAppId;
-	SystemUiController* uiController = NULL;
-	Window* maximizedCardWindow = NULL;
+    //SystemUiController* uiController = NULL;
+    // Window* maximizedCardWindow = NULL;
 	ApplicationDescription* appDesc = NULL;
 	json_object *root, *label, *launchParams = NULL;
 	ApplicationDescription* desc = NULL;
-	int launchErr = SystemUiController::MalformedRequest;
-	CardWindow* cWin = NULL;
+    int launchErr = 0;// SystemUiController::MalformedRequest;
+    // CardWindow* cWin = NULL;
 
 	LSError lserror;
 	LSErrorInit(&lserror);
@@ -4320,30 +4314,30 @@ bool cbLaunchModalApp(LSHandle *lsHandle, LSMessage *message, void *user_data)
 		goto done;
 	}
 
-	// Ensure that there are no active modal windows.
-	if(true == SystemService::instance()->isModalActive())
-	{
-		launchErr = SystemUiController::AnotherModalActive;
-		errMsg = "Another modal window is already active";
-		goto done;
-	}
+//	// Ensure that there are no active modal windows.
+//	if(true == SystemService::instance()->isModalActive())
+//	{
+//		launchErr = SystemUiController::AnotherModalActive;
+//		errMsg = "Another modal window is already active";
+//		goto done;
+//	}
 
-	uiController = SystemUiController::instance();
-	if(!uiController)
-	{
-		launchErr = SystemUiController::InternalError;
-		errMsg = "Unable to get SystemUiController instance";
-		goto done;
-	}
+//	uiController = SystemUiController::instance();
+//	if(!uiController)
+//	{
+//		launchErr = SystemUiController::InternalError;
+//		errMsg = "Unable to get SystemUiController instance";
+//		goto done;
+//	}
 
-	// Check to see if the window with callerId is indeed the currently maximized card window.
-	maximizedCardWindow = uiController->maximizedCardWindow();
-	if(!maximizedCardWindow)
-	{
-		launchErr = SystemUiController::NoMaximizedCard;
-		errMsg = "Unable to get maximized window from system";
-		goto done;
-	}
+//	// Check to see if the window with callerId is indeed the currently maximized card window.
+//	maximizedCardWindow = uiController->maximizedCardWindow();
+//	if(!maximizedCardWindow)
+//	{
+//		launchErr = SystemUiController::NoMaximizedCard;
+//		errMsg = "Unable to get maximized window from system";
+//		goto done;
+//	}
 
 	// Get the caller Id
 	callerId = SystemService::instance()->getStrFromJSON(root, "callerId");
@@ -4354,27 +4348,27 @@ bool cbLaunchModalApp(LSHandle *lsHandle, LSMessage *message, void *user_data)
 	}
 
 	// Get the maximized card window
-	cWin = static_cast<CardWindow*>(maximizedCardWindow);
+//	cWin = static_cast<CardWindow*>(maximizedCardWindow);
 
-	if(cWin) {
-		// Get the maximized card window's appDescription
-		appDesc = cWin->appDescription();
-		// Check if the maximized card is PDK
-		if(cWin->isHost()) {
-			SystemService::instance()->setParentAppPdk(true);
-		}
-	}
-	else {
-		launchErr = SystemUiController::InternalError;
-		errMsg = "Unable to get maximized card window from system";
-		goto done;
-	}
+//	if(cWin) {
+//		// Get the maximized card window's appDescription
+//		appDesc = cWin->appDescription();
+//		// Check if the maximized card is PDK
+//		if(cWin->isHost()) {
+//			SystemService::instance()->setParentAppPdk(true);
+//		}
+//	}
+//	else {
+//        //launchErr = SystemUiController::InternalError;
+//		errMsg = "Unable to get maximized card window from system";
+//		goto done;
+//	}
 
 	// Get the string we need to compare the AppId's
-	parentAppId = (NULL != appDesc)?appDesc->id():cWin->appId();
+    parentAppId = (NULL != appDesc)?appDesc->id():  ""; // cWin->appId();
 
 	if(0 != parentAppId.compare(callerId)) {
-		launchErr = SystemUiController::ParentDifferent;
+        //launchErr = SystemUiController::ParentDifferent;
 		errMsg = "Caller Id Not the same as currently active window";
 		goto done;
 	}
@@ -4390,13 +4384,13 @@ bool cbLaunchModalApp(LSHandle *lsHandle, LSMessage *message, void *user_data)
 	// Check if this app actually exists/is ready/and isnt headless.
 	if((NULL == (desc = s_AppManInstance->getAppById(launchId))))
 	{
-		launchErr = SystemUiController::AppToLaunchDoesntExist;
+        //launchErr = SystemUiController::AppToLaunchDoesntExist;
 		errMsg = "App to launch doesnt exist";
 		goto done;
 	}
 	else {
 		if(ApplicationDescription::Status_Ready != desc->status()) {
-			launchErr = SystemUiController::AppToLaunchIsntReady;
+            //launchErr = SystemUiController::AppToLaunchIsntReady;
 			errMsg = "App to launch isnt in ready state";
 			goto done;
 		}
@@ -4449,7 +4443,7 @@ bool cbLaunchModalApp(LSHandle *lsHandle, LSMessage *message, void *user_data)
 	// Add a subscription to the service for this modal window.cbLaunch
 	if (!LSSubscriptionAdd (lsHandle, SystemService::instance()->getModalWindowSubscriptionId().c_str(), message, &lserror))
 	{
-		launchErr = SystemUiController::InternalError;
+        //launchErr = SystemUiController::InternalError;
 		subscribed = false;
 		errMsg = "could not setup subscription";
 		goto done;
@@ -4500,7 +4494,7 @@ bool SystemService::initiateAppLaunch(LSHandle* lshandle, LSMessage *message, st
 	std::string callerAppId;
 	std::string callerProcessId;
 	bool success=false;
-	int launchErr = SystemUiController::MalformedRequest;
+    int launchErr = 0; // SystemUiController::MalformedRequest;
 
     // {"id": "5879", "params":{p1 p2}}
     VALIDATE_SCHEMA_AND_RETURN(lshandle,
@@ -4571,12 +4565,12 @@ bool SystemService::initiateAppLaunch(LSHandle* lshandle, LSMessage *message, st
 		callerAppId = callerApp;
 
 		//Get the processId of the running process.
-		callerProcessId = SystemUiController::instance()->maximizedCardWindow()->processId();
+        //callerProcessId = SystemUiController::instance()->maximizedCardWindow()->processId();
 	}
 
 	// Set the flag that we are creating a modal child window
 	SystemService::instance()->setActiveModalBeingLaunched();
-	processId = WebAppMgrProxy::instance()->appLaunchModal(id, params, callerAppId, callerProcessId, errMsg, isHeadless, SystemService::instance()->isParentPdk());
+    //processId = WebAppMgrProxy::instance()->appLaunchModal(id, params, callerAppId, callerProcessId, errMsg, isHeadless, SystemService::instance()->isParentPdk());
 	success = !processId.empty();
 
 	// Set the message that we are ready to launch the modal window.
@@ -4663,7 +4657,7 @@ bool SystemService::msmAvail(LSMessage* message)
 
 	g_debug("MSM available: %s", json_object_get_boolean(modeAvail) ? "true" : "false");
 
-	DisplayManager* dm = WindowServer::instance()->displayManager();
+    //DisplayManager* dm = WindowServer::instance()->displayManager();
 
 	if (json_object_get_boolean(modeAvail) == FALSE) {
 
@@ -4678,14 +4672,14 @@ bool SystemService::msmAvail(LSMessage* message)
 
 			if (m_brickMode) {
 				g_debug("%s: exiting brick mode", __PRETTY_FUNCTION__);
-				dm->popDNAST("brickmode-local");
+                //dm->popDNAST("brickmode-local");
 				Q_EMIT signalExitBrickMode();
 				m_brickMode = false;
 			}
 
 			if (m_fscking) {
 				g_debug("%s: fsck ended", __PRETTY_FUNCTION__);
-				WindowServer::instance()->stopProgressAnimation();
+                //WindowServer::instance()->stopProgressAnimation();
 				m_fscking = false;
 			}
 		}
@@ -4720,7 +4714,7 @@ bool SystemService::msmProgress(LSMessage* message)
 	char* stageText = json_object_get_string( stage );
 	g_debug("MSM Progress: %s", stageText);
 
-	DisplayManager* dm = WindowServer::instance()->displayManager();
+    // DisplayManager* dm = WindowServer::instance()->displayManager();
 
 	if (strcasecmp(stageText, "attempting") == 0) {
 		// going into brick mode
@@ -4729,7 +4723,7 @@ bool SystemService::msmProgress(LSMessage* message)
 
 			// Go into brick mode
 			g_debug("%s: entering brick mode", __PRETTY_FUNCTION__);
-			dm->pushDNAST("brickmode-local");
+            //dm->pushDNAST("brickmode-local");
 
 			// are we going into media sync or USB drive mode?
 			struct json_object* mode = json_object_object_get(payload, "enterIMasq");
@@ -4746,7 +4740,7 @@ bool SystemService::msmProgress(LSMessage* message)
 		if (m_brickMode) {
 
 			g_debug("%s: exiting brick mode", __PRETTY_FUNCTION__);
-			dm->popDNAST("brickmode-local");
+            //dm->popDNAST("brickmode-local");
 			Q_EMIT signalExitBrickMode();
 			Q_EMIT signalBrickModeFailed();
 
@@ -4755,7 +4749,7 @@ bool SystemService::msmProgress(LSMessage* message)
 
 		if (m_fscking) {
 			g_debug("%s: fsck ended", __PRETTY_FUNCTION__);
-			WindowServer::instance()->stopProgressAnimation();
+            //WindowServer::instance()->stopProgressAnimation();
 			m_fscking = false;
 		}
 	}
@@ -4790,7 +4784,7 @@ bool SystemService::msmEntry(LSMessage* message)
 	char* modeText = json_object_get_string(mode);
 	g_debug("MSM Mode: %s", modeText);
 
-	DisplayManager* dm = WindowServer::instance()->displayManager();
+    //DisplayManager* dm = WindowServer::instance()->displayManager();
 
 	if (strcasecmp(modeText, "phone") == 0) {
 
@@ -4798,7 +4792,7 @@ bool SystemService::msmEntry(LSMessage* message)
 
 		if (m_brickMode) {
 			g_debug("%s: exiting brick mode", __PRETTY_FUNCTION__);
-			dm->popDNAST("brickmode-local");
+            //dm->popDNAST("brickmode-local");
 			Q_EMIT signalExitBrickMode();
 
 			m_brickMode = false;
@@ -4806,7 +4800,7 @@ bool SystemService::msmEntry(LSMessage* message)
 
 		if (m_fscking) {
 			g_debug("%s: fsck ended", __PRETTY_FUNCTION__);
-			WindowServer::instance()->stopProgressAnimation();
+            //WindowServer::instance()->stopProgressAnimation();
 			m_fscking = false;
 		}
 	}
@@ -4817,7 +4811,7 @@ bool SystemService::msmEntry(LSMessage* message)
 		if (!m_brickMode) {
 
 			g_debug("%s: entering brick mode", __PRETTY_FUNCTION__);
-			dm->pushDNAST("brickmode-local");
+            //dm->pushDNAST("brickmode-local");
 
 			// are we going into media sync or USB drive mode?
 			mode = json_object_object_get(payload, "enterIMasq");
@@ -4844,7 +4838,7 @@ bool SystemService::msmFscking(LSMessage* message)
 	m_msmExitClean = false;
 	m_fscking = true;
 
-	WindowServer::instance()->startProgressAnimation(ProgressAnimation::TypeFsck);
+    //WindowServer::instance()->startProgressAnimation(ProgressAnimation::TypeFsck);
 
 	return true;
 }

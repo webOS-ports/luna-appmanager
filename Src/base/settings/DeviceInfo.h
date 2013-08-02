@@ -23,7 +23,6 @@
 #define DEVICEINFO_H
 
 #include "Common.h"
-#include "Window.h"
 
 #include <string>
 

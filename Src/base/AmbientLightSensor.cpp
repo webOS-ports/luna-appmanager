@@ -27,7 +27,6 @@
 #include "Settings.h"
 #include "SystemService.h"
 #include "Time.h"
-#include "WindowServer.h"
 
 #include <cjson/json.h>
 #include <glib.h>

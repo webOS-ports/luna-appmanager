@@ -26,7 +26,7 @@
 #include "HostBase.h"
 #include "Localization.h"
 #include "Settings.h"
-#include "Window.h"
+
 
 #if defined(HAS_LUNA_PREF)
 #include <lunaprefs.h>

@@ -20,19 +20,15 @@
 
 #include "AmbientLightSensor.h"
 #include "Common.h"
-#include "CoreNaviManager.h"
 #include "CustomEvents.h"
 #include "DeviceInfo.h"
 #include "DisplayStates.h"
 #include "HostBase.h"
-#include "IMEController.h"
 #include "JSONUtils.h"
 #include "Preferences.h"
 #include "Settings.h"
 #include "SystemService.h"
-#include "SystemUiController.h"
 #include "Time.h"
-#include "WindowServer.h"
 
 #ifdef HAS_NYX
 #include <nyx/nyx_client.h>
@@ -40,6 +36,7 @@
 #endif
 
 #include <QApplication>
+#include <QKeyEvent>
 
 #include <SysMgrDeviceKeydefs.h>
 #if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
@@ -261,11 +258,11 @@ DisplayManager::DisplayManager()
 
     initStates();
 
-    connect(SystemUiController::instance(), SIGNAL(signalEmergencyMode(bool)), this, SLOT(slotEmergencyMode(bool)));
-    connect(SystemUiController::instance(), SIGNAL(signalBootFinished()), this, SLOT(slotBootFinished()));
+    // connect(SystemUiController::instance(), SIGNAL(signalEmergencyMode(bool)), this, SLOT(slotEmergencyMode(bool)));
+    // connect(SystemUiController::instance(), SIGNAL(signalBootFinished()), this, SLOT(slotBootFinished()));
     connect(Preferences::instance(), SIGNAL(signalAlsEnabled(bool)), this, SLOT(slotAlsEnabled(bool)));
-    connect(IMEController::instance(), SIGNAL(signalShowIME()), this, SLOT(slotShowIME()));
-    connect(IMEController::instance(), SIGNAL(signalHideIME()), this, SLOT(slotHideIME()));
+    // connect(IMEController::instance(), SIGNAL(signalShowIME()), this, SLOT(slotShowIME()));
+    // connect(IMEController::instance(), SIGNAL(signalHideIME()), this, SLOT(slotHideIME()));
     connect(HostBase::instance(), SIGNAL(signalBluetoothKeyboardActive(bool)), this, SLOT(slotBluetoothKeyboardActive(bool)));
     connect(Preferences::instance(), SIGNAL(signalAirplaneModeChanged(bool)), this, SLOT(slotAirplaneModeChanged(bool)));
 
@@ -2163,7 +2160,7 @@ bool DisplayManager::setMaximumBrightness (int maxBrightness, bool save)
 		// update the brightness directly
 		backlightOn (getDisplayBrightness(), getKeypadBrightness(), false);
 		// update navi brightness
-		CoreNaviManager::instance()->updateBrightness (getCoreNaviBrightness());
+		// // CoreNaviManager::instance()->updateBrightness (getCoreNaviBrightness());
 
 		Q_EMIT signalDisplayMaxBrightnessChanged(maxBrightness);
 	} 
@@ -2542,22 +2539,26 @@ bool DisplayManager::updateState (int eventType)
             break;
         case DISPLAY_EVENT_ENTER_EMERGENCY_MODE:
             {
+		/*
 		if (SystemUiController::instance()->isInEmergencyMode()) {
 		    g_message ("%s: entering emergency mode, pushing DNAST\n", __PRETTY_FUNCTION__);
 		    gchar *report = g_strdup_printf ("%s-dm-in-emergency-mode", __FUNCTION__);
 		    pushDNAST (report);
 		    g_free (report);
 		}
+		*/
             }
             break;
         case DISPLAY_EVENT_EXIT_EMERGENCY_MODE:
             {
+		/*
 		if (!SystemUiController::instance()->isInEmergencyMode()) {
 		    g_message ("%s: exiting emergency mode, popping DNAST\n", __PRETTY_FUNCTION__);
 		    gchar *report = g_strdup_printf ("%s-dm-in-emergency-mode", __FUNCTION__);
 		    popDNAST (report);
 		    g_free (report);
 		}
+		*/
             }
             break;
         case DISPLAY_EVENT_PROXIMITY_ON:
@@ -3036,8 +3037,8 @@ bool DisplayManager::off (sptr<Event> event)
 bool DisplayManager::dim (sptr<Event> event)
 {
     // in emergency mode do not allow the dim state
-    if (SystemUiController::instance()->isInEmergencyMode ())
-        return true;
+    // if (SystemUiController::instance()->isInEmergencyMode ())
+        // return true;
 
     m_lastEvent = Time::curTimeMs() - m_dimTimeout;
     if (currentState() == DisplayStateDim)
@@ -3125,10 +3126,10 @@ bool DisplayManager::handleEvent(QEvent *event)
 	}
 
     // check for the brick case
-	if (SystemService::instance()->brickMode() || !SystemUiController::instance()->bootFinished()
-			|| WindowServer::instance()->progressRunning()) {
-		return false;
-	}
+	// if (SystemService::instance()->brickMode() || !SystemUiController::instance()->bootFinished()
+			// || WindowServer::instance()->progressRunning()) {
+		// return false;
+	// }
 
     // if the screen was turned on by the alert or banner, make sure that
 	// the state is reset when there is a key press or touch.
@@ -3530,7 +3531,7 @@ void DisplayManager::displayOn(bool als)
     // the callback will turn on the touchpanel
     backlightOn (getDisplayBrightness(), getKeypadBrightness(), als);
     // update navi brightness
-    CoreNaviManager::instance()->updateBrightness (getCoreNaviBrightness());
+    // CoreNaviManager::instance()->updateBrightness (getCoreNaviBrightness());
 
     if (Preferences::instance()->isAlsEnabled() && !m_alsDisabled && Settings::LunaSettings()->uiType != Settings::UI_MINIMAL)
 	    m_als->start();
@@ -3550,7 +3551,7 @@ void DisplayManager::displayDim()
     backlightOn (b, 0, false);
 
     // update navi brightness
-    CoreNaviManager::instance()->updateBrightness (0);
+    // CoreNaviManager::instance()->updateBrightness (0);
 
     notifySubscribers (DISPLAY_EVENT_DIMMED);
 
@@ -3571,7 +3572,7 @@ void DisplayManager::displayOff()
     }
 
     touchPanelOff();
-    CoreNaviManager::instance()->updateBrightness (0);
+    // CoreNaviManager::instance()->updateBrightness (0);
 
     m_als->stop();
 

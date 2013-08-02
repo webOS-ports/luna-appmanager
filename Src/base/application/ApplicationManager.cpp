@@ -16,15 +16,11 @@
 *
 * LICENSE@@@ */
 
-
-
-
 #include "Common.h"
 
 #include <glib.h>
 
 #include "ApplicationManager.h"
-//MDK-LAUNCHER #include "DockPositionManager.h"
 #include "ApplicationDescription.h"
 #include "ApplicationStatus.h"
 #include "PackageDescription.h"
@@ -33,17 +29,14 @@
 #include "LaunchPoint.h"
 #include "MutexLocker.h"
 #include "Preferences.h"
-#include "WebAppMgrProxy.h"
+
 #include "Settings.h"
 #include "SystemService.h"
 #include "HostBase.h"
 #include "Utils.h"
-#include "WindowServer.h"
+
 #include "ApplicationInstaller.h"
 #include "EventReporter.h"
-#include "SystemUiController.h"
-#include "dimensionsmain.h"
-#include "WindowServerLuna.h"
 
 #if !(defined(TARGET_DESKTOP) || defined(TARGET_EMULATOR))
 // TODO:  Reactivate ServiceInstaller
@@ -81,15 +74,7 @@
 
 #include "Logging.h"
 
-#include "OverlayWindowManager.h"
-
-//LAUNCHER3-ADD:
-#include "appmonitor.h"
 #include <QProcess>
-//--end
-
-#define MESSAGES_INTERNAL_FILE "SysMgrMessagesInternal.h"
-#include <PIpcMessageMacros.h>
 
 static const char* sAppMgrChnl = "ApplicationManager";
 
@@ -395,7 +380,7 @@ void ApplicationManager::scan()
 			continue;
 		}
 		pRegAppDesc->executionLock();
-		WebAppMgrProxy::instance()->sendAsyncMessage(new View_Mgr_KillApp(pAppDesc->id()));
+        // WebAppMgrProxy::instance()->sendAsyncMessage(new View_Mgr_KillApp(pAppDesc->id()));
 
 		//now update the app descriptor for this app
 		pRegAppDesc->update(*pAppDesc);
@@ -417,7 +402,7 @@ void ApplicationManager::scan()
 		pAppDesc = *it;					//pAppDesc points to something in m_registeredApps
 		pAppDesc->executionLock();
 		pAppDesc->flagForRemoval();
-		WebAppMgrProxy::instance()->sendAsyncMessage(new View_Mgr_KillApp(pAppDesc->id()));
+        // WebAppMgrProxy::instance()->sendAsyncMessage(new View_Mgr_KillApp(pAppDesc->id()));
 		it++;
 	}
 
@@ -468,11 +453,11 @@ void ApplicationManager::scan()
 	}
 
 	//force caches to clear
-	WebAppMgrProxy::instance()->clearWebkitCache();
+    // WebAppMgrProxy::instance()->clearWebkitCache();
 
 	//force a repaint
 
-	WindowServer::instance()->update(0, 0,SystemUiController::instance()->currentUiWidth(),SystemUiController::instance()->currentUiHeight());
+    //WindowServer::instance()->update(0, 0,SystemUiController::instance()->currentUiWidth(),SystemUiController::instance()->currentUiHeight());
 }
 
 void ApplicationManager::postInstallScan(const std::string& appId) {
@@ -491,10 +476,10 @@ void ApplicationManager::postInstallScan(const std::string& appId) {
 	serviceInstallerInstallApp(appId, sServiceInstallerTypeApplication, Settings::LunaSettings()->appInstallBase);
 
 	//force caches to clear
-	WebAppMgrProxy::instance()->clearWebkitCache();
+    //WebAppMgrProxy::instance()->clearWebkitCache();
 
 	//force a repaint
-	WindowServer::instance()->update(0, 0, SystemUiController::instance()->currentUiWidth(),SystemUiController::instance()->currentUiHeight());
+    // WindowServer::instance()->update(0, 0, SystemUiController::instance()->currentUiWidth(),SystemUiController::instance()->currentUiHeight());
 }
 
 void ApplicationManager::postInstallScan(json_object * pPackageInfoJson, const std::string& packageFolder)
@@ -533,10 +518,10 @@ void ApplicationManager::postInstallScan(json_object * pPackageInfoJson, const s
 	createOrUpdatePackageManifest(packageDesc);
 
 	//force caches to clear
-	WebAppMgrProxy::instance()->clearWebkitCache();
+    // WebAppMgrProxy::instance()->clearWebkitCache();
 
 	//force a repaint
-	WindowServer::instance()->update(0, 0, SystemUiController::instance()->currentUiWidth(),SystemUiController::instance()->currentUiHeight());
+    // WindowServer::instance()->update(0, 0, SystemUiController::instance()->currentUiWidth(),SystemUiController::instance()->currentUiHeight());
 }
 
 ApplicationDescription* ApplicationManager::installSysApp(const std::string& appId)
@@ -612,7 +597,7 @@ ApplicationDescription* ApplicationManager::installApp(const std::string& appId)
 		g_message("(U)\t%s", newAppDesc->id().c_str());
 		std::vector<std::string> pidList;
 		existingAppDesc->executionLock();
-		WebAppMgrProxy::instance()->sendAsyncMessage(new View_Mgr_KillApp(newAppDesc->id()));
+        // WebAppMgrProxy::instance()->sendAsyncMessage(new View_Mgr_KillApp(newAppDesc->id()));
 
 		//now update the app descriptor for this app
 		g_message("%s: updating app descriptor: initial value: %s",__FUNCTION__,existingAppDesc->toString().c_str());
@@ -1911,7 +1896,7 @@ bool ApplicationManager::removeApp( const std::string& appId,int cause)
 			pAppDesc->flagForRemoval();	//not needed but it helps in debugging later, in case any of this fn fails
 			it = m_registeredApps.erase(it);
 
-			WebAppMgrProxy::instance()->sendAsyncMessage(new View_Mgr_KillApp(pAppDesc->id()));
+            // WebAppMgrProxy::instance()->sendAsyncMessage(new View_Mgr_KillApp(pAppDesc->id()));
 
 			pAppDesc->launchPoints(launchPoints);
 			for (LaunchPointList::iterator lpit = launchPoints.begin();lpit != launchPoints.end();lpit++) {
@@ -1977,7 +1962,7 @@ void ApplicationManager::launchBootTimeApps()
 		if (appsToLaunchAtBoot.find(app->id()) != appsToLaunchAtBoot.end()) {
 			luna_log(sAppMgrChnl, "Launching headless app: %s (%s)",
 					app->id().c_str(), app->entryPoint().c_str());
-			WebAppMgrProxy::instance()->launchBootTimeApp(app->id().c_str());
+            // WebAppMgrProxy::instance()->launchBootTimeApp(app->id().c_str());
 		}
 	}
 }
@@ -2656,7 +2641,8 @@ bool ApplicationManager::cbDownloadManagerUpdate (LSHandle* lshandle, LSMessage*
 		}
 		else if (!req->m_overrideHandlerAppId.empty()) {
 			g_warning ("%s:%d launching with overrideHandlerAppId %s target %s\n", __FILE__, __LINE__, req->m_overrideHandlerAppId.c_str(), target.c_str());
-			std::string processId = WebAppMgrProxy::instance()->appLaunch(req->m_overrideHandlerAppId, "{ \"target\" : \"" + target + "\" }", "", "", errMsg);
+            std::string processId;
+            // = WebAppMgrProxy::instance()->appLaunch(req->m_overrideHandlerAppId, "{ \"target\" : \"" + target + "\" }", "", "", errMsg);
 			if (processId.empty()) {
 				errMsg = "launching app " + req->m_overrideHandlerAppId + " on target " + target + " failed with msg " + errMsg;
 				goto in_error;
@@ -2677,7 +2663,7 @@ bool ApplicationManager::cbDownloadManagerUpdate (LSHandle* lshandle, LSMessage*
 				}
 			}
 			g_debug ("%s:%d launching with resource handler appid %s target %s\n", __FILE__, __LINE__, resourceHandler.appId().c_str(), target.c_str());
-			processId = WebAppMgrProxy::instance()->appLaunch(resourceHandler.appId(), " { \"target\" : \"" + target + "\" }","", "", errMsg);
+            // processId = WebAppMgrProxy::instance()->appLaunch(resourceHandler.appId(), " { \"target\" : \"" + target + "\" }","", "", errMsg);
 			if (processId.empty()) {
 				errMsg = "launching app " + resourceHandler.appId() + " on target " + target + " failed with msg " + errMsg;
 				goto in_error;
@@ -2867,7 +2853,7 @@ void ApplicationManager::executeLockAppLoaded(const std::string& appId,ExecuteLo
 			//exec lock
 			pAppDesc->executionLock();
 			//terminate all instances
-			WebAppMgrProxy::instance()->sendAsyncMessage(new View_Mgr_KillApp(pAppDesc->id()));
+            // WebAppMgrProxy::instance()->sendAsyncMessage(new View_Mgr_KillApp(pAppDesc->id()));
 		}
 		delete appmutex;
 		MutexLocker * m = new MutexLocker(&s_mutexExecLockFunctions);
@@ -2904,8 +2890,8 @@ void ApplicationManager::executeLockAppLoaded(const std::string& appId,ExecuteLo
 		}
 		delete appmutex;
 		//if this was a boot time app, re-launch it...
-		if (isLaunchAtBootApp(appId))
-			WebAppMgrProxy::instance()->launchBootTimeApp(appId.c_str());
+        //if (isLaunchAtBootApp(appId))
+        //	WebAppMgrProxy::instance()->launchBootTimeApp(appId.c_str());
 	}
 
 }
@@ -2949,7 +2935,7 @@ void ApplicationManager::slotBuiltInAppEntryPoint_DockMode(const std::string& ar
 	//FIXME: a bit round-about going through system ui controller - kind of like the inner workings "simulating" a user/ui event. Perhaps this can
 	//			be replaced with more direct logic
 
-	SystemUiController::instance()->enterOrExitDockModeUi(true);
+    //SystemUiController::instance()->enterOrExitDockModeUi(true);
 }
 
 void ApplicationManager::slotBuiltInAppEntryPoint_VoiceDial(const std::string& argsAsStringEncodedJson)

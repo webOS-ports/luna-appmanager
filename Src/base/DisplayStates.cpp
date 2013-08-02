@@ -21,15 +21,11 @@
 
 #include "Common.h"
 
-#include "AppDirectRenderingArbitrator.h"
 #include "HostBase.h"
-#include "CoreNaviManager.h"
 #include "DisplayStates.h"
 #include "DisplayManager.h"
-#include "WindowServer.h"
 #include "SystemService.h"
 #include "Preferences.h"
-#include "SystemUiController.h"
 #include "Time.h"
 
 #define DOCK_MODE_EXIT_TIMER 1000
@@ -239,13 +235,17 @@ int DisplayStateBase::getCurrentAlsRegion() {
 }
 
 void DisplayStateBase::enablePainting() {
+#if 0
     WindowServer::instance()->setPaintingDisabled (false);
 	AppDirectRenderingArbitrator::resume();
+#endif
 }
 
 void DisplayStateBase::disablePainting() {
+#if 0
     WindowServer::instance()->setPaintingDisabled (true);
 	AppDirectRenderingArbitrator::suspend();
+#endif
 }
 
 void DisplayStateBase::emitDisplayStateChange(int displaySignal)
@@ -881,12 +881,13 @@ bool DisplayOn::timeoutUser()
     uint32_t now = Time::curTimeMs();
     g_debug ("%s: now=%i last=%i diff=%i", __PRETTY_FUNCTION__, now, lastEvent(), now - lastEvent());
 
+#if 0
     // check for brick mode
     if (SystemService::instance()->brickMode() || 
 	    !SystemUiController::instance()->bootFinished() || 
 	    WindowServer::instance()->progressRunning())
 	return false;
-
+#endif
 
     if (dimTimeout() == 0 && offTimeout() == 0)
 	return false;
@@ -919,11 +920,13 @@ bool DisplayOn::timeoutInternal()
     uint32_t now = Time::curTimeMs();
     g_debug ("%s: now=%i last=%i diff=%i", __PRETTY_FUNCTION__, now, lastEvent(), now - lastEvent());
 
+#if 0
     // check for brick mode
     if (SystemService::instance()->brickMode() || 
 	    !SystemUiController::instance()->bootFinished() || 
 	    WindowServer::instance()->progressRunning())
 	return false;
+#endif
 
     if (isDNAST())
 	return false;
@@ -1126,11 +1129,13 @@ bool DisplayOnLocked::timeout()
     uint32_t now = Time::curTimeMs();
     g_debug ("%s: now=%i last=%i diff=%i", __FUNCTION__, now, lastEvent(), now - lastEvent());
 
+#if 0
     // check for brick mode
     if (SystemService::instance()->brickMode() || 
 	    !SystemUiController::instance()->bootFinished() || 
 	    WindowServer::instance()->progressRunning())
 	return false;
+#endif
 
 
     if (dimTimeout() == 0 && offTimeout() == 0)
@@ -1290,7 +1295,7 @@ void DisplayOnLocked::leave (DisplayState newState, DisplayEvent displayEvent, s
     if (displayEvent == DisplayEventPowerKeyPress || displayEvent == DisplayEventUnlockScreen)
     {
         g_warning ("%s: display event is %d (power key press / unlock screen), clearing throbber requests", __PRETTY_FUNCTION__, displayEvent);
-        CoreNaviManager::instance()->clearAllStandbyRequests();
+        // CoreNaviManager::instance()->clearAllStandbyRequests();
     }
 
 }
@@ -1331,11 +1336,13 @@ bool DisplayDim::timeout()
     uint32_t now = Time::curTimeMs();
     g_debug ("%s: now=%i last=%i diff=%i", __FUNCTION__, now, lastEvent(), now - lastEvent());
 
+#if 0
     // check for brick mode
     if (SystemService::instance()->brickMode() || 
 	    !SystemUiController::instance()->bootFinished() || 
 	    WindowServer::instance()->progressRunning())
 	return false;
+#endif
 
 
     if (dimTimeout() == 0 && offTimeout() == 0)
@@ -1590,11 +1597,13 @@ bool DisplayOnPuck::timeout()
     uint32_t now = Time::curTimeMs();
     g_debug ("%s: now=%i last=%i diff=%i", __FUNCTION__, now, lastEvent(), now - lastEvent());
 
+#if 0
     // check for brick mode
     if (SystemService::instance()->brickMode() || 
 	    !SystemUiController::instance()->bootFinished() || 
 	    WindowServer::instance()->progressRunning())
 	return false;
+#endif
 
 
     if (dimTimeout() == 0 && offTimeout() == 0)

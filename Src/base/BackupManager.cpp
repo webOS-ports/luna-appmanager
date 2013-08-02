@@ -29,9 +29,6 @@
 #include "Logging.h"
 #include <cjson/json.h>
 
-//for launcher3 saving
-#include "pagesaver.h"
-
 /* BackupManager implementation is based on the API documented at https://wiki.palm.com/display/ServicesEngineering/Backup+and+Restore+2.0+API
  * On the LunaSysMgr side, this backs up launcher, quick launch and dock mode settings
  */
@@ -136,21 +133,21 @@ void BackupManager::initFilesForBackup()
 		if (g_file_test(Settings::LunaSettings()->dockModeUserPositions.c_str(), G_FILE_TEST_EXISTS))
 			m_backupFiles.push_back (Settings::LunaSettings()->dockModeUserPositions.c_str());
 
-		QList<QString> fileList;
+//		QList<QString> fileList;
 
-		DimensionsSystemInterface::PageSaver::filesForBackup(&fileList);
-		for (QList<QString>::const_iterator file_it = fileList.constBegin();
-				file_it != fileList.constEnd();file_it++)
-		{
-			if (!(file_it->isEmpty()))
-			{
-				if (g_file_test(file_it->toUtf8().constData(), G_FILE_TEST_EXISTS))
-				{
-					m_backupFiles.push_back(file_it->toUtf8().constData());
-					g_message("%s: backing up signalled file: %s",__FUNCTION__,file_it->toUtf8().constData());
-				}
-			}
-		}
+//		DimensionsSystemInterface::PageSaver::filesForBackup(&fileList);
+//		for (QList<QString>::const_iterator file_it = fileList.constBegin();
+//				file_it != fileList.constEnd();file_it++)
+//		{
+//			if (!(file_it->isEmpty()))
+//			{
+//				if (g_file_test(file_it->toUtf8().constData(), G_FILE_TEST_EXISTS))
+//				{
+//					m_backupFiles.push_back(file_it->toUtf8().constData());
+//					g_message("%s: backing up signalled file: %s",__FUNCTION__,file_it->toUtf8().constData());
+//				}
+//			}
+//		}
     }
     else
     {

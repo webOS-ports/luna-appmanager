@@ -23,10 +23,8 @@
 #include "ApplicationInstallerErrors.h"
 #include "ApplicationManager.h"
 #include "EventReporter.h"
-#include "WebAppMgrProxy.h"
 #include "ApplicationDescription.h"
 
-#include "BootupAnimation.h"
 #include "HostBase.h"
 #include "JSONUtils.h"
 #include "Logging.h"
@@ -38,7 +36,6 @@
 #undef min
 #undef max
 #include "Utils.h"
-#include "WebAppMgrProxy.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,11 +57,6 @@
 #include <algorithm>
 
 #include <QUrl>
-
-#include <PIpcChannel.h>
-
-#define MESSAGES_INTERNAL_FILE "SysMgrMessagesInternal.h"
-#include <PIpcMessageMacros.h>
 
 #include "PackageDescription.h"
 
@@ -675,7 +667,7 @@ int ApplicationInstaller::lunasvcRemove(RemoveParams *removeParams)
 		util_deleteJail(packageName.c_str());
 
 		// REMOVE THE APP'S DATABASES
-		WebAppMgrProxy::instance()->sendAsyncMessage(new View_Mgr_DeleteHTML5Database(appDesc->entryPoint()));
+        // WebAppMgrProxy::instance()->sendAsyncMessage(new View_Mgr_DeleteHTML5Database(appDesc->entryPoint()));
 	}
 	
 	std::string packageFolderPath = packageBasePath+std::string("/")+Settings::LunaSettings()->packageInstallRelative+std::string("/")+packageName;
@@ -4300,11 +4292,11 @@ void ApplicationInstaller::closeApp(const std::string& appId)
 	if (appId.empty())
 		return;
 
-	if (WebAppMgrProxy::instance()->connected() == false)
-		return;			//WebKit not initialized yet
+//	if (WebAppMgrProxy::instance()->connected() == false)
+//		return;			//WebKit not initialized yet
 
 	bool ret = false;
 	
-	WebAppMgrProxy::instance()->getIpcChannel()->sendSyncMessage(
-		new View_Mgr_SyncKillApp(appId, &ret));
+//	WebAppMgrProxy::instance()->getIpcChannel()->sendSyncMessage(
+//		new View_Mgr_SyncKillApp(appId, &ret));
 }

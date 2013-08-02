@@ -22,7 +22,6 @@
 #include "Common.h"
 
 #include "SuspendBlocker.h"
-#include "DisplayManager.h"
 
 #include <pthread.h>
 #include <string.h>

@@ -29,14 +29,11 @@
 #include "HostBase.h"
 #include "ApplicationDescription.h"
 #include "ApplicationManager.h"
-#include "BootupAnimation.h"
 #include "CpuAffinity.h"
-//MDK-LAUNCHER #include "DockPositionManager.h"
 #include "HapticsController.h"
-#include "IpcServer.h"
 #include "Localization.h"
-#include "WindowServer.h"
-#include "WebAppMgrProxy.h"
+
+
 #include "MemoryMonitor.h"
 #include "Settings.h"
 #include "SystemService.h"
@@ -49,10 +46,6 @@
 #include "BackupManager.h"
 
 #include <ProcessKiller.h>
-
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-#include "MouseEventEater.h"
-#endif
 
 #include <sys/time.h>
 #include <sys/resource.h>
