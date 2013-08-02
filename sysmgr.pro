@@ -34,58 +34,16 @@ CONFIG += link_pkgconfig
 PKGCONFIG = glib-2.0 gthread-2.0 LunaSysMgrIpc LunaSysMgrCommon
 
 QT = core gui network
-
 QT += declarative
 
 VPATH = \
-		./Src \
-		./Src/base \
-		./Src/base/application \
-		./Src/base/visual \
-		./Src/base/gesture \
-		./Src/base/windowdata \
-		./Src/base/settings \
-		./Src/core \
-		./Src/sound \
-		./Src/lunaui \
-        ./Src/lunaui/cards \
-        ./Src/lunaui/notifications \
-        ./Src/lunaui/emergency \
-        ./Src/lunaui/lockscreen \
-        ./Src/lunaui/dock \
-		./Src/minimalui \
-		./Src/remote \
-		./Src/lunaui/status-bar \
-        ./Src/ime \
-        ./Src/nyx
-
-####### LAUNCHER ADDITIONS ########
-VPATH += ./Src/lunaui/launcher
-VPATH += ./Src/lunaui/launcher/gfx
-VPATH += ./Src/lunaui/launcher/gfx/debug
-VPATH += ./Src/lunaui/launcher/gfx/pixmapobject
-VPATH += ./Src/lunaui/launcher/gfx/effects
-VPATH += ./Src/lunaui/launcher/gfx/processors
-VPATH += ./Src/lunaui/launcher/physics
-VPATH += ./Src/lunaui/launcher/physics/motion
-VPATH += ./Src/lunaui/launcher/elements
-VPATH += ./Src/lunaui/launcher/elements/page
-VPATH += ./Src/lunaui/launcher/elements/page/icon_layouts
-VPATH += ./Src/lunaui/launcher/elements/bars
-VPATH += ./Src/lunaui/launcher/elements/icons
-VPATH += ./Src/lunaui/launcher/elements/util
-VPATH += ./Src/lunaui/launcher/elements/static
-VPATH += ./Src/lunaui/launcher/elements/buttons
-VPATH += ./Src/lunaui/launcher/systeminterface
-VPATH += ./Src/lunaui/launcher/systeminterface/util
-VPATH += ./Src/lunaui/launcher/util
-VPATH += ./Src/lunaui/launcher/test
-
-####### LAUNCHER ADDITIONS ########
+    ./Src \
+    ./Src/base \
+    ./Src/base/application \
+    ./Src/base/settings \
+    ./Src/core
 
 INCLUDEPATH = $$VPATH
-
-DEFINES += QT_WEBOS
 
 # For shipping version of the code, as opposed to a development build. Set this to 1 late in the process...
 DEFINES += SHIPPING_VERSION=0
@@ -106,445 +64,73 @@ DEFINES += SHIPPING_VERSION=0
 # DEFINES += QT_USE_FAST_OPERATOR_PLUS
 
 SOURCES = \
-	MallocHooks.cpp \
-	CpuAffinity.cpp \
-	KeywordMap.cpp \
-	Window.cpp \
-	ActiveCallBanner.cpp \
-	BannerMessageEventFactory.cpp \
-	ApplicationDescription.cpp \
-	LaunchPoint.cpp \
-	ApplicationManager.cpp \
-	CmdResourceHandlers.cpp \
-	ApplicationManagerService.cpp \
-	ApplicationInstaller.cpp \
-	WindowManagerBase.cpp \
-	WindowServer.cpp \
-	FpsHistory.cpp \
-	TouchPlot.cpp \
-	WindowServerLuna.cpp \
-	WindowServerMinimal.cpp \
-	WindowManagerMinimal.cpp \
-	MetaKeyManager.cpp \
-	DisplayManager.cpp \
-	DisplayStates.cpp \
-	AmbientLightSensor.cpp \
-	InputManager.cpp \
-	EventReporter.cpp \
-	SystemUiController.cpp \
-	BannerMessageHandler.cpp \
-	Main.cpp \
-#	JsSysObjectAnimationRunner.cpp \
-	SystemService.cpp \
-	EventThrottler.cpp \
-	EventThrottlerIme.cpp \
-	HapticsController.cpp \
-	Preferences.cpp \
-	NotificationPolicy.cpp \
-	PersistentWindowCache.cpp \
-#	WindowContentTransitionRunner.cpp \
-	RoundedCorners.cpp \
-	CoreNaviManager.cpp \
-	CoreNaviLeds.cpp \
-	DeviceInfo.cpp \
-	Security.cpp \
-	EASPolicyManager.cpp \
-	AnimationSettings.cpp \
-	MimeSystem.cpp \
-	IpcServer.cpp \
-	IpcClientHost.cpp \
-	WebAppMgrProxy.cpp\
-	SuspendBlocker.cpp \
-	ApplicationStatus.cpp \
-	FullEraseConfirmationWindow.cpp \
-	SoundPlayerPool.cpp \
-	HostWindow.cpp \
-	HostWindowData.cpp \
-	HostWindowDataSoftware.cpp \
-	AlertWindow.cpp \
-	CardWindow.cpp \
-	DashboardWindow.cpp \
-	MenuWindow.cpp \
-	CardLoading.cpp \
-	NativeAlertManager.cpp \
-	EmergencyWindowManager.cpp \
-	VolumeControlAlertWindow.cpp \
-	ReticleItem.cpp \
-	TouchToShareGlow.cpp \
-	CardWindowManager.cpp \
-	OverlayWindowManager.cpp\
-	QuicklaunchLayout.cpp \
-	MemoryMonitor.cpp \
-	MenuWindowManager.cpp \
-	DashboardWindowManager.cpp \
-	GraphicsItemContainer.cpp \
-	CardWindowManagerStates.cpp \
-	DashboardWindowManagerStates.cpp \
-	DashboardWindowContainer.cpp \
-	BannerWindow.cpp \
-	TopLevelWindowManager.cpp \
-	ClockWindow.cpp \
-	LockWindow.cpp \
-	DockModeWindowManager.cpp \
-	DockModeWindow.cpp \
-	DockModeLaunchPoint.cpp \
-	DockModePositionManager.cpp \
-	DockModeAppMenuContainer.cpp \
-	DockModeClock.cpp \
-        DockModeMenuManager.cpp \
-	CardDropShadowEffect.cpp \
-	CardGroup.cpp \
-	SingleClickGestureRecognizer.cpp \
-#	BootupAnimation.cpp \
-	ProgressAnimation.cpp \
-	CardHostWindow.cpp \
-	KineticScroller.cpp \
-	PackageDescription.cpp \
-	ServiceDescription.cpp \
-	AppDirectRenderingArbitrator.cpp \
-	StatusBar.cpp \
-	StatusBarClock.cpp \
-	StatusBarBattery.cpp \
-	StatusBarTitle.cpp \
-	StatusBarServicesConnector.cpp \
-	StatusBarIcon.cpp \
-	StatusBarInfo.cpp \
-	StatusBarItemGroup.cpp \
-	StatusBarNotificationArea.cpp \
-	SystemMenu.cpp \
-	BtDeviceClass.cpp \
-	IMEManager.cpp \
-	InputWindowManager.cpp \
-	IMEView.cpp \ 
-	SysmgrIMEDataInterface.cpp \
-	IMEController.cpp \
-	KeyLocationRecorder.cpp \
-    VirtualKeyboardPreferences.cpp \
-    GhostCard.cpp \
-    WSOverlayScreenShotAnimation.cpp \
-    InputClient.cpp \
-	QmlAlertWindow.cpp \
-    QtHostWindow.cpp \
-    UiNavigationController.cpp \
+    AmbientLightSensor.cpp \
+    AnimationSettings.cpp \
+    ApplicationDescription.cpp \
+    ApplicationInstaller.cpp \
+    ApplicationManager.cpp \
+    ApplicationManagerService.cpp \
+    ApplicationStatus.cpp \
     BackupManager.cpp \
+    CmdResourceHandlers.cpp \
+    CpuAffinity.cpp \
+    DeviceInfo.cpp \
+    DisplayManager.cpp \
+    DisplayStates.cpp \
+    EASPolicyManager.cpp \
+    EventReporter.cpp \
+    HapticsController.cpp \
+    JSONUtils.cpp \
+    KeywordMap.cpp \
+    LaunchPoint.cpp \
+    Logging.cpp \
     LsmUtils.cpp \
-    WebosTapGestureRecognizer.cpp \
-    WebosTapAndHoldGestureRecognizer.cpp \
-    FlickGestureRecognizer.cpp \
-    ScreenEdgeFlickGestureRecognizer.cpp
-
-
+    Main.cpp \
+    MallocHooks.cpp \
+    MemoryMonitor.cpp \
+    MetaKeyManager.cpp \
+    MimeSystem.cpp \
+    PackageDescription.cpp \
+    Preferences.cpp \
+    Security.cpp \
+    ServiceDescription.cpp \
+    Settings.cpp \
+    SuspendBlocker.cpp \
+    SystemService.cpp
 
 HEADERS = \
-	AmbientLightSensor.h \
-	AnimationSettings.h \
-	ApplicationDescription.h \
-	ApplicationInstallerErrors.h \
-	ApplicationInstaller.h \
-	ApplicationManager.h \
-	ApplicationStatus.h \
-	CmdResourceHandlers.h \
-	CoreNaviLeds.h \
-	CoreNaviManager.h \
-	DeviceInfo.h \
-	DisplayManager.h \
-	DisplayStates.h \
-	EASPolicyManager.h \
-	EventReporter.h \
-	EventThrottler.h \
-	EventThrottlerIme.h \
-	HapticsController.h \
-	HostWindow.h \
-	HostWindowData.h \
-	HostWindowDataSoftware.h \
-	InputManager.h \
-	LaunchPoint.h \
-	MetaKeyManager.h \
-	MimeSystem.h \
-	Preferences.h \
-	RoundedCorners.h \
-	Security.h \
-	SuspendBlocker.h \
-	SystemService.h \
-	SystemUiController.h \
-	Window.h \
-	WindowManagerBase.h \
-	WindowServer.h \
-	TouchPlot.h \
-	AnimationEquations.h \
-	GraphicsDefs.h \
-	PtrArray.h \
-#	JsSysObjectAnimationRunner.h \
-	ActiveCallBanner.h \
-	BannerMessageEventFactory.h \
-	BannerMessageHandler.h \
-	FullEraseConfirmationWindow.h \
-	NotificationPolicy.h \
-	PersistentWindowCache.h \
-#	WindowContentTransitionRunner.h \
-	WindowServerLuna.h \
-	WindowManagerMinimal.h \
-	WindowServerMinimal.h \
-	IpcClientHost.h \
-	IpcServer.h \
-	WebAppMgrProxy.h \
-	SoundPlayer.h \
-	SoundPlayerPool.h \
-	AlertWindow.h \
-	CardWindow.h \
-	DashboardWindow.h \
-	MenuWindow.h \
-	CardLoading.h \
-	NativeAlertManager.h \
-	EmergencyWindowManager.h \
-	VolumeControlAlertWindow.h \
-	ReticleItem.h \
-	TouchToShareGlow.h \
-	CardWindowManager.h \
-	OverlayWindowManager.h \
-	OverlayWindowManager_p.h \
-	QuicklaunchLayout.h \
-	MemoryMonitor.h \
-	MenuWindowManager.h \
-	DashboardWindowManager.h \
-	GraphicsItemContainer.h \
-	CardWindowManagerStates.h \
-	DashboardWindowManagerStates.h \
-	DashboardWindowContainer.h \
-	BannerWindow.h \
-	TopLevelWindowManager.h \
-	ClockWindow.h \
-	LockWindow.h \
-	DockModeWindowManager.h \
-	DockModeWindow.h \
-	DockModeLaunchPoint.h \
-	DockModePositionManager.h \
-	DockModeAppMenuContainer.h \
-	DockModeClock.h \
-	DockModeMenuManager.h \
-	CardDropShadowEffect.h \
-	CardGroup.h \
-	SingleClickGestureRecognizer.h \
-	SingleClickGesture.h \
-#	BootupAnimation.h \
-	ProgressAnimation.h \
-	CardHostWindow.h \
-	KineticScroller.h \
-	PackageDescription.h \
-	ServiceDescription.h \
-	AppDirectRenderingArbitrator.h \
-	StatusBar.h \
-	StatusBarClock.h \
-	StatusBarBattery.h \
-	StatusBarTitle.h \
-	StatusBarServicesConnector.h \
-	StatusBarIcon.h \
-	StatusBarInfo.h \
-	StatusBarItem.h \
-	StatusBarItemGroup.h \
-	StatusBarNotificationArea.h \
-	SystemMenu.h \
-	BtDeviceClass.h \
-	IMEManager.h \
-	InputWindowManager.h \
-	IMEView.h \
-	SysmgrIMEDataInterface.h \
-	IMEController.h \
-	KeyLocationRecorder.h \
-    VirtualKeyboardPreferences.h \
-    GhostCard.h \
-    WSOverlayScreenShotAnimation.h \
-    InputClient.h \
-    CardSmoothEdgeShaderStage.h \
-    CardRoundedCornerShaderStage.h \
-	QmlAlertWindow.h \
-    QtHostWindow.h \
+    AmbientLightSensor.h \
+    AnimationEquations.h \
+    AnimationSettings.h \
+    ApplicationDescription.h \
+    ApplicationInstallerErrors.h \
+    ApplicationInstaller.h \
+    ApplicationManager.h \
+    ApplicationStatus.h \
     BackupManager.h \
-    UiNavigationController.h \
+    CircularBuffer.h \
+    CmdResourceHandlers.h \
+    CpuAffinity.h \
+    DeviceInfo.h \
+    DisplayManager.h \
+    DIsplayStates.h \
+    EASPolicyManager.h \
+    EventReporter.h \
+    GraphicsDefs.h \
+    HapticsController.h \
+    LaunchPoint.h \
     LsmUtils.h \
-    WebosTapGestureRecognizer.h \
-    WebosTapAndHoldGestureRecognizer.h \
-    FlickGestureRecognizer.h \
-    FlickGesture.h \
-    ScreenEdgeFlickGesture.h \
-    WebosTapAndHoldGesture.h \
-    ScreenEdgeFlickGestureRecognizer.h \
-    FlickEvent.h \
-    QmlInputItem.h
-
-contains(QT_VERSION, "^5.*") {
-    HEADERS += MouseEventEater.h
-}
-
-####### LAUNCHER ADDITIONS ########
-
-SOURCES += dimensionsmain.cpp \
-			dimensionslauncher.cpp \
-			quicklaunchbar.cpp \
-			page.cpp \
-			pagemovement.cpp \
-			thing.cpp \
-			thingpaintable.cpp \
-			layoutitem.cpp \
-			dimensionsglobal.cpp \
-			debugglobal.cpp \
-			groupanchoritem.cpp \
-			layoutsettings.cpp \
-			operationalsettings.cpp \
-			dynamicssettings.cpp \
-			pixmapobject.cpp \
-			pixmap9tileobject.cpp \
-			pixmap3htileobject.cpp \
-			pixmap3vtileobject.cpp \
-			pixmaphugeobject.cpp \
-			pixmapjupocobject.cpp \
-			pixmapjupocrefobject.cpp \
-			pixmapfilmstripobject.cpp \
-			pixpager.cpp \
-			gfxsettings.cpp \
-			pixpagerdebugger.cpp \
-			sysmgrdebuggerservice.cpp \
-			qtjsonabstract.cpp \
-			renderedlabel.cpp \
-			scrollableobject.cpp \
-			scrollingsurface.cpp \
-			scrollinglayoutrenderer.cpp \
-			variableanimsignaltransition.cpp \
-			linearmotiontransform.cpp \
-			frictiontransform.cpp \
-			pagetabbar.cpp \
-			pagetab.cpp \
-			icon.cpp \
-			iconcmdevents.cpp \
-			icondecorator.cpp \
-			iconlayout.cpp \
-			alphabeticonlayout.cpp \
-			alphabetpage.cpp \
-			reorderableiconlayout.cpp \
-			reorderablepage.cpp \
-			iconreorderanimation.cpp \
-			iconlayoutsettings.cpp \
-			icongeometrysettings.cpp \
-			staticelementsettings.cpp \
-			pixmaploader.cpp \
-			gfxeffectbase.cpp \
-			gfxsepiaeffect.cpp \
-			pixbutton.cpp \
-			labeledbutton.cpp \
-			colorroundrectbutton.cpp \
-			pixbuttonsimple.cpp \
-			pixbutton2state.cpp \
-			horizontaldivider.cpp \
-			horizontallabeleddivider.cpp \
-			testiconfactory.cpp \
-			dotgrid.cpp \
-			externalapp.cpp \
-			webosapp.cpp \
-			appmonitor.cpp \
-			iconheap.cpp \
-			stringtranslator.cpp \
-			appeffector.cpp \
-			pagesaver.cpp \
-			pagerestore.cpp \
-			filenames.cpp \
-			blacklist.cpp \
-			staticmatchlist.cpp \
-			textbox.cpp \
-			picturebox.cpp \
-			conditionalsignaltransition.cpp \
-			propertysettingsignaltransition.cpp \
-			timedelaytransition.cpp \
-			vcamera.cpp \
-			expblur.cpp \
-			overlaylayer.cpp \
-			safefileops.cpp
-			
-HEADERS += dimensionsmain.h \
-			dimensionslauncher.h \
-			quicklaunchbar.h \
-			dimensionstypes.h \
-			renderopts.h \
-			page.h \
-			pagemovement.h \
-			thing.h \
-			thingpaintable.h \
-			layoutitem.h \
-			dimensionsglobal.h \
-			debugglobal.h \
-			groupanchoritem.h \
-			layoutsettings.h \
-			operationalsettings.h \
-			dynamicssettings.h \
-			pixmapobject.h \
-			pixmap9tileobject.h \
-			pixmap3htileobject.h \
-			pixmap3vtileobject.h \
-			pixmaphugeobject.h \
-			pixmapjupocobject.h \
-			pixmapjupocrefobject.h \
-			pixmapfilmstripobject.h \
-			pixpager.h \
-			gfxsettings.h \
-			pixpagerdebugger.h \
-			sysmgrdebuggerservice.h \
-			qtjsonabstract.h \
-			renderedlabel.h \
-			scrollableobject.h \
-			scrollingsurface.h \
-			scrollinglayoutrenderer.h \
-			variableanimsignaltransition.h \
-			linearmotiontransform.h \
-			frictiontransform.h \
-			pagetabbar.h \
-			pagetab.h \
-			icon.h \
-			iconcmdevents.h \
-			icondecorator.h \
-			iconlayout.h \
-			alphabeticonlayout.h \
-			alphabetpage.h \
-			reorderableiconlayout.h \
-			reorderablepage.h \
-			iconreorderanimation.h \
-			iconlayoutsettings.h \
-			icongeometrysettings.h \
-			staticelementsettings.h \
-			pixmaploader.h \
-			gfxeffectbase.h \
-			gfxsepiaeffect.h \
-			pixbutton.h \
-			labeledbutton.h \
-			colorroundrectbutton.h \
-			pixbuttonsimple.h \
-			pixbutton2state.h \
-			horizontaldivider.h \
-			horizontallabeleddivider.h \
-			testiconfactory.h \
-			dotgrid.h \
-			externalapp.h \
-			webosapp.h \
-			appmonitor.h \
-			iconheap.h \
-			stringtranslator.h \
-			appeffector.h \
-			pagesaver.h \
-			pagerestore.h \
-			filenames.h \
-			blacklist.h \
-			filterlist.h \
-			staticmatchlist.h \
-			textbox.h \
-			picturebox.h \
-			conditionalsignaltransition.h \
-			propertysettingsignaltransition.h \
-			timedelaytransition.h \
-			vcamera.h \
-			expblur.h \
-			overlaylayer.h \
-			safefileops.h
-			
-####### LAUNCHER ADDITIONS ########
-
+    MemoryMonitor.h \
+    MetaKeyManager.h \
+    MimeSystem.h \
+    PackageDescription.h \
+    Preferences.h \
+    PtrArray.h \
+    Security.h \
+    ServiceDescription.h \
+    SharedGlobalProperties.h \
+    SuspendBlocker.h \
+    SystemService.h
 
 QMAKE_CXXFLAGS += -fno-rtti -fno-exceptions -fvisibility=hidden -fvisibility-inlines-hidden -Wall -fpermissive
 QMAKE_CXXFLAGS += -DFIX_FOR_QT
@@ -574,53 +160,8 @@ linux-g++ {
     }
 }
 
-HEADERS += $${STAGING_INCLUDE_DIR}/ime/IMEData.h \
-    $${STAGING_INCLUDE_DIR}/ime/IMEDataInterface.h
-
-contains(CONFIG_BUILD, opengl) {
-	QT += opengl
-	DEFINES += HAVE_OPENGL
-	DEFINES += P_BACKEND=P_BACKEND_SOFT
-
-	contains(CONFIG_BUILD, texturesharing) {
-		DEFINES += HAVE_TEXTURESHARING OPENGLCOMPOSITED
-		SOURCES += HostWindowDataOpenGLTextureShared.cpp
-		HEADERS += HostWindowDataOpenGLTextureShared.h
-                #LIBS += -lnapp -lnrwindow
-	} else {
-		contains(CONFIG_BUILD, openglcomposited) {
-			DEFINES += OPENGLCOMPOSITED
-		}
-	
-   		SOURCES += HostWindowDataOpenGL.cpp
-
-   		HEADERS += HostWindowDataOpenGL.h
-	}
-}
-else {
-	DEFINES += P_BACKEND=P_BACKEND_SOFT
-}
-
-contains(CONFIG_BUILD, fb1poweroptimization) {
-	DEFINES += FB1_POWER_OPTIMIZATION=1
-}
-
-contains(CONFIG_BUILD, directrendering) {
-	DEFINES += DIRECT_RENDERING=1
-}
-
 contains(CONFIG_BUILD, haptics) {
-	DEFINES += HAPTICS=1
-}
-
-contains(CONFIG_BUILD, mediaapi) {
-    SOURCES += SoundPlayer.cpp
-    HEADERS += SoundPlayer.h
-    LIBS += -lmedia-api
-    DEFINES += HAS_MEDIA_API
-} else {
-    SOURCES += SoundPlayerDummy.cpp
-    HEADERS += SoundPlayerDummy.h
+    DEFINES += HAPTICS=1
 }
 
 contains(CONFIG_BUILD, nyx) {
@@ -630,22 +171,6 @@ contains(CONFIG_BUILD, nyx) {
 contains(CONFIG_BUILD, memchute) {
     LIBS += -lmemchute
     DEFINES += HAS_MEMCHUTE
-}
-
-contains(CONFIG_BUILD, hidlib) {
-    INCLUDEPATH += $$(STAGING_INCDIR)/hid/IncsPublic
-    LIBS += -lhid
-    DEFINES += HAS_HIDLIB
-}
-
-contains(CONFIG_BUILD, affinity) {
-    LIBS += -laffinity
-    DEFINES += HAS_AFFINITY
-}
-
-contains(CONFIG_BUILD, napp) {
-    INCLUDEPATH += $$(STAGING_INCDIR)/napp
-    DEFINES += HAS_NAPP
 }
 
 DESTDIR = ./$${BUILD_TYPE}-$${MACHINE_NAME}
