@@ -44,6 +44,7 @@
 #include "EASPolicyManager.h"
 #include "Logging.h"
 #include "BackupManager.h"
+#include "DisplayManager.h"
 
 #include <ProcessKiller.h>
 
@@ -775,6 +776,9 @@ int main( int argc, char** argv)
 
 	// load all set policies
 	EASPolicyManager::instance()->load();
+
+	// Initialize our display manager
+	new DisplayManager();
 
 	app.exec();
 
