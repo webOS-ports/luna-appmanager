@@ -85,20 +85,11 @@ struct cmptitle {
 };
 typedef std::set<const LaunchPoint*,cmptitle> SearchSet;
 
-namespace DimensionsSystemInterface
-{
-class AppEffector;
-}
-
 class ApplicationManager : public QObject
 {
 	Q_OBJECT
 
 public:
-
-	//LAUNCHER3-ADDED:  TEMP: need a better way to send LS messages but for now, just letting AppEffector in
-	//					launcher have access to the service handle in here (with the proper precautions)
-	friend class DimensionsSystemInterface::AppEffector;
 
 	typedef std::vector<const LaunchPoint *> LaunchPointCollection;
 
