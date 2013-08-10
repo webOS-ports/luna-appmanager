@@ -45,6 +45,7 @@
 #include "Logging.h"
 #include "BackupManager.h"
 #include "DisplayManager.h"
+#include "EventReporter.h"
 
 #include <ProcessKiller.h>
 
@@ -740,6 +741,10 @@ int main( int argc, char** argv)
 
 	QCoreApplication app(argc, argv);
 
+	// We need this to start up services and input controls provided by the host
+	// implementation
+	host->show();
+
 	initMallocStatsCb(HostBase::instance()->mainLoop(), s_mallocStatsInterval);
 
 	// Initialize Preferences handler
@@ -770,6 +775,9 @@ int main( int argc, char** argv)
 
 	// Initialize the Application Installer
 	ApplicationInstaller::instance();
+
+	// Initialize the Event Reporter
+	EventReporter::init(host->mainLoop());
 
 	// Initialize the SysMgr MemoryMonitor
 	MemoryMonitor::instance();
