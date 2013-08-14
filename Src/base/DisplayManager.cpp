@@ -3139,6 +3139,7 @@ bool DisplayManager::handleEvent(QEvent *event)
 
     // pass the ringer and banner messages, no effect on display state at all
     // also the "media" keys from headset and avrcp
+#if 0
 // QT5_TODO: Qt::ExternalKeyboardModifier not present in Qt5
 #if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
     if (keyEvent && !(keyEvent->modifiers() & Qt::ExternalKeyboardModifier) &&
@@ -3165,6 +3166,7 @@ bool DisplayManager::handleEvent(QEvent *event)
             KEYS::Key_HeadsetMic == keyEvent->key())) {
         return false;
     }
+#endif
 
     // Always allow a mouse cancel event to go through
 #if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
@@ -3189,6 +3191,7 @@ bool DisplayManager::handleEvent(QEvent *event)
 		return true;
 	}
 
+#if 0
     if (keyEvent && KEYS::Key_Optical == keyEvent->key()) {
 		if (keyEvent->type() == QEvent::KeyRelease) {
             g_debug("%s: optical up", __PRETTY_FUNCTION__);
@@ -3227,6 +3230,7 @@ bool DisplayManager::handleEvent(QEvent *event)
 		}
 		return false;
 	}
+#endif
 
     if (event->type() == proximityEventType) {
     	ProximityEvent *proximityEvent = static_cast<ProximityEvent*>(event);
@@ -3266,6 +3270,7 @@ bool DisplayManager::handleEvent(QEvent *event)
         return true;
     }
 
+#if 0
     if (event->type() == QEvent::MouseButtonPress || (keyEvent && keyEvent->type() == QEvent::KeyRelease && keyEvent->key() == KEYS::Key_CoreNavi_QuickLaunch)) {
         m_penDown = true;
 //        if(m_blockId && event->id > m_blockId) {
@@ -3274,7 +3279,9 @@ bool DisplayManager::handleEvent(QEvent *event)
     } else if (event->type() == QEvent::MouseButtonRelease) {
         m_penDown = false;
     }
+#endif
 
+#if 0
     // if the display is off drop the following events
     if (currentState() == DisplayStateOff || currentState() == DisplayStateOffOnCall) {
 	    // drop the gestures
@@ -3311,7 +3318,9 @@ bool DisplayManager::handleEvent(QEvent *event)
 	    }
 	    return false;
     }
+#endif
 
+#if 0
 // QT5_TODO: Are these equivalent?
 #if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
     if (keyEvent && keyEvent->key() == KEYS::Key_Power) {
@@ -3345,6 +3354,9 @@ bool DisplayManager::handleEvent(QEvent *event)
 		// tell the window manager to drop the events
 		return false;
 	}
+#endif
+
+#if 0
 
     // if key down happens when the screen is off or dimmed let's wake up the display, but let's also
 	// eat all the events until the next key up.
@@ -3373,6 +3385,7 @@ bool DisplayManager::handleEvent(QEvent *event)
 		m_drop_key = true;
 		return true;
 	}
+#endif
 
     if (DisplayStateOff == currentState() || DisplayStateOffOnCall == currentState()) {
 		if (event->type() == QEvent::MouseButtonPress) {
