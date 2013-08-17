@@ -650,7 +650,6 @@ WARN_LOGFILE           =
 
 INPUT                  = ../Src/base/HapticsController.cpp \
                          ../Src/base/DisplayManager.cpp \
-                         ../Src/base/InputManager.cpp \
                          ../Src/base/SystemService.cpp \
                          ../Src/base/application/ApplicationInstaller.cpp \
                          ../Src/base/AmbientLightSensor.cpp \
