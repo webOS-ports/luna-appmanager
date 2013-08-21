@@ -105,7 +105,8 @@ set(HEADERS
     Src/base/application/LaunchPoint.cpp
     Src/core/PtrArray.h
     Src/core/AnimationEquations.h
-    Src/core/GraphicsDefs.h)
+    Src/core/GraphicsDefs.h
+    Src/remote/WebAppMgrProxy.h)
 
 set(SOURCES
     Src/base/Security.cpp
@@ -140,6 +141,7 @@ set(SOURCES
     Src/base/application/ApplicationManagerService.cpp
     Src/core/MallocHooks.cpp
     Src/core/KeywordMap.cpp
+    Src/remote/WebAppMgrProxy.cpp
     Src/Main.cpp)
 
 add_executable(LunaSysMgr ${SOURCES})

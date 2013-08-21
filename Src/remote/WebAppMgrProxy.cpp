@@ -1,0 +1,409 @@
+/* @@@LICENSE
+*
+*      Copyright (c) 2010-2013 LG Electronics, Inc.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* LICENSE@@@ */
+
+#include "Common.h"
+
+#include <string.h>
+#include <cjson/json.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <sys/prctl.h>
+
+#include "WebAppMgrProxy.h"
+#include "Settings.h"
+#include "ApplicationManager.h"
+#include "Event.h"
+#include "Logging.h"
+#include "MemoryMonitor.h"
+#include "Time.h"
+#include "HostBase.h"
+
+static WebAppMgrProxy* s_instance = NULL;
+static gchar* s_appToLaunchWhenConnectedStr = NULL;
+
+void WebAppMgrProxy::setAppToLaunchUponConnection(char* app)
+{
+	s_appToLaunchWhenConnectedStr = app;
+}
+
+WebAppMgrProxy::WebAppMgrProxy() :
+    mConnected(false),
+    mService(0)
+{
+    connectWebAppMgr();
+}
+
+gboolean WebAppMgrProxy::retryConnectWebAppMgr(gpointer user_data)
+{
+    WebAppMgrProxy::instance()->connectWebAppMgr();
+    return FALSE;
+}
+
+void WebAppMgrProxy::connectWebAppMgr()
+{
+    if (connected()) {
+        g_critical("%s (%d): ERROR: WebAppMgr instance already Connected!!!",
+                   __PRETTY_FUNCTION__, __LINE__);
+        return;
+    }
+
+    // Initialize the LunaService connection for sending app-run information
+    LSError err;
+    LSErrorInit(&err);
+    if(!LSRegister(NULL, &mService, &err)) {
+        g_warning("Could not register service client: %s", err.message);
+        g_warning("Will retry after some time ...");
+        g_timeout_add_full(G_PRIORITY_DEFAULT, 2000, &WebAppMgrProxy::retryConnectWebAppMgr, NULL, NULL);
+        LSErrorFree(&err);
+        mService=0;
+        return;
+    }
+
+    LSGmainAttach(mService, HostBase::instance()->mainLoop(), &err);
+
+    // Launch the SystemUI App
+    ApplicationManager* appMgr = ApplicationManager::instance();
+    ApplicationDescription* sysUiAppDesc = appMgr ? appMgr->getAppById("com.palm.systemui") : 0;
+    if (sysUiAppDesc) {
+        std::string backgroundPath = "file://" + Settings::LunaSettings()->lunaSystemPath + "/index.html";
+        std::string sysUiDescString;
+        sysUiAppDesc->getAppDescriptionString(sysUiDescString);
+        launchUrl(backgroundPath.c_str(), WindowType::Type_StatusBar,
+                         sysUiDescString.c_str(), "", "{\"launchedAtBoot\":true}");
+    }
+    else {
+        g_critical("Failed to launch System UI application");
+    }
+
+    // Launch the Launcher App
+    if (Settings::LunaSettings()->uiType == Settings::UI_LUNA) {
+        ApplicationDescription* appDesc = appMgr ? appMgr->getAppById("com.palm.launcher") : 0;
+        if (appDesc) {
+            std::string appDescString;
+            appDesc->getAppDescriptionString(appDescString);
+            launchUrl(appDesc->entryPoint().c_str(), WindowType::Type_Launcher,
+                             appDescString.c_str(), "", "{\"launchedAtBoot\":true}");
+        }
+        else {
+            g_critical("Failed to launch Launcher application");
+        }
+
+        // Start the headless Apps
+        ApplicationManager::instance()->launchBootTimeApps();
+    }
+    else if (Settings::LunaSettings()->uiType == Settings::UI_MINIMAL) {
+
+        // The only other app to be launched during minimal mode is phone
+        this->launchBootTimeApp("com.palm.app.phone");
+    }
+
+    // Did user specify an app to launch
+    if (s_appToLaunchWhenConnectedStr) {
+        std::string errMsg;
+        this->appLaunch(s_appToLaunchWhenConnectedStr, "", "", "", errMsg);
+        s_appToLaunchWhenConnectedStr = NULL;
+    }
+
+    mConnected = true;
+}
+
+bool WebAppMgrProxy::connected()
+{
+    return mConnected;
+}
+
+WebAppMgrProxy* WebAppMgrProxy::instance()
+{
+	if (G_UNLIKELY(!s_instance)) {
+		s_instance = new WebAppMgrProxy();
+	}
+
+	return s_instance;
+}
+
+WebAppMgrProxy::~WebAppMgrProxy()
+{
+	s_instance = NULL;
+}
+
+void WebAppMgrProxy::launchUrl(const char* url, WindowType::Type winType,
+                               const char* appDesc, const char* procId,
+                               const char* params, const char* launchingAppId,
+                               const char* launchingProcId)
+{
+#if 0
+	sendAsyncMessage(new View_Mgr_LaunchUrl(url, winType, appDesc, procId, params,
+			                                           launchingAppId, launchingProcId));
+#endif
+}
+
+std::string WebAppMgrProxy::appLaunch(const std::string& appId,
+                                      const std::string& params,
+                                      const std::string& launchingAppId,
+                                      const std::string& launchingProcId,
+                                      std::string& errMsg)
+{
+	std::string appIdToLaunch = appId;
+	std::string paramsToLaunch = params;
+	errMsg.erase();
+
+	ApplicationDescription* desc = ApplicationManager::instance()->getPendingAppById(appIdToLaunch);
+	if (!desc)
+		desc = ApplicationManager::instance()->getAppById(appIdToLaunch);
+
+	if( !desc )
+	{
+		errMsg = std::string("\"") + appIdToLaunch + "\" was not found";
+		g_debug( "WebAppMgrProxy::appLaunch failed, %s.\n", errMsg.c_str() );
+		return "";
+	}
+
+	if( appIdToLaunch.empty() ) {
+		errMsg = "No appId";
+		return "";
+	}
+
+	//if execution lock is in place, refuse the launch
+	if (desc->canExecute() == false) {
+		errMsg = std::string("\"") + appIdToLaunch + "\" has been locked";
+		luna_warn("WebAppMgrProxy","appLaunch failed, '%s' has been locked (probably in process of being deleted from the system)",appId.c_str());
+		return "";
+	}
+
+	// redirect all launch requests for pending applications to app catalog, UNLESS it's a special SUC app
+	//TODO: the sucApps thing is done : App Catalog disabled when SUC update is downloading; it's not safe, but it's needed
+
+	if ( (desc->status() != ApplicationDescription::Status_Ready)
+		&& (Settings::LunaSettings()->sucApps.find(desc->id()) == Settings::LunaSettings()->sucApps.end())
+		)
+	{
+		desc = ApplicationManager::instance()->getAppById("com.palm.app.swmanager");
+		if (desc) {
+			appIdToLaunch = desc->id();
+			paramsToLaunch = "{}";
+		}
+		else {
+			g_warning("%s: Failed to find app descriptor for com.palm.app.swmanager", __PRETTY_FUNCTION__);
+			return "";
+		}
+	}
+
+	if (G_UNLIKELY(Settings::LunaSettings()->perfTesting)) {
+	    g_message("SYSMGR PERF: APP LAUNCHED app id: %s, start time: %d", appId.c_str(), Time::curTimeMs());
+	}
+
+	if (desc->type() == ApplicationDescription::Type_Web) {
+		// Verify that the app doesn't have a security issue
+		if (!desc->securityChecksVerified())
+			return "";
+
+		LSError err;
+		LSErrorInit(&err);
+
+		json_object *obj = json_object_new_object();
+		json_object_object_add(obj, "appDesc", desc->toJSON());
+		json_object_object_add(obj, "params", json_object_new_string(paramsToLaunch.c_str()));
+		json_object_object_add(obj, "launchingAppId", json_object_new_string(launchingAppId.c_str()));
+		json_object_object_add(obj, "launchingProcId", json_object_new_string(launchingProcId.c_str()));
+
+		if (!LSCall(mService, "palm://org.webosports.webappmanager/launchApp",
+				json_object_to_json_string(obj),
+				NULL, NULL, NULL, &err)) {
+			LSErrorPrint(&err, stderr);
+			LSErrorFree(&err);
+		}
+
+		json_object_put(obj);
+
+		// FIXME: $$$ Can't get the resulting process ID at this point (asynchronous call)
+		return "success";
+    }
+    else if (desc->type() == ApplicationDescription::Type_Native ||
+             desc->type() == ApplicationDescription::Type_PDK ||
+             desc->type() == ApplicationDescription::Type_Qt) {
+        // Verify that the app doesn't have a security issue
+        if (!desc->securityChecksVerified())
+            return "";
+		// Launch Native apps here
+		return launchNativeApp(desc, paramsToLaunch, launchingAppId, launchingProcId, errMsg);
+    }
+    else if (desc->type() == ApplicationDescription::Type_SysmgrBuiltin)
+	{
+		if (launchingAppId == "com.palm.launcher")
+		{
+			desc->startSysmgrBuiltIn(paramsToLaunch);
+			return "success";
+		}
+	}
+
+	g_warning("%s: Attempted to launch application with unknown type", __PRETTY_FUNCTION__);
+	return "";
+}
+
+std::string WebAppMgrProxy::appLaunchModal(const std::string& appId,
+                                      	   const std::string& params,
+                                      	   const std::string& launchingAppId,
+                                      	   const std::string& launchingProcId,
+                                      	   std::string& errMsg, bool isHeadless, bool isParentPdk)
+{
+	std::string appIdToLaunch = appId;
+	std::string paramsToLaunch = params;
+	errMsg.erase();
+
+	ApplicationDescription* desc = ApplicationManager::instance()->getPendingAppById(appIdToLaunch);
+	if (!desc)
+		desc = ApplicationManager::instance()->getAppById(appIdToLaunch);
+
+	if( !desc )
+	{
+		errMsg = std::string("\"") + appIdToLaunch + "\" was not found";
+		g_debug( "WebAppMgrProxy::appLaunch failed, %s.\n", errMsg.c_str() );
+		return "";
+	}
+
+	if( appIdToLaunch.empty() ) {
+		errMsg = "No appId";
+		return "";
+	}
+
+	//if execution lock is in place, refuse the launch
+	if (desc->canExecute() == false) {
+		errMsg = std::string("\"") + appIdToLaunch + "\" has been locked";
+		luna_warn("WebAppMgrProxy","appLaunch failed, '%s' has been locked (probably in process of being deleted from the system)",appId.c_str());
+		return "";
+	}
+
+	// redirect all launch requests for pending applications to app catalog
+	if (desc->status() != ApplicationDescription::Status_Ready) {
+		desc = ApplicationManager::instance()->getAppById("com.palm.app.swmanager");
+		if (desc) {
+			appIdToLaunch = desc->id();
+			paramsToLaunch = "{}";
+		}
+		else {
+			g_warning("%s: Failed to find app descriptor for app catalog", __PRETTY_FUNCTION__);
+			return "";
+		}
+	}
+
+	if (desc->type() == ApplicationDescription::Type_Web) {
+		std::string appDescJson;
+		desc->getAppDescriptionString(appDescJson);
+#if 0
+		sendAsyncMessage(new View_ProcMgr_LaunchChild(appDescJson, paramsToLaunch, launchingAppId, launchingProcId, isHeadless, isParentPdk));
+#endif
+        return "success";
+	}
+
+	g_warning("%s: Attempted to launch application with unknown type", __PRETTY_FUNCTION__);
+	return "";
+}
+
+std::string WebAppMgrProxy::launchNativeApp(const ApplicationDescription* desc,
+                                            const std::string& params,
+                                            const std::string& launchingAppId,
+                                            const std::string& launchingProcId,
+                                            std::string& errMsg )
+{
+	std::string ret;
+	// construct the path for launching
+	std::string path = desc->entryPoint();
+	if (path.find("file://", 0) != std::string::npos)
+		path = path.substr(7);
+
+	// assemble the args list. We'll need exactly 3 entries.
+	// 1) the path to the exe
+	// 2) The sent in "params" value
+	// 3) a NULL to terminate the list
+
+	// this has to be a char *, not const char *, because of the 
+	// rather unusual use of "char *const argV[]" on the recieving end
+	// of the function we're going to call. So we declare it appropriate
+	// for the call, and cast as we assign.
+    char *argV[3];
+    argV[0] = (char *)path.c_str();
+	
+	if ( params.size() > 0 )
+	{
+		// send the params
+		argV[1] = (char *)params.c_str();
+		argV[2] = NULL;
+	}
+	else
+	{
+		// no params. Just end the list
+		argV[1] = NULL;
+	}
+	
+	//int pid = IpcServer::instance()->launchNativeProcess(desc->id(), path.c_str(), argV, desc->type(), desc->runtimeMemoryRequired());
+	int pid = 0;
+	if (pid <= 0) {
+		if (pid < 0) // 0 indicates low memory, -1 indicates launch error
+		{
+			g_critical("%s: %d Failed to launch native app %s with path: %s",
+			           __PRETTY_FUNCTION__, __LINE__,
+			           desc->id().c_str(), path.c_str());
+			errMsg = "Failed to launch process";
+		}
+		return std::string();
+	}
+
+	char* retStr = 0;
+	asprintf(&retStr, "n-%d", pid);
+
+	ret = retStr;
+	free(retStr);
+
+	return ret;
+}
+
+
+std::string WebAppMgrProxy::launchBootTimeApp(const char* appId)
+{
+	if (!appId)
+		return "";
+
+	ApplicationDescription* desc = ApplicationManager::instance()->getAppById(appId);
+	if (!desc) {
+		luna_warn("WebAppMgrProxy", "launch failed, '%s' was not found.", appId);
+		return "";
+	}
+
+	//if execution lock is in place, refuse the launch
+	if (desc->canExecute() == false) {
+		luna_warn("WebAppMgrProxy","launch failed, '%s' has been locked (probably in process of being deleted from the system)",appId);
+		return "";
+	}
+
+	std::string appDescJson;
+	desc->getAppDescriptionString(appDescJson);
+
+#if 0
+	sendAsyncMessage(new View_ProcMgr_LaunchBootTimeApp(appDescJson));
+#endif
+
+	// FIXME: $$$ Can't get the resulting process ID at this point (asynchronous call)
+	return "success";
+}
+
+void WebAppMgrProxy::serviceRequestHandler_listRunningApps(bool includeSysApps)
+{
+#if 0
+	sendAsyncMessage(new View_Mgr_ListOfRunningAppsRequest(includeSysApps));
+#endif
+}

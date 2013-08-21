@@ -33,15 +33,16 @@ CONFIG += no_keywords
 CONFIG += link_pkgconfig
 PKGCONFIG = glib-2.0 gthread-2.0 LunaSysMgrIpc LunaSysMgrCommon
 
-QT = core gui network
-QT += declarative
+QT = core gui network widgets
+# QT += declarative
 
 VPATH = \
     ./Src \
     ./Src/base \
     ./Src/base/application \
     ./Src/base/settings \
-    ./Src/core
+    ./Src/core \
+    ./Src/remote
 
 INCLUDEPATH = $$VPATH
 
@@ -96,7 +97,8 @@ SOURCES = \
     ServiceDescription.cpp \
     Settings.cpp \
     SuspendBlocker.cpp \
-    SystemService.cpp
+    SystemService.cpp \
+    WebAppMgrProxy.cpp
 
 HEADERS = \
     AmbientLightSensor.h \
@@ -113,7 +115,7 @@ HEADERS = \
     CpuAffinity.h \
     DeviceInfo.h \
     DisplayManager.h \
-    DIsplayStates.h \
+    DisplayStates.h \
     EASPolicyManager.h \
     EventReporter.h \
     GraphicsDefs.h \
@@ -130,7 +132,8 @@ HEADERS = \
     ServiceDescription.h \
     SharedGlobalProperties.h \
     SuspendBlocker.h \
-    SystemService.h
+    SystemService.h \
+    WebAppMgrProxy.h
 
 QMAKE_CXXFLAGS += -fno-rtti -fno-exceptions -fvisibility=hidden -fvisibility-inlines-hidden -Wall -fpermissive
 QMAKE_CXXFLAGS += -DFIX_FOR_QT

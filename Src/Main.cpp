@@ -47,6 +47,8 @@
 #include "DisplayManager.h"
 #include "EventReporter.h"
 
+#include "WebAppMgrProxy.h"
+
 #include <ProcessKiller.h>
 
 #include <sys/time.h>
@@ -769,6 +771,9 @@ int main( int argc, char** argv)
 
 	// Initialize the System Service
 	SystemService::instance()->init();
+
+	// Initialize the WebAppMgr Proxy
+	WebAppMgrProxy::instance();
 
 	// Initialize the application mgr
 	ApplicationManager::instance()->init();
