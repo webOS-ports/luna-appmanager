@@ -1,6 +1,5 @@
 Summary
 ========
-
 This repository contains the webOS System Manager, which is a key webOS component responsible for:
 
 * Managing the application and services interface for physical devices such as keys, accelerometer, vibrator, etc...
