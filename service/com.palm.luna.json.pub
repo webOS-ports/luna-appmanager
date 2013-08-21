@@ -1,6 +1,6 @@
 {
     "role": {
-        "exeName":"/usr/bin/LunaSysMgr",
+        "exeName":"/usr/sbin/LunaSysMgr",
         "type": "privileged",
         "allowedNames": ["", "com.palm.applicationManager", "com.palm.display", "com.palm.keys", "com.palm.lunastats", "com.palm.sysMgrDataBackup", "com.palm.luna-*"]
     },
