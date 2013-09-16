@@ -14,6 +14,7 @@ webos_add_compiler_flags(ALL -Wno-unused-parameter -Wno-unused-variable -Wno-reo
 webos_add_compiler_flags(ALL -DFIX_FOR_QT)
 webos_add_compiler_flags(ALL -DHAS_NYX)
 webos_add_compiler_flags(ALL -DQT_NO_KEYWORDS)
+webos_add_compiler_flags(ALL -DHAS_LUNA_PREF)
 
 find_package(Qt5Core REQUIRED)
 if(NOT Qt5Core_FOUND)
