@@ -699,10 +699,12 @@ bool DisplayManager::powerdServiceNotification(LSHandle *sh, const char *service
         g_message ("%s: calling on()", __PRETTY_FUNCTION__);
         dm->on ();
     }
-#if !defined(TARGET_DEVICE)
-    // dont (ever) go to sleep in the emulator
-    dm->pushDNAST ("LunaSysMgr-on-Desktop");
-#endif
+
+    if (Settings::LunaSettings()->hardwareType == Settings::HardwareTypeDesktop)
+    {
+        // dont (ever) go to sleep in the emulator
+        dm->pushDNAST ("LunaSysMgr-on-Desktop");
+    }
 
     return true;
 }
