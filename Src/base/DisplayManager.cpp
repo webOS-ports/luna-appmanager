@@ -45,10 +45,6 @@
     #define KEYS
 #endif
 
-#if defined(TARGET_DEVICE) && defined(HAVE_OPENGL)
-#include <QGLContext>
-#endif
-
 #include <cjson/json.h>
 
 #include <glib.h>
@@ -143,10 +139,6 @@
 #define DISPLAY_EVENT_ON_CALL                        114
 #define DISPLAY_EVENT_OFF_CALL                       115
 #define DISPLAY_EVENT_HOME_BUTTON_UP                 116
-
-#if defined(TARGET_DEVICE)
-extern "C" void setEglSwapInterval(int);
-#endif
 
 DisplayManager* DisplayManager::m_instance = NULL;
 
@@ -3649,12 +3641,4 @@ void DisplayManager::changeVsyncControl(bool enable)
 
 	if (s_forceVsyncDisable)
 		return;
-
-#if defined(TARGET_DEVICE) && defined(HAVE_OPENGL)
-	QGLContext* gc = (QGLContext*) QGLContext::currentContext();
-	if (gc) {
-		setEglSwapInterval(enable ? 1 : 0);
-        g_message("Turned vsync %s", enable ? "on" : "off");
-	}
-#endif
 }
