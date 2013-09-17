@@ -46,6 +46,7 @@
 #include "BackupManager.h"
 #include "DisplayManager.h"
 #include "EventReporter.h"
+#include "InputEventMonitor.h"
 
 #include "WebAppMgrProxy.h"
 
@@ -792,6 +793,9 @@ int main( int argc, char** argv)
 
 	// Initialize our display manager
 	new DisplayManager();
+
+	// Initialize input event monitor
+	InputEventMonitor::instance();
 
 	app.exec();
 

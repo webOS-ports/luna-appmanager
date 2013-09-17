@@ -93,6 +93,7 @@ set(HEADERS
     Src/base/DisplayManager.h
     Src/base/EventReporter.h
     Src/base/BackupManager.h
+    Src/base/InputEventMonitor.h
     Src/base/application/ServiceDescription.h
     Src/base/application/ApplicationStatus.h
     Src/base/application/ApplicationInstaller.h
@@ -129,6 +130,7 @@ set(SOURCES
     Src/base/SuspendBlocker.cpp
     Src/base/SystemService.cpp
     Src/base/Logging.cpp
+    Src/base/InputEventMonitor.cpp
     Src/base/application/ApplicationDescription.cpp
     Src/base/application/MimeSystem.cpp
     Src/base/application/PackageDescription.cpp

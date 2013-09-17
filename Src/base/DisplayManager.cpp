@@ -102,39 +102,6 @@
 #define TOUCHPANEL_DELAY 200
 #define DISPLAY_LOCK_TIMEOUT 2000
 
-#define DISPLAY_EVENT_REQUEST     0
-#define DISPLAY_EVENT_ON          1
-#define DISPLAY_EVENT_DIMMED      2
-#define DISPLAY_EVENT_OFF         3
-#define DISPLAY_EVENT_TIMEOUTS    4
-#define DISPLAY_EVENT_PUSH_DNAST  5
-#define DISPLAY_EVENT_POP_DNAST   6
-#define DISPLAY_EVENT_ACTIVE      7
-#define DISPLAY_EVENT_INACTIVE    8
-#define DISPLAY_EVENT_DOCKMODE    9
-
-#define CHARGER_NONE              0
-#define CHARGER_USB               1
-#define CHARGER_INDUCTIVE         (1 << 1)
-
-#define DISPLAY_EVENT_NONE                           100
-#define DISPLAY_EVENT_SLIDER_LOCKED                  101
-#define DISPLAY_EVENT_SLIDER_UNLOCKED                102
-#define DISPLAY_EVENT_POWER_BUTTON_UP                103
-#define DISPLAY_EVENT_POWER_BUTTON_DOWN              104
-#define DISPLAY_EVENT_INDUCTIVE_CHARGER_DISCONNECTED 105
-#define DISPLAY_EVENT_INDUCTIVE_CHARGER_CONNECTED    106
-#define DISPLAY_EVENT_USB_CHARGER_DISCONNECTED       107
-#define DISPLAY_EVENT_USB_CHARGER_CONNECTED          108
-#define DISPLAY_EVENT_ALS_REGION_CHANGED             109
-#define DISPLAY_EVENT_ENTER_EMERGENCY_MODE           110
-#define DISPLAY_EVENT_EXIT_EMERGENCY_MODE            111
-#define DISPLAY_EVENT_PROXIMITY_ON                   112
-#define DISPLAY_EVENT_PROXIMITY_OFF                  113
-#define DISPLAY_EVENT_ON_CALL                        114
-#define DISPLAY_EVENT_OFF_CALL                       115
-#define DISPLAY_EVENT_HOME_BUTTON_UP                 116
-
 DisplayManager* DisplayManager::m_instance = NULL;
 
 double DisplayManager::s_currentLatitude = 0.0;
@@ -2907,6 +2874,11 @@ bool DisplayManager::alertTimerCallback ()
     return false;
 }
 
+void DisplayManager::handleDisplayEvent(DisplayEvent event)
+{
+    m_currentState->handleEvent(event);
+}
+
 bool DisplayManager::alert (int state)
 {
     g_debug ("%s: got the following message: %i", __FUNCTION__, state);
@@ -3239,6 +3211,20 @@ void DisplayManager::displayOff()
 
     m_als->stop();
 
+}
+
+void DisplayManager::handleTouchEvent()
+{
+    m_lastEvent = Time::curTimeMs();
+    if (currentState() == DisplayStateDim) {
+        g_message("%s: sending user activity event", __PRETTY_FUNCTION__);
+        m_currentState->handleEvent(DisplayEventUserActivity);
+    }
+
+    if ((currentState() == DisplayStateOn || currentState() == DisplayStateOnPuck) && !m_activity->running()) {
+        m_activity->start(m_activityTimeout);
+        notifySubscribers(DISPLAY_EVENT_ACTIVE);
+    }
 }
 
 bool DisplayManager::allowSuspend()

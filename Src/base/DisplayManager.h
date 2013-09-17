@@ -61,6 +61,38 @@
 
 #define ACTIVE_MESSAGE_PATTERN_SIZE         6
 
+#define DISPLAY_EVENT_REQUEST     0
+#define DISPLAY_EVENT_ON          1
+#define DISPLAY_EVENT_DIMMED      2
+#define DISPLAY_EVENT_OFF         3
+#define DISPLAY_EVENT_TIMEOUTS    4
+#define DISPLAY_EVENT_PUSH_DNAST  5
+#define DISPLAY_EVENT_POP_DNAST   6
+#define DISPLAY_EVENT_ACTIVE      7
+#define DISPLAY_EVENT_INACTIVE    8
+#define DISPLAY_EVENT_DOCKMODE    9
+
+#define CHARGER_NONE              0
+#define CHARGER_USB               1
+#define CHARGER_INDUCTIVE         (1 << 1)
+
+#define DISPLAY_EVENT_NONE                           100
+#define DISPLAY_EVENT_SLIDER_LOCKED                  101
+#define DISPLAY_EVENT_SLIDER_UNLOCKED                102
+#define DISPLAY_EVENT_POWER_BUTTON_UP                103
+#define DISPLAY_EVENT_POWER_BUTTON_DOWN              104
+#define DISPLAY_EVENT_INDUCTIVE_CHARGER_DISCONNECTED 105
+#define DISPLAY_EVENT_INDUCTIVE_CHARGER_CONNECTED    106
+#define DISPLAY_EVENT_USB_CHARGER_DISCONNECTED       107
+#define DISPLAY_EVENT_USB_CHARGER_CONNECTED          108
+#define DISPLAY_EVENT_ALS_REGION_CHANGED             109
+#define DISPLAY_EVENT_ENTER_EMERGENCY_MODE           110
+#define DISPLAY_EVENT_EXIT_EMERGENCY_MODE            111
+#define DISPLAY_EVENT_PROXIMITY_ON                   112
+#define DISPLAY_EVENT_PROXIMITY_OFF                  113
+#define DISPLAY_EVENT_ON_CALL                        114
+#define DISPLAY_EVENT_OFF_CALL                       115
+#define DISPLAY_EVENT_HOME_BUTTON_UP                 116
 
 class DisplayManager : public QObject
 {
@@ -73,6 +105,9 @@ public:
 
     virtual ~DisplayManager();
     GMainLoop* mainLoop();
+
+    void handleDisplayEvent(DisplayEvent event);
+    void handleTouchEvent();
 
     bool alert (int state);
     uint32_t getCoreNaviBrightness();
