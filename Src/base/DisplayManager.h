@@ -74,8 +74,6 @@ public:
     virtual ~DisplayManager();
     GMainLoop* mainLoop();
 
-    virtual bool handleEvent(QEvent *event);
-
     bool alert (int state);
     uint32_t getCoreNaviBrightness();
 
