@@ -79,7 +79,6 @@ set(HEADERS
     Src/base/settings/AnimationSettings.h
     Src/base/settings/Preferences.h
     Src/base/settings/DeviceInfo.h
-    Src/base/MetaKeyManager.h
     Src/base/DisplayStates.h
     Src/base/HapticsController.h
     Src/base/CpuAffinity.h
@@ -130,7 +129,6 @@ set(SOURCES
     Src/base/SuspendBlocker.cpp
     Src/base/SystemService.cpp
     Src/base/Logging.cpp
-    Src/base/MetaKeyManager.cpp
     Src/base/application/ApplicationDescription.cpp
     Src/base/application/MimeSystem.cpp
     Src/base/application/PackageDescription.cpp
