@@ -15,6 +15,7 @@ webos_add_compiler_flags(ALL -DFIX_FOR_QT)
 webos_add_compiler_flags(ALL -DHAS_NYX)
 webos_add_compiler_flags(ALL -DQT_NO_KEYWORDS)
 webos_add_compiler_flags(ALL -DHAS_LUNA_PREF)
+webos_add_compiler_flags(ALL -DHAS_DISPLAY_TIMEOUT)
 
 find_package(Qt5Core REQUIRED)
 if(NOT Qt5Core_FOUND)
