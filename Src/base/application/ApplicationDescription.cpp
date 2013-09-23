@@ -745,6 +745,7 @@ json_object* ApplicationDescription::toJSON() const
 	json_object_object_add(json, (char*) "vendor", json_object_new_string((char*) m_vendorName.c_str()));
 	json_object_object_add(json, (char*) "vendorUrl", json_object_new_string((char*) m_vendorUrl.c_str()));
 	json_object_object_add(json, (char*) "size", json_object_new_int((int)m_appSize));
+	json_object_object_add(json, (char*) "noWindow", json_object_new_boolean((bool)m_isHeadLess));
 	
 	json_object_object_add(json, (char*) "icon", json_object_new_string((char*) defaultLP->iconPath().c_str()));
 	json_object_object_add(json, (char*) "removable",json_object_new_boolean(this->isRemovable()));	//use isRemovable() instead of m_isRemovable in case "removability" logic changes
