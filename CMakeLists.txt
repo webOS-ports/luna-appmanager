@@ -77,7 +77,6 @@ set(HEADERS
     Src/base/AmbientLightSensor.h
     Src/base/LsmUtils.h
     Src/base/settings/AnimationSettings.h
-    Src/base/settings/Preferences.h
     Src/base/settings/DeviceInfo.h
     Src/base/DisplayStates.h
     Src/base/HapticsController.h
@@ -115,7 +114,6 @@ set(SOURCES
     Src/base/DisplayStates.cpp
     Src/base/HapticsController.cpp
     Src/base/settings/Settings.cpp
-    Src/base/settings/Preferences.cpp
     Src/base/settings/DeviceInfo.cpp
     Src/base/settings/AnimationSettings.cpp
     Src/base/EventReporter.cpp
