@@ -40,7 +40,7 @@ public:
 	virtual ~WebAppMgrProxy();
 
     void launchUrl(const char* url, WindowType::Type winType=WindowType::Type_Card,
-			       const char* appDesc="", const char* procId="",
+			       ApplicationDescription *appDesc = 0, const char* procId="",
 			       const char* params="", const char* launchingAppId="",
 			       const char* launchingProcId="");
 	void relaunchApp(const char* procId, const char* params, const char* launchingAppId,
@@ -72,6 +72,8 @@ public:
 
     static gboolean retryConnectWebAppMgr(gpointer user_data);
 
+	static bool webAppManagerServiceStatusCb(LSHandle *handle, LSMessage *message, void *user_data);
+
 Q_SIGNALS:
 	void signalAppLaunchPreventedUnderLowMemory();
 	void signalLowMemoryActionsRequested (bool allowExpensive);	
@@ -82,7 +84,9 @@ private:
 	WebAppMgrProxy(const WebAppMgrProxy&);
 	WebAppMgrProxy& operator=(const WebAppMgrProxy&);
 
-    void connectWebAppMgr();
+	void connectWebAppMgr();
+	void onWebAppManagerConnected();
+	void onWebAppManagerDisconnected();
 
     bool mConnected;
     LSHandle *mService;

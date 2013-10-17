@@ -76,15 +76,58 @@ void WebAppMgrProxy::connectWebAppMgr()
 
     LSGmainAttach(mService, HostBase::instance()->mainLoop(), &err);
 
+    g_message("Waiting for WebAppMgr to become available ...");
+
+    if (!LSCall(mService, "palm://com.palm.bus/signal/registerServerStatus",
+                "{\"serviceName\":\"org.webosports.webappmanager\"}",
+                webAppManagerServiceStatusCb, this, NULL, &err)) {
+        g_warning("Failed to listen for WebAppMgr service status: %s", err.message);
+        LSErrorFree(&err);
+        return;
+    }
+
+}
+
+bool WebAppMgrProxy::webAppManagerServiceStatusCb(LSHandle *handle, LSMessage *message, void *user_data)
+{
+    const char* payload = LSMessageGetPayload(message);
+    if (!message)
+        return true;
+
+    json_object* json = json_tokener_parse(payload);
+    if (!json || is_error(json))
+            return true;
+
+    json_object* value = json_object_object_get(json, "connected");
+    if (!value) {
+        json_object_put(json);
+        return true;
+    }
+
+    WebAppMgrProxy *proxy = static_cast<WebAppMgrProxy*>(user_data);
+
+    bool connected = json_object_get_boolean(value);
+    if (connected)
+        proxy->onWebAppManagerConnected();
+    else
+        proxy->onWebAppManagerDisconnected();
+
+    json_object_put(json);
+
+    return true;
+}
+
+void WebAppMgrProxy::onWebAppManagerConnected()
+{
+    g_message("%s", __PRETTY_FUNCTION__);
+
     // Launch the SystemUI App
     ApplicationManager* appMgr = ApplicationManager::instance();
     ApplicationDescription* sysUiAppDesc = appMgr ? appMgr->getAppById("com.palm.systemui") : 0;
     if (sysUiAppDesc) {
         std::string backgroundPath = "file://" + Settings::LunaSettings()->lunaSystemPath + "/index.html";
-        std::string sysUiDescString;
-        sysUiAppDesc->getAppDescriptionString(sysUiDescString);
         launchUrl(backgroundPath.c_str(), WindowType::Type_StatusBar,
-                         sysUiDescString.c_str(), "", "{\"launchedAtBoot\":true}");
+                         sysUiAppDesc, "", "{\"launchedAtBoot\":true}");
     }
     else {
         g_critical("Failed to launch System UI application");
@@ -94,10 +137,8 @@ void WebAppMgrProxy::connectWebAppMgr()
     if (Settings::LunaSettings()->uiType == Settings::UI_LUNA) {
         ApplicationDescription* appDesc = appMgr ? appMgr->getAppById("com.palm.launcher") : 0;
         if (appDesc) {
-            std::string appDescString;
-            appDesc->getAppDescriptionString(appDescString);
             launchUrl(appDesc->entryPoint().c_str(), WindowType::Type_Launcher,
-                             appDescString.c_str(), "", "{\"launchedAtBoot\":true}");
+                             appDesc, "", "{\"launchedAtBoot\":true}");
         }
         else {
             g_critical("Failed to launch Launcher application");
@@ -122,6 +163,13 @@ void WebAppMgrProxy::connectWebAppMgr()
     mConnected = true;
 }
 
+void WebAppMgrProxy::onWebAppManagerDisconnected()
+{
+    g_message("%s", __PRETTY_FUNCTION__);
+
+    mConnected = false;
+}
+
 bool WebAppMgrProxy::connected()
 {
     return mConnected;
@@ -142,14 +190,49 @@ WebAppMgrProxy::~WebAppMgrProxy()
 }
 
 void WebAppMgrProxy::launchUrl(const char* url, WindowType::Type winType,
-                               const char* appDesc, const char* procId,
+                               ApplicationDescription *appDesc, const char* procId,
                                const char* params, const char* launchingAppId,
                                const char* launchingProcId)
 {
-#if 0
-	sendAsyncMessage(new View_Mgr_LaunchUrl(url, winType, appDesc, procId, params,
-			                                           launchingAppId, launchingProcId));
-#endif
+	LSError err;
+	LSErrorInit(&err);
+
+	std::string windowType = "card";
+	switch (winType) {
+	case WindowType::Type_Launcher:
+		windowType = "launcher";
+		break;
+	case WindowType::Type_Dashboard:
+		windowType = "dashboard";
+		break;
+	case WindowType::Type_PopupAlert:
+		windowType = "popupAlert";
+		break;
+	case WindowType::Type_BannerAlert:
+		windowType = "bannerAlert";
+		break;
+	case WindowType::Type_StatusBar:
+		windowType = "statusBar";
+		break;
+	}
+
+	json_object *obj = json_object_new_object();
+	json_object_object_add(obj, "url", json_object_new_string(url));
+	json_object_object_add(obj, "windowType", json_object_new_string(windowType.c_str()));
+	if (appDesc)
+		json_object_object_add(obj, "appDesc", appDesc->toJSON());
+	json_object_object_add(obj, "params", json_object_new_string(params));
+	json_object_object_add(obj, "launchingAppId", json_object_new_string(launchingAppId));
+	json_object_object_add(obj, "launchingProcId", json_object_new_string(launchingProcId));
+
+	if (!LSCall(mService, "palm://org.webosports.webappmanager/launchUrl",
+			json_object_to_json_string(obj),
+			NULL, NULL, NULL, &err)) {
+		LSErrorPrint(&err, stderr);
+		LSErrorFree(&err);
+	}
+
+	json_object_put(obj);
 }
 
 std::string WebAppMgrProxy::appLaunch(const std::string& appId,
