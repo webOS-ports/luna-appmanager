@@ -235,6 +235,8 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 			appDesc->m_type = Type_Qt;
 		else if (strncmp(json_object_get_string(label), "sysmgrbuiltin" , 13 ) == 0)
 			appDesc->m_type = Type_SysmgrBuiltin;
+		else if (strncmp(json_object_get_string(label), "qml", 3) == 0)
+			appDesc->m_type = Type_QML;
 		else
 			appDesc->m_type = Type_Web;
 	}
