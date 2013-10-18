@@ -32,6 +32,7 @@
 #include "MemoryMonitor.h"
 #include "Time.h"
 #include "HostBase.h"
+#include "NativeAppManager.h"
 
 static WebAppMgrProxy* s_instance = NULL;
 static gchar* s_appToLaunchWhenConnectedStr = NULL;
@@ -433,8 +434,7 @@ std::string WebAppMgrProxy::launchNativeApp(const ApplicationDescription* desc,
 		argV[1] = NULL;
 	}
 	
-	//int pid = IpcServer::instance()->launchNativeProcess(desc->id(), path.c_str(), argV, desc->type(), desc->runtimeMemoryRequired());
-	int pid = 0;
+	int pid = NativeAppManager::instance()->launchNativeProcess(desc->id(), path.c_str(), argV, desc->type(), desc->runtimeMemoryRequired());
 	if (pid <= 0) {
 		if (pid < 0) // 0 indicates low memory, -1 indicates launch error
 		{

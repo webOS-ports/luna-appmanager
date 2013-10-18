@@ -49,6 +49,7 @@
 #include "InputEventMonitor.h"
 
 #include "WebAppMgrProxy.h"
+#include "NativeAppManager.h"
 
 #include <ProcessKiller.h>
 
@@ -775,6 +776,9 @@ int main( int argc, char** argv)
 
 	// Initialize the WebAppMgr Proxy
 	WebAppMgrProxy::instance();
+
+	// Initialize the native application manager
+	NativeAppManager::instance();
 
 	// Initialize the application mgr
 	ApplicationManager::instance()->init();
