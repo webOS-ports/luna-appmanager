@@ -298,14 +298,14 @@ json_object* LaunchPoint::toJSON() const
 	json_object_object_add(json, (char*) "appmenu", json_object_new_string((char*)menuName().c_str()));
 	json_object_object_add(json, (char*) "icon", json_object_new_string((char*) iconPath().c_str()));
 
-	if (!params().empty() && m_appDesc->type() != ApplicationDescription::Type_Qt) {
-        if (m_appDesc->type() == ApplicationDescription::Type_Qt) {
-            json_object_object_add(json, (char*) "params", json_object_new_string(params().c_str()));
-        }
-        else {
-    		json_object* paramsJson = json_tokener_parse(params().c_str());
-	    	json_object_object_add(json, (char*) "params", paramsJson);
-        }
+	if (!params().empty()) {
+		if (m_appDesc->type() == ApplicationDescription::Type_Qt) {
+			json_object_object_add(json, (char*) "params", json_object_new_string(params().c_str()));
+		}
+		else {
+			json_object* paramsJson = json_tokener_parse(params().c_str());
+			json_object_object_add(json, (char*) "params", paramsJson);
+		}
 	}
 
 	return json;
