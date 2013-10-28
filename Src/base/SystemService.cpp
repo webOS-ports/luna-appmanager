@@ -2533,17 +2533,18 @@ Example response for a succesful call:
 */
 static bool cbGetBootStatus(LSHandle* lsHandle, LSMessage *message, void *user_data)
 {
-    SUBSCRIBE_SCHEMA_RETURN(lsHandle, message);
+	SUBSCRIBE_SCHEMA_RETURN(lsHandle, message);
 
-    bool        success = true;
+	bool        success = true;
 	LSError     lsError;
 	json_object* json = json_object_new_object();
 	bool subscribed = false;
+	bool firstUse = false;
+	std::string firstUseFile = Settings::LunaSettings()->lunaPrefsPath + "/ran-first-use";;
 
 	LSErrorInit(&lsError);
 
 	if (LSMessageIsSubscription(message)) {
-
 		success = LSSubscriptionProcess(lsHandle, message, &subscribed, &lsError);
 		if (!success) {
 			LSErrorFree (&lsError);
@@ -2553,11 +2554,12 @@ static bool cbGetBootStatus(LSHandle* lsHandle, LSMessage *message, void *user_d
 
 //	json_object_object_add(json, (char*) "finished",
 //						   json_object_new_boolean(SystemUiController::instance()->bootFinished()));
-	json_object_object_add(json, (char*) "firstUse",
-						   json_object_new_boolean(Settings::LunaSettings()->uiType == Settings::UI_MINIMAL));
+
+	if (g_file_test(firstUseFile.c_str(), G_FILE_TEST_EXISTS) == TRUE)
+		firstUse = true;
+	json_object_object_add(json, (char*) "firstUse", json_object_new_boolean(firstUse));
 
 Done:
-
 	json_object_object_add(json, "returnValue", json_object_new_boolean(success));
 	json_object_object_add(json, "subscribed", json_object_new_boolean(subscribed));
 
