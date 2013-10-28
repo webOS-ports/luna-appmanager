@@ -2555,7 +2555,7 @@ static bool cbGetBootStatus(LSHandle* lsHandle, LSMessage *message, void *user_d
 //	json_object_object_add(json, (char*) "finished",
 //						   json_object_new_boolean(SystemUiController::instance()->bootFinished()));
 
-	if (g_file_test(firstUseFile.c_str(), G_FILE_TEST_EXISTS) == TRUE)
+	if (g_file_test(firstUseFile.c_str(), G_FILE_TEST_EXISTS) == FALSE)
 		firstUse = true;
 	json_object_object_add(json, (char*) "firstUse", json_object_new_boolean(firstUse));
 
