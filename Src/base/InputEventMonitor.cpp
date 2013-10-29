@@ -69,14 +69,14 @@ void InputEventMonitor::setupEventSources()
     if (touchpanelControl) {
         mTouchpanelHandle = touchpanelControl->getHandle();
         if (NULL == mTouchpanelHandle) {
-            qWarning() << __PRETTY_FUNCTION__ <<  "Unable to obtain handle for keyboard input control";
+            qWarning() << __PRETTY_FUNCTION__ <<  "Unable to obtain handle for touchpanel input control";
             return;
         }
 
         int fd = -1;
         error = nyx_device_get_event_source(mTouchpanelHandle, &fd);
         if (error != NYX_ERROR_NONE || fd <= 0) {
-            qWarning() << __PRETTY_FUNCTION__ << "Unable to obtain keyboard event_source";
+            qWarning() << __PRETTY_FUNCTION__ << "Unable to obtain touchpanel event_source";
             return;
         }
 
