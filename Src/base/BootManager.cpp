@@ -77,29 +77,43 @@ void BootStateFirstUse::enter()
 void BootStateFirstUse::leave()
 {
 	// TODO close the firstuse application somehow or should it do this itself?
-	
-	LSError error;
-	LSErrorInit(&error);
 
 	DisplayManager::instance()->popDNAST("org.webosports.bootmgr");
-
-	QFile localProfileMarker("/var/luna/preferences/first-use-profile-created");
-	if (!localProfileMarker.exists()) {
-		if (!LSCall(BootManager::instance()->service(), "palm://com.palm.service.accounts/createLocalAccount",
-					"{}", NULL, NULL, NULL, &error)) {
-			g_warning("Failed to create local account after first use is done: %s", error.message);
-		}
-		else {
-			localProfileMarker.open(QIODevice::ReadWrite);
-			localProfileMarker.close();
-		}
-	}
 }
 
 void BootStateFirstUse::handleEvent(BootEvent event)
 {
 	if (event == BOOT_EVENT_FIRST_USE_DONE)
-		BootManager::instance()->switchState(BOOT_STATE_NORMAL);
+		createLocalAccount();
+}
+
+void BootStateFirstUse::createLocalAccount()
+{
+	LSError error;
+	LSErrorInit(&error);
+
+	QFile localProfileMarker("/var/luna/preferences/first-use-profile-created");
+	if (!localProfileMarker.exists()) {
+		if (!LSCall(BootManager::instance()->service(), "palm://com.palm.service.accounts/createLocalAccount",
+					"{}", cbCreateLocalAccount, NULL, NULL, &error)) {
+			g_warning("Failed to create local account after first use is done: %s", error.message);
+
+			// regardless wether the local account creation was successfull or not we switch into
+			// normal state
+			BootManager::instance()->switchState(BOOT_STATE_NORMAL);
+
+			return;
+		}
+	}
+}
+
+bool BootStateFirstUse::cbCreateLocalAccount(LSHandle *handle, LSMessage *message, void *user_data)
+{
+	// regardless wether the local account creation was successfull or not we switch into
+	// normal state
+	BootManager::instance()->switchState(BOOT_STATE_NORMAL);
+
+	return true;
 }
 
 void BootStateNormal::enter()

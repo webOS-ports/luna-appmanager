@@ -64,6 +64,11 @@ public:
 
 private:
 	LSMessageToken m_displayBlockToken;
+
+private:
+	void createLocalAccount();
+
+	static bool cbCreateLocalAccount(LSHandle *handle, LSMessage *message, void *user_data);
 };
 
 class BootStateNormal : public BootStateBase
