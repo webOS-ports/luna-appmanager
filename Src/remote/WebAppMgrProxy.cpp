@@ -434,12 +434,23 @@ std::string WebAppMgrProxy::launchBootTimeApp(const char* appId)
 		return "";
 	}
 
-	std::string appDescJson;
-	desc->getAppDescriptionString(appDescJson);
+	LSError err;
+	LSErrorInit(&err);
 
-#if 0
-	sendAsyncMessage(new View_ProcMgr_LaunchBootTimeApp(appDescJson));
-#endif
+	json_object *obj = json_object_new_object();
+	json_object_object_add(obj, "appDesc", desc->toJSON());
+	json_object *params = json_object_new_object();
+	json_object_object_add(params, "launchedAtBoot", json_object_new_boolean(true));
+	json_object_object_add(obj, "params", params);
+
+	if (!LSCall(mService, "palm://org.webosports.webappmanager/launchApp",
+			json_object_to_json_string(obj),
+			NULL, NULL, NULL, &err)) {
+		LSErrorPrint(&err, stderr);
+		LSErrorFree(&err);
+	}
+
+	json_object_put(obj);
 
 	// FIXME: $$$ Can't get the resulting process ID at this point (asynchronous call)
 	return "success";

@@ -2,7 +2,7 @@
     "role": {
         "exeName":"/usr/sbin/LunaSysMgr",
         "type": "privileged",
-        "allowedNames": ["", "com.palm.appinstaller", "com.palm.applicationManager", "com.palm.lunastats", "com.palm.nativealertmanager", "com.palm.systemmanager", "com.palm.vibrate", "com.palm.ambientLightSensor", "com.palm.display", "com.palm.keys", "com.palm.sysMgrDataBackup", "com.palm.eventreporter.LunaSysMgr", "com.palm.eventreporter.WebAppMgr", "com.palm.luna-*"]
+        "allowedNames": ["", "com.palm.appinstaller", "com.palm.applicationManager", "com.palm.lunastats", "com.palm.nativealertmanager", "com.palm.systemmanager", "com.palm.vibrate", "com.palm.ambientLightSensor", "com.palm.display", "com.palm.keys", "com.palm.sysMgrDataBackup", "com.palm.eventreporter.LunaSysMgr", "com.palm.eventreporter.WebAppMgr", "com.palm.luna-*", "org.webosports.bootmgr"]
     },
     "permissions": [
         {
@@ -62,6 +62,16 @@
         },
         {
             "service":"com.palm.eventreporter.WebAppMgr",
+            "inbound":["*"],
+            "outbound":["*"]
+        },
+        {
+            "service":"org.webosports.bootmgr",
+            "inbound":["*"],
+            "outbound":["*"]
+        },
+        {
+            "service":"org.webosports.bootmgr",
             "inbound":["*"],
             "outbound":["*"]
         }

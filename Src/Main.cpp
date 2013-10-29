@@ -47,6 +47,7 @@
 #include "DisplayManager.h"
 #include "EventReporter.h"
 #include "InputEventMonitor.h"
+#include "BootManager.h"
 
 #include "WebAppMgrProxy.h"
 #include "NativeAppManager.h"
@@ -773,6 +774,9 @@ int main( int argc, char** argv)
 
 	// Initialize the System Service
 	SystemService::instance()->init();
+
+	// Initialize the Boot Manager
+	BootManager::instance();
 
 	// Initialize the WebAppMgr Proxy
 	WebAppMgrProxy::instance();

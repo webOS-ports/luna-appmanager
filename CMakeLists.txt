@@ -89,6 +89,7 @@ set(HEADERS
     Src/base/SharedGlobalProperties.h
     Src/base/Security.h
     Src/base/SystemService.h
+    Src/base/BootManager.h
     Src/base/DisplayManager.h
     Src/base/EventReporter.h
     Src/base/BackupManager.h
@@ -128,6 +129,7 @@ set(SOURCES
     Src/base/EASPolicyManager.cpp
     Src/base/SuspendBlocker.cpp
     Src/base/SystemService.cpp
+    Src/base/BootManager.cpp
     Src/base/Logging.cpp
     Src/base/InputEventMonitor.cpp
     Src/base/application/ApplicationDescription.cpp
