@@ -122,45 +122,6 @@ void WebAppMgrProxy::onWebAppManagerConnected()
 {
     g_message("%s", __PRETTY_FUNCTION__);
 
-    // Launch the SystemUI App
-    ApplicationManager* appMgr = ApplicationManager::instance();
-    ApplicationDescription* sysUiAppDesc = appMgr ? appMgr->getAppById("com.palm.systemui") : 0;
-    if (sysUiAppDesc) {
-        std::string backgroundPath = "file://" + Settings::LunaSettings()->lunaSystemPath + "/index.html";
-        launchUrl(backgroundPath.c_str(), WindowType::Type_StatusBar,
-                         sysUiAppDesc, "", "{\"launchedAtBoot\":true}");
-    }
-    else {
-        g_critical("Failed to launch System UI application");
-    }
-
-    // Launch the Launcher App
-    if (Settings::LunaSettings()->uiType == Settings::UI_LUNA) {
-        ApplicationDescription* appDesc = appMgr ? appMgr->getAppById("com.palm.launcher") : 0;
-        if (appDesc) {
-            launchUrl(appDesc->entryPoint().c_str(), WindowType::Type_Launcher,
-                             appDesc, "", "{\"launchedAtBoot\":true}");
-        }
-        else {
-            g_critical("Failed to launch Launcher application");
-        }
-
-        // Start the headless Apps
-        ApplicationManager::instance()->launchBootTimeApps();
-    }
-    else if (Settings::LunaSettings()->uiType == Settings::UI_MINIMAL) {
-
-        // The only other app to be launched during minimal mode is phone
-        this->launchBootTimeApp("com.palm.app.phone");
-    }
-
-    // Did user specify an app to launch
-    if (s_appToLaunchWhenConnectedStr) {
-        std::string errMsg;
-        this->appLaunch(s_appToLaunchWhenConnectedStr, "", "", "", errMsg);
-        s_appToLaunchWhenConnectedStr = NULL;
-    }
-
     mConnected = true;
 }
 
