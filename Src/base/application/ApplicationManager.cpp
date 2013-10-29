@@ -37,6 +37,7 @@
 
 #include "ApplicationInstaller.h"
 #include "EventReporter.h"
+#include "WebAppMgrProxy.h"
 
 #if !(defined(TARGET_DESKTOP) || defined(TARGET_EMULATOR))
 // TODO:  Reactivate ServiceInstaller
@@ -1962,7 +1963,7 @@ void ApplicationManager::launchBootTimeApps()
 		if (appsToLaunchAtBoot.find(app->id()) != appsToLaunchAtBoot.end()) {
 			luna_log(sAppMgrChnl, "Launching headless app: %s (%s)",
 					app->id().c_str(), app->entryPoint().c_str());
-            // WebAppMgrProxy::instance()->launchBootTimeApp(app->id().c_str());
+			WebAppMgrProxy::instance()->launchBootTimeApp(app->id().c_str());
 		}
 	}
 }
