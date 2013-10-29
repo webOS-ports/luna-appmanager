@@ -118,6 +118,11 @@ bool BootStateFirstUse::cbCreateLocalAccount(LSHandle *handle, LSMessage *messag
 
 void BootStateNormal::enter()
 {
+	launchBootTimeApps();
+}
+
+void BootStateNormal::launchBootTimeApps()
+{
 	ApplicationManager* appMgr = ApplicationManager::instance();
 	ApplicationDescription* sysUiAppDesc = appMgr ? appMgr->getAppById("com.palm.systemui") : 0;
 	if (sysUiAppDesc) {
@@ -147,6 +152,10 @@ void BootStateNormal::leave()
 
 void BootStateNormal::handleEvent(BootEvent event)
 {
+	// when the webappmgr died and becomes available again we've to relaunch our boot time
+	// applications
+	if (event == BOOT_EVENT_WEBAPPMGR_AVAILABLE)
+		launchBootTimeApps();
 }
 
 BootManager* BootManager::instance()

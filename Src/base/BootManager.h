@@ -77,6 +77,9 @@ public:
 	virtual void enter();
 	virtual void leave();
 	virtual void handleEvent(BootEvent event);
+
+private:
+	void launchBootTimeApps();
 };
 
 class BootManager : public QObject
