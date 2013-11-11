@@ -203,6 +203,8 @@ DisplayManager::DisplayManager()
     , m_displayStates (NULL)
     , m_lockState(DisplayLockInvalid)
     , m_homeKeyDown(false)
+    , m_suspendBlocker(HostBase::instance()->mainLoop(),
+                       this, &DisplayManager::allowSuspend, &DisplayManager::setSuspended)
 {
     GMainLoop* mainLoop = HostBase::instance()->mainLoop();
 
@@ -3229,22 +3231,19 @@ void DisplayManager::handleTouchEvent()
 
 bool DisplayManager::allowSuspend()
 {
-#if defined(MACHINE_BROADWAY)
-	return (currentState() == DisplayStateOff || currentState() == DisplayStateOffOnCall) && !m_backlightIsOn;
-#else
-	return currentState() == DisplayStateOff && !m_backlightIsOn;
-	// allow suspend when state is off and backlight is really off.
-#endif
+    // allow suspend when state is off and backlight is really off.
+    return currentState() == DisplayStateOff && !m_backlightIsOn;
 }
 
 
 void DisplayManager::setSuspended (bool suspended) {
 
-	if (suspended)
-	    m_currentState->handleEvent (DisplayEventPowerdSuspend);
-	else 
-	    m_currentState->handleEvent (DisplayEventPowerdResume);
-//	g_warning ("%s: Device is %s", __func__, m_deviceIsSuspended ? "suspended" : "not suspended");
+    if (suspended)
+        m_currentState->handleEvent(DisplayEventPowerdSuspend);
+    else
+        m_currentState->handleEvent(DisplayEventPowerdResume);
+
+    g_message("%s: Device is %s", __PRETTY_FUNCTION__, suspended ? "suspended" : "not suspended");
 }
 
 bool DisplayManager::s_forceVsyncDisable = false;

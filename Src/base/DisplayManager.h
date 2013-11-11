@@ -30,6 +30,7 @@
 #include "sptr.h"
 #include "AmbientLightSensor.h"
 #include "DisplayStates.h"
+#include "SuspendBlocker.h"
 
 #include <QEvent>
 #include <QObject>
@@ -262,6 +263,8 @@ private:
     DisplayStateBase* m_currentState;
     DisplayStateBase** m_displayStates;
     DisplayLockState  m_lockState;
+
+    SuspendBlocker<DisplayManager> m_suspendBlocker;
 
     bool off (sptr<Event> event = 0);
     bool on (sptr<Event> event = 0);
