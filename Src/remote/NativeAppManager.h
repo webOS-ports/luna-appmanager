@@ -33,7 +33,8 @@ class NativeAppManager
 public:
 	static NativeAppManager* instance();
 
-	int launchNativeProcess(const std::string& appId, const char* path, char* const argv[], ApplicationDescription::Type appType, int requiredMemory = 0);
+	int launchProcess(const std::string& appId, const char* path, char* const argv[], ApplicationDescription::Type appType, int requiredMemory = 0);
+
 	void suspendProcess(int pid);
 	void resumeProcess(int pid);
 	void killProcess(int pid, bool notifyUser=false);
@@ -55,7 +56,6 @@ private:
 	typedef std::set<int> ProcessSet;
 
 	ProcessMap m_nativeProcessMap;
-	ProcessMap m_webAppProcessMap;
 	ProcessSet m_nukeSet;
 	Timer<NativeAppManager> m_nukeProcessTimer;
 };

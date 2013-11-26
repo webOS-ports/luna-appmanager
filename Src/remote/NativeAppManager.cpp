@@ -140,7 +140,7 @@ NativeAppManager::~NativeAppManager()
 {
 }
 
-int NativeAppManager::launchNativeProcess(const std::string& appId, const char* path,
+int NativeAppManager::launchProcess(const std::string& appId, const char* path,
 	char* const argv[], ApplicationDescription::Type appType, int requiredMemory)
 {
 	ProcessMap::const_iterator it = m_nativeProcessMap.find(appId);
@@ -250,17 +250,6 @@ void NativeAppManager::processRemoved(int pid, bool doCleanup)
 			g_message("%s: pid: %d, appId: %s:", __PRETTY_FUNCTION__,
 					  pid, it->first.c_str());
 			m_nativeProcessMap.erase(it);
-			return;
-		}
-	}
-
-	for (ProcessMap::iterator it = m_webAppProcessMap.begin();
-		 it != m_webAppProcessMap.end(); ++it) {
-
-		if (it->second == pid) {
-			g_message("%s: pid: %d, appId: %s:", __PRETTY_FUNCTION__,
-					  pid, it->first.c_str());
-			m_webAppProcessMap.erase(it);
 			return;
 		}
 	}
