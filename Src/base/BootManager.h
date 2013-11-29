@@ -35,8 +35,6 @@ enum BootState {
 };
 
 enum BootEvent {
-	BOOT_EVENT_WEBAPPMGR_AVAILABLE,
-	BOOT_EVENT_WEBAPPMGR_NOT_AVAILABLE,
 	BOOT_EVENT_FIRST_USE_DONE,
 };
 
@@ -52,6 +50,7 @@ public:
 class BootStateStartup : public BootStateBase
 {
 public:
+    virtual void enter();
 	virtual void handleEvent(BootEvent event);
 };
 
@@ -103,18 +102,16 @@ private:
 	void startService();
 	void stopService();
 
-	static bool cbWebAppMgrAvailable(LSHandle *handle, LSMessage *message, void *user_data);
-
 	void handleEvent(BootEvent event);
 
 	void postCurrentState();
 
 private Q_SLOTS:
 	void onFileChanged(const QString& path);
+    void onInitialize();
 
 private:
-	LSHandle* m_service;
-	bool m_webAppMgrAvailable;
+    LSHandle* m_service;
 	BootState m_currentState;
 	BootStateBase *m_states[BOOT_STATE_MAX];
 	QFileSystemWatcher m_fileWatch;

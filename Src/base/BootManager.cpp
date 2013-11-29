@@ -40,8 +40,8 @@
 #include "Settings.h"
 #include "BootManager.h"
 #include "Utils.h"
-#include "WebAppMgrProxy.h"
 #include "DisplayManager.h"
+#include "ApplicationProcessManager.h"
 
 #include "cjson/json.h"
 #include <pbnjson.hpp>
@@ -54,29 +54,47 @@ static LSMethod s_methods[]  = {
 	{ 0, 0 },
 };
 
+std::string bootStateToStr(BootState state)
+{
+    std::string stateStr = "unknown";
+
+    switch (state) {
+    case BOOT_STATE_STARTUP:
+        stateStr = "startup";
+        break;
+    case BOOT_STATE_FIRSTUSE:
+        stateStr = "firstuse";
+        break;
+    case BOOT_STATE_NORMAL:
+        stateStr = "normal";
+        break;
+    }
+
+    return stateStr;
+}
+
 void BootStateStartup::handleEvent(BootEvent event)
 {
-	if (event == BOOT_EVENT_WEBAPPMGR_AVAILABLE) {
-		if (!QFile::exists("/var/luna/preferences/ran-first-use"))
-			BootManager::instance()->switchState(BOOT_STATE_FIRSTUSE);
-		else
-			BootManager::instance()->switchState(BOOT_STATE_NORMAL);
-	}
+}
+
+void BootStateStartup::enter()
+{
+    if (!QFile::exists("/var/luna/preferences/ran-first-use"))
+        BootManager::instance()->switchState(BOOT_STATE_FIRSTUSE);
+    else
+        BootManager::instance()->switchState(BOOT_STATE_NORMAL);
 }
 
 void BootStateFirstUse::enter()
 {
-	LSError error;
-	LSErrorInit(&error);
-
-	WebAppMgrProxy::instance()->launchBootTimeApp("org.webosports.app.firstuse");
+    ApplicationProcessManager::instance()->launch("org.webosports.app.firstuse", "");
 
 	DisplayManager::instance()->pushDNAST("org.webosports.bootmgr");
 }
 
 void BootStateFirstUse::leave()
 {
-	// TODO close the firstuse application somehow or should it do this itself?
+    ApplicationProcessManager::instance()->killByAppId("org.webosports.app.firstuse");
 
 	DisplayManager::instance()->popDNAST("org.webosports.bootmgr");
 }
@@ -124,20 +142,10 @@ void BootStateNormal::enter()
 void BootStateNormal::launchBootTimeApps()
 {
 	ApplicationManager* appMgr = ApplicationManager::instance();
-	ApplicationDescription* sysUiAppDesc = appMgr ? appMgr->getAppById("com.palm.systemui") : 0;
-	if (sysUiAppDesc) {
-		std::string backgroundPath = "file://" + Settings::LunaSettings()->lunaSystemPath + "/index.html";
-		WebAppMgrProxy::instance()->launchUrl(backgroundPath.c_str(), WindowType::Type_StatusBar,
-		                 sysUiAppDesc, "", "{\"launchedAtBoot\":true}");
-	}
-	else {
-		g_critical("Failed to launch System UI application");
-	}
 
 	ApplicationDescription* appDesc = appMgr ? appMgr->getAppById("com.palm.launcher") : 0;
 	if (appDesc) {
-		WebAppMgrProxy::instance()->launchUrl(appDesc->entryPoint().c_str(), WindowType::Type_Launcher,
-						 appDesc, "", "{\"launchedAtBoot\":true}");
+        ApplicationProcessManager::instance()->launch("com.palm.launcher", "", WindowType::Type_Launcher);
 	}
 	else {
 		g_critical("Failed to launch Launcher application");
@@ -152,10 +160,6 @@ void BootStateNormal::leave()
 
 void BootStateNormal::handleEvent(BootEvent event)
 {
-	// when the webappmgr died and becomes available again we've to relaunch our boot time
-	// applications
-	if (event == BOOT_EVENT_WEBAPPMGR_AVAILABLE)
-		launchBootTimeApps();
 }
 
 BootManager* BootManager::instance()
@@ -169,22 +173,20 @@ BootManager* BootManager::instance()
 }
 
 BootManager::BootManager() :
-	m_service(0),
-	m_webAppMgrAvailable(false),
+    m_service(0),
 	m_currentState(BOOT_STATE_STARTUP)
 {
 	m_states[BOOT_STATE_STARTUP] = new BootStateStartup();
 	m_states[BOOT_STATE_FIRSTUSE] = new BootStateFirstUse();
 	m_states[BOOT_STATE_NORMAL] = new BootStateNormal();
 
-	startService();
-	switchState(BOOT_STATE_STARTUP);
+    startService();
 
 	m_fileWatch.addPath("/var/luna/preferences");
 	connect(&m_fileWatch, SIGNAL(directoryChanged(QString)), this, SLOT(onFileChanged(QString)));
 	connect(&m_fileWatch, SIGNAL(fileChanged(QString)), this, SLOT(onFileChanged(QString)));
 
-	qDebug() << __PRETTY_FUNCTION__ << m_fileWatch.directories() << m_fileWatch.files();
+    QTimer::singleShot(0, this, SLOT(onInitialize()));
 }
 
 BootManager::~BootManager()
@@ -194,6 +196,11 @@ BootManager::~BootManager()
 	delete m_states[BOOT_STATE_STARTUP];
 	delete m_states[BOOT_STATE_FIRSTUSE];
 	delete m_states[BOOT_STATE_NORMAL];
+}
+
+void BootManager::onInitialize()
+{
+    switchState(BOOT_STATE_STARTUP);
 }
 
 void BootManager::startService()
@@ -222,15 +229,7 @@ void BootManager::startService()
 		g_warning("Failed in BootManager: %s", error.message);
 		LSErrorFree(&error);
 		return;
-	}
-
-	if (!LSCall(m_service, "palm://com.palm.lunabus/signal/registerServerStatus",
-					"{\"serviceName\":\"org.webosports.webappmanager\"}",
-					cbWebAppMgrAvailable, NULL, NULL, &error)) {
-		g_warning("Failed in BootManager: %s", error.message);
-		LSErrorFree(&error);
-		return;
-	}
+    }
 }
 
 void BootManager::stopService()
@@ -248,6 +247,8 @@ void BootManager::stopService()
 
 void BootManager::switchState(BootState state)
 {
+    qDebug() << __PRETTY_FUNCTION__ << "Switching to state" << QString::fromStdString(bootStateToStr(state));
+
 	m_states[m_currentState]->leave();
 	m_currentState = state;
 	m_states[m_currentState]->enter();
@@ -266,29 +267,6 @@ void BootManager::onFileChanged(const QString& path)
 		handleEvent(BOOT_EVENT_FIRST_USE_DONE);
 }
 
-bool BootManager::cbWebAppMgrAvailable(LSHandle *handle, LSMessage *message, void *user_data)
-{
-	VALIDATE_SCHEMA_AND_RETURN(handle, message,
-		SCHEMA_2(REQUIRED(serviceName, string), REQUIRED(connected, boolean)));
-
-	struct json_object* json = json_tokener_parse(LSMessageGetPayload(message));
-	if (!json || is_error(json))
-		return true;
-
-	json_object* label = json_object_object_get(json, "connected");
-	if (!label || !json_object_is_type(label, json_type_boolean)) {
-		json_object_put(json);
-		return true;
-	}
-
-	bool connected = json_object_get_boolean(label);
-	BootManager::instance()->handleEvent(connected ? BOOT_EVENT_WEBAPPMGR_AVAILABLE : BOOT_EVENT_WEBAPPMGR_NOT_AVAILABLE);
-
-	json_object_put(json);
-
-	return true;
-}
-
 BootState BootManager::currentState() const
 {
 	return m_currentState;
@@ -297,25 +275,6 @@ BootState BootManager::currentState() const
 LSHandle* BootManager::service() const
 {
 	return m_service;
-}
-
-std::string bootStateToStr(BootState state)
-{
-	std::string stateStr = "unknown";
-
-	switch (state) {
-	case BOOT_STATE_STARTUP:
-		stateStr = "startup";
-		break;
-	case BOOT_STATE_FIRSTUSE:
-		stateStr = "firstuse";
-		break;
-	case BOOT_STATE_NORMAL:
-		stateStr = "normal";
-		break;
-	}
-
-	return stateStr;
 }
 
 void BootManager::postCurrentState()

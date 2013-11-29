@@ -31,6 +31,7 @@
 #include "Settings.h"
 #include "Utils.h"
 #include "WebAppMgrProxy.h"
+#include "ApplicationProcessManager.h"
 
 #include <cjson/json_object.h>
 #include "lunaservice.h"
@@ -139,8 +140,6 @@ static std::string getAbsolutePath(const std::string& inStr,
  *  - \ref com_palm_application_manager_list_resource_handlers
  */
 
-static LSHandle*  listRunningApps_lshandle = 0;
-QList<LSMessage*> listRunningApps_messages;
 
 /*!
 \page com_palm_application_manager
@@ -232,36 +231,37 @@ static bool servicecallback_listRunningApps( LSHandle* lshandle,
 {
 
     // {}
-
     VALIDATE_SCHEMA_AND_RETURN(lshandle,
                                message,
                                SCHEMA_ANY);
-	// Reference the message and save pointer to be used by the response callback
-	LSMessageRef(message);
-	listRunningApps_messages.append(message);
-	listRunningApps_lshandle = lshandle;
 
-	// only make the request if we are the only pendingRequest
-	if (listRunningApps_messages.size() == 1)
-		WebAppMgrProxy::instance()->serviceRequestHandler_listRunningApps(true);
+    json_object *reply_obj = 0;
+    json_object *applications_obj = 0;
+    json_object *process_obj = 0;
 
-	return true;
-}
+    reply_obj = json_object_new_object();
+    applications_obj = json_object_new_array();
 
-void appManagerCallback_listRunningApps( const std::string& runnigAppsJsonArray )
-{
-	LSError lserror;
-	LSErrorInit(&lserror);
+    Q_FOREACH(ApplicationProcess *process, ApplicationProcessManager::instance()->runningApplications()) {
+        process_obj = json_object_new_object();
+        json_object_object_add(process_obj, "id", json_object_new_string(process->id().toUtf8().constData()));
 
-	Q_FOREACH(LSMessage* msg, listRunningApps_messages) {
+        QString processId = QString::number(process->pid());
+        json_object_object_add(process_obj, "processid", json_object_new_string(processId.toUtf8().constData()));
 
-		if (!LSMessageReply( listRunningApps_lshandle, msg, runnigAppsJsonArray.c_str(), &lserror))
-			LSErrorFree (&lserror);
-	
-		LSMessageUnref(msg);
-	}
+        json_object_array_add(applications_obj, process_obj);
+    }
 
-	listRunningApps_messages.clear();
+    json_object_object_add(reply_obj, "running", applications_obj);
+    json_object_object_add(reply_obj, "returnValue", json_object_new_boolean(true));
+
+    LSError lserror;
+    LSErrorInit(&lserror);
+
+    if (!LSMessageReply(lshandle, message, json_object_to_json_string(reply_obj), &lserror))
+        LSErrorFree (&lserror);
+
+    return true;
 }
 
 /*!
@@ -1266,8 +1266,8 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 	if (appid)
 	{
 		// we'll assume this is an appId, and we'll launch it.
-		std::string url = json_object_get_string(appid);
-        processId = WebAppMgrProxy::instance()->appLaunch(url, params, callerAppId, callerProcessId, errMsg);
+        std::string url = json_object_get_string(appid);
+        processId = ApplicationProcessManager::instance()->launch(url, params);
 		if (!processId.empty()) {
 			success = true;
 			json_object_object_add(json, "processId", json_object_new_string(processId.c_str()));
@@ -1312,8 +1312,9 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 	redirectHandler = MimeSystem::instance()->getActiveHandlerForRedirect(targetUri,false,true);			//true argument limits to only redirects (and not command (scheme) handlers)
 	if (redirectHandler.valid()) {
 		// A redirected URL implies streaming.
-		g_message( "LAUNCH APP ID %s with %s", redirectHandler.appId().c_str(), targetUri.c_str() );
-        processId = WebAppMgrProxy::instance()->appLaunch(redirectHandler.appId(), appArgUrl, callerAppId, callerProcessId, errMsg);
+        g_message( "LAUNCH APP ID %s with %s", redirectHandler.appId().c_str(), targetUri.c_str() );
+        std::string appid = redirectHandler.appId();
+        processId = ApplicationProcessManager::instance()->launch(appid, appArgUrl);
 		if (!processId.empty()) {
 			success = true;
 			json_object_object_add(json, "processId", json_object_new_string(processId.c_str()));
@@ -1342,7 +1343,7 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 				targetAppId = ovrHandlerAppId;
 			}
 
-            processId = WebAppMgrProxy::instance()->appLaunch(targetAppId, appArgUrl, callerAppId, callerProcessId, errMsg);
+            processId = ApplicationProcessManager::instance()->launch(targetAppId, appArgUrl);
 			if (!processId.empty()) {
 				success = true;
 				json_object_object_add(json, "processId", json_object_new_string(processId.c_str()));
@@ -1406,7 +1407,7 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 			else {
 				//targetAppId = resourceHandler->appId();
 				targetAppId = resourceHandler.appId();
-                processId = WebAppMgrProxy::instance()->appLaunch(targetAppId, appArgUrl, callerAppId, callerProcessId, errMsg);
+                processId = ApplicationProcessManager::instance()->launch(targetAppId, appArgUrl);
 				if (!processId.empty()) {
 					success = true;
 					json_object_object_add(json, "processId", json_object_new_string(processId.c_str()));
@@ -1422,8 +1423,8 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 	//	searched for earlier)
 	if (redirectHandler.valid()) {
 		g_debug ("Command handler detected");
-		targetAppId = redirectHandler.appId();
-        processId = WebAppMgrProxy::instance()->appLaunch(targetAppId, appArgUrl, callerAppId, callerProcessId, errMsg);
+        targetAppId = redirectHandler.appId();
+        processId = ApplicationProcessManager::instance()->launch(targetAppId, appArgUrl);
 		if (!processId.empty()) {
 			success = true;
 			json_object_object_add(json, "processId", json_object_new_string(processId.c_str()));
@@ -1525,6 +1526,7 @@ static bool servicecallback_launch( LSHandle* lshandle, LSMessage *message,
 	std::string callerAppId;
 	std::string callerProcessId;
 	bool success=false;
+    qint64 pid;
 
     // {"id": object { "label" :string }, "params": [ string, object ]}
 
@@ -1594,7 +1596,7 @@ static bool servicecallback_launch( LSHandle* lshandle, LSMessage *message,
 	g_message("ApplicationManagerService:: servicecallback_launch(): launching as: appId = [%s] , param json = [%s]\n",
 			id.c_str(), params.c_str());
 
-    processId = WebAppMgrProxy::instance()->appLaunch(id, params, callerAppId, callerProcessId, errMsg);
+    processId = ApplicationProcessManager::instance()->launch(id, params);
 	success = !processId.empty();
 
 	Done:
