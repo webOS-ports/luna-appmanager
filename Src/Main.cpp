@@ -49,8 +49,7 @@
 #include "InputEventMonitor.h"
 #include "BootManager.h"
 
-#include "WebAppMgrProxy.h"
-#include "NativeAppManager.h"
+#include "ApplicationProcessManager.h"
 
 #include <ProcessKiller.h>
 
@@ -778,17 +777,13 @@ int main( int argc, char** argv)
 	// Initialize the Boot Manager
 	BootManager::instance();
 
-	// Initialize the WebAppMgr Proxy
-	WebAppMgrProxy::instance();
-
-	// Initialize the native application manager
-	NativeAppManager::instance();
-
 	// Initialize the application mgr
 	ApplicationManager::instance()->init();
 
 	// Initialize the Application Installer
 	ApplicationInstaller::instance();
+
+	ApplicationProcessManager::instance();
 
 	// Initialize the Event Reporter
 	EventReporter::init(host->mainLoop());

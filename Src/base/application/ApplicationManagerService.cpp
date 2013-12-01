@@ -30,7 +30,6 @@
 #include "ServiceDescription.h"
 #include "Settings.h"
 #include "Utils.h"
-#include "WebAppMgrProxy.h"
 #include "ApplicationProcessManager.h"
 
 #include <cjson/json_object.h>
