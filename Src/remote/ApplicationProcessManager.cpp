@@ -140,6 +140,7 @@ qint64 ApplicationProcessManager::launchProcess(const QString& id, const QString
     environment.insert("QT_IM_MODULE", "Maliit");
 
     process->setProcessEnvironment(environment);
+    process->setProcessChannelMode(QProcess::ForwardedChannels);
 
     connect(process, SIGNAL(finished(int,QProcess::ExitStatus)), this, SLOT(onProcessFinished(int,QProcess::ExitStatus)));
 
