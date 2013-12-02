@@ -50,7 +50,8 @@ ApplicationProcessManager* ApplicationProcessManager::instance()
     return instance;
 }
 
-ApplicationProcessManager::ApplicationProcessManager()
+ApplicationProcessManager::ApplicationProcessManager() :
+    QObject(0)
 {
 }
 
@@ -140,6 +141,8 @@ qint64 ApplicationProcessManager::launchProcess(const QString& id, const QString
 
     process->setProcessEnvironment(environment);
 
+    connect(process, SIGNAL(finished(int,QProcess::ExitStatus)), this, SLOT(onProcessFinished(int,QProcess::ExitStatus)));
+
     // NOTE: Currently we're just forking once so the new process will be a child of ours and
     // will exit once we exit.
     process->start(path, parameters);
@@ -154,6 +157,16 @@ qint64 ApplicationProcessManager::launchProcess(const QString& id, const QString
     m_applications.append(process);
 
     return process->pid();
+}
+
+void ApplicationProcessManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus)
+{
+    ApplicationProcess *process = static_cast<ApplicationProcess*>(sender());
+
+    qDebug() << "Application" << process->id() << "exited";
+
+    m_applications.removeAll(process);
+    delete process;
 }
 
 qint64 ApplicationProcessManager::launchWebApp(ApplicationDescription *desc, std::string &params, WindowType::Type winType)

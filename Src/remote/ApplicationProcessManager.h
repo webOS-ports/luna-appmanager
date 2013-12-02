@@ -43,8 +43,9 @@ private:
     QString m_id;
 };
 
-class ApplicationProcessManager
+class ApplicationProcessManager : public QObject
 {
+    Q_OBJECT
 public:
     static ApplicationProcessManager* instance();
 
@@ -54,6 +55,9 @@ public:
     void killByAppId(std::string appId);
 
     QList<ApplicationProcess*> runningApplications() const;
+
+private Q_SLOTS:
+    void onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
 
 private:
     ApplicationProcessManager();
