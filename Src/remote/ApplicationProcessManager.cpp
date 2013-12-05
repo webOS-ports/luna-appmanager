@@ -179,20 +179,7 @@ qint64 ApplicationProcessManager::launchWebApp(ApplicationDescription *desc, std
     appInfoFile.write(appDescription.toUtf8());
     appInfoFile.close();
 
-    QString winTypeStr = "card";
-    switch (winType) {
-    case WindowType::Type_Launcher:
-        winTypeStr = "launcher";
-        break;
-    default:
-        break;
-    }
-
     QStringList parameters;
-    parameters << "-u" << QString::fromStdString(desc->entryPoint());
-    parameters << "-w" << winTypeStr;
-    if (params.length() > 0)
-        parameters << "-p" << QString::fromStdString(params);
     parameters << "-a" << appInfoFile.fileName();
 
     return launchProcess(QString::fromStdString(desc->id()), WEBAPP_LAUNCHER_PATH, parameters);
