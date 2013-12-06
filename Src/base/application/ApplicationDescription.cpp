@@ -66,6 +66,7 @@ ApplicationDescription::ApplicationDescription()
 	m_runtimeMemoryRequired = 0;
 	m_universalSearchJsonStr = "";
 	m_pBuiltin_launcher = 0;
+    m_filePath = "";
 }
 
 ApplicationDescription::~ApplicationDescription()
@@ -98,9 +99,9 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 
 	struct json_object* root=0;
 	struct json_object* label=0;
-	
+
 	std::string title, icon, dirPath;
-	gchar* dirPathCStr;
+    gchar* dirPathCStr;
 
 	dirPathCStr = g_path_get_dirname(filePath.c_str());
 	dirPath = dirPathCStr;
@@ -116,6 +117,7 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 	
 	appDesc = new ApplicationDescription();
 
+    appDesc->m_filePath = filePath;
 	appDesc->m_folderPath = folderPath;
 
 	// ID: mandatory

@@ -95,6 +95,7 @@ public:
 						const std::string& appmenu);
 	static std::string	   versionFromFile(const std::string& filePath, const std::string& folderPath);
 	
+    const std::string& filePath() const { return m_filePath; }
 	const std::string& menuName()		const { return m_appmenuName; }
 	const std::string& category()   const { return m_category; } 
 	std::list<std::string> keywords() const { return m_keywords.allKeywords(); }
@@ -229,6 +230,7 @@ private:
 
 	static int 	utilExtractMimeTypes(struct json_object * jsonMimeTypeArray,std::vector<MimeRegInfo>& extractedMimeTypes);
 
+    std::string                 m_filePath;
 	std::string            		m_category;
 	std::string            		m_version;
 	std::list<ResourceHandler> 	m_mimeTypes;

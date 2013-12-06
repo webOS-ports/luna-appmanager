@@ -172,15 +172,26 @@ void ApplicationProcessManager::onProcessFinished(int exitCode, QProcess::ExitSt
 
 qint64 ApplicationProcessManager::launchWebApp(ApplicationDescription *desc, std::string &params, WindowType::Type winType)
 {
-    QString appDescription = QString::fromStdString(desc->toString());
-    QTemporaryFile appInfoFile;
-    appInfoFile.setAutoRemove(false);
-    appInfoFile.open();
-    appInfoFile.write(appDescription.toUtf8());
-    appInfoFile.close();
+    QString appInfoFilePath;
+
+    if (desc->filePath().length() == 0)
+    {
+        QString appDescription = QString::fromStdString(desc->toString());
+        QTemporaryFile appInfoFile;
+        appInfoFile.setAutoRemove(false);
+        appInfoFile.open();
+        appInfoFile.write(appDescription.toUtf8());
+        appInfoFile.close();
+
+        appInfoFilePath = appInfoFile.fileName();
+    }
+    else
+    {
+        appInfoFilePath = QString::fromStdString(desc->filePath());
+    }
 
     QStringList parameters;
-    parameters << "-a" << appInfoFile.fileName();
+    parameters << "-a" << appInfoFilePath;
 
     return launchProcess(QString::fromStdString(desc->id()), WEBAPP_LAUNCHER_PATH, parameters);
 }
