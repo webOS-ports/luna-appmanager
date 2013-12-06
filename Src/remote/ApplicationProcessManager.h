@@ -49,7 +49,7 @@ class ApplicationProcessManager : public QObject
 public:
     static ApplicationProcessManager* instance();
 
-    std::string launch(std::string appId, std::string params, WindowType::Type winType = WindowType::Type_Card);
+    std::string launch(std::string appId, std::string params);
 
     bool isRunning(std::string appId);
     void killByAppId(std::string appId);
@@ -62,9 +62,9 @@ private Q_SLOTS:
 private:
     ApplicationProcessManager();
 
-    qint64 launchWebApp(ApplicationDescription *desc, std::string& params, WindowType::Type winType);
-    qint64 launchNativeApp(ApplicationDescription *desc, std::string& params, WindowType::Type winType);
-    qint64 launchQMLApp(ApplicationDescription *desc, std::string& params, WindowType::Type winType);
+    qint64 launchWebApp(ApplicationDescription *desc, std::string& params);
+    qint64 launchNativeApp(ApplicationDescription *desc, std::string& params);
+    qint64 launchQMLApp(ApplicationDescription *desc, std::string& params);
 
     qint64 launchProcess(const QString& id, const QString& path, const QStringList& parameters);
 

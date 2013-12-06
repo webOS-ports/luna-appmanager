@@ -79,7 +79,7 @@ void ApplicationProcessManager::killByAppId(std::string appId)
     }
 }
 
-std::string ApplicationProcessManager::launch(std::string appId, std::string params, WindowType::Type winType)
+std::string ApplicationProcessManager::launch(std::string appId, std::string params)
 {
     qDebug() << "Launching application" << QString::fromStdString(appId);
 
@@ -101,15 +101,15 @@ std::string ApplicationProcessManager::launch(std::string appId, std::string par
         pid = 0;
         switch (desc->type()) {
         case ApplicationDescription::Type_Web:
-            pid = launchWebApp(desc, params, winType);
+            pid = launchWebApp(desc, params);
             break;
         case ApplicationDescription::Type_Native:
         case ApplicationDescription::Type_PDK:
         case ApplicationDescription::Type_Qt:
-            pid = launchNativeApp(desc, params, winType);
+            pid = launchNativeApp(desc, params);
             break;
         case ApplicationDescription::Type_QML:
-            pid = launchQMLApp(desc, params, winType);
+            pid = launchQMLApp(desc, params);
             break;
         default:
             break;
@@ -170,7 +170,7 @@ void ApplicationProcessManager::onProcessFinished(int exitCode, QProcess::ExitSt
     delete process;
 }
 
-qint64 ApplicationProcessManager::launchWebApp(ApplicationDescription *desc, std::string &params, WindowType::Type winType)
+qint64 ApplicationProcessManager::launchWebApp(ApplicationDescription *desc, std::string &params)
 {
     QString appInfoFilePath;
 
@@ -196,7 +196,7 @@ qint64 ApplicationProcessManager::launchWebApp(ApplicationDescription *desc, std
     return launchProcess(QString::fromStdString(desc->id()), WEBAPP_LAUNCHER_PATH, parameters);
 }
 
-qint64 ApplicationProcessManager::launchNativeApp(ApplicationDescription *desc, std::string &params, WindowType::Type winType)
+qint64 ApplicationProcessManager::launchNativeApp(ApplicationDescription *desc, std::string &params)
 {
     QStringList parameters;
     parameters << QString::fromStdString(params);
@@ -204,7 +204,7 @@ qint64 ApplicationProcessManager::launchNativeApp(ApplicationDescription *desc, 
     return launchProcess(QString::fromStdString(desc->id()), QString::fromStdString(desc->entryPoint()), parameters);
 }
 
-qint64 ApplicationProcessManager::launchQMLApp(ApplicationDescription *desc, std::string &params, WindowType::Type winType)
+qint64 ApplicationProcessManager::launchQMLApp(ApplicationDescription *desc, std::string &params)
 {
     return -1;
 }
