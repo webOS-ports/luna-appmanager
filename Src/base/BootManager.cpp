@@ -141,16 +141,7 @@ void BootStateNormal::enter()
 
 void BootStateNormal::launchBootTimeApps()
 {
-	ApplicationManager* appMgr = ApplicationManager::instance();
-
-	ApplicationDescription* appDesc = appMgr ? appMgr->getAppById("com.palm.launcher") : 0;
-	if (appDesc) {
-        ApplicationProcessManager::instance()->launch("com.palm.launcher", "");
-	}
-	else {
-		g_critical("Failed to launch Launcher application");
-	}
-
+    ApplicationProcessManager::instance()->launch("com.palm.launcher", "");
 	ApplicationManager::instance()->launchBootTimeApps();
 }
 
