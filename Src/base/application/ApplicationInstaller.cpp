@@ -97,7 +97,7 @@ static const char*		s_newIpkgBaseDir						=	"/media/cryptofs/apps/usr/lib/ipkg/"
 static const char*		s_newIpkgStatusFile						=	"/media/cryptofs/apps/usr/lib/ipkg/status";
 static const char*		s_postRemoveServiceScript				= 	"/usr/bin/pmServicePostRemove.sh";
 
-static const char*		s_pkginstallerExec 						=	"ipkg";
+static const char*		s_pkginstallerExec 						=	"opkg";
 static const char*		s_pkginstallerOpts_location				=	"-o";
 //static const char*		s_pkginstallerOpts_install				=	"install";
 static const char*		s_pkginstallerOpts_remove				=	"remove";
