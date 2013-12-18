@@ -91,15 +91,10 @@ static int runScriptCwd(const std::string& scriptFile,const std::string& cwd);
 //TODO: these don't need to be vars...they can be #defines ... I need this for now to debug something
 
 static const char*		s_userInstalledPackageDir				= 	"/var/usr/palm/applications";
-static const char*		s_oldIpkgBaseDir						=	"/var/usr/lib/ipkg/";	
-static const char*		s_oldIpkgStatusFile						=	"/var/usr/lib/ipkg/status";
-static const char*		s_newIpkgBaseDir						=	"/media/cryptofs/apps/usr/lib/ipkg/";
-static const char*		s_newIpkgStatusFile						=	"/media/cryptofs/apps/usr/lib/ipkg/status";
 static const char*		s_postRemoveServiceScript				= 	"/usr/bin/pmServicePostRemove.sh";
 
 static const char*		s_pkginstallerExec 						=	"opkg";
 static const char*		s_pkginstallerOpts_location				=	"-o";
-//static const char*		s_pkginstallerOpts_install				=	"install";
 static const char*		s_pkginstallerOpts_remove				=	"remove";
 
 static const char *	const s_verifyExec							=	"openssl";
