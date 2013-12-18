@@ -169,3 +169,11 @@ qt5_use_modules(LunaSysMgr Core Gui Widgets)
 webos_build_daemon()
 webos_build_system_bus_files()
 webos_config_build_doxygen(doc Doxyfile)
+
+set(HELPER_SCRIPTS
+    scripts/app-install
+    scripts/ApplicationInstallerUtility
+    scripts/pmServicePostInstall.sh
+    scripts/pmServicePostRemove.sh)
+
+install(FILES ${HELPER_SCRIPTS} DESTINATION ${WEBOS_INSTALL_BINDIR})

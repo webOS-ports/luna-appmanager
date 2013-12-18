@@ -1,0 +1,2 @@
+#!/bin/sh
+# NO OP as we don't need this but luna-sysmgr complains about it when missing.
