@@ -65,6 +65,24 @@ bool ApplicationProcessManager::isRunning(std::string appId)
     return false;
 }
 
+std::string ApplicationProcessManager::getPid(std::string appId)
+{
+    ApplicationProcess *selectedApp = 0;
+
+    Q_FOREACH(ApplicationProcess *app, m_applications) {
+        if (app->id() == QString::fromStdString(appId)) {
+            selectedApp = app;
+            break;
+        }
+    }
+
+    if (selectedApp == 0)
+        return std::string("");
+
+    QString processId = QString::number(selectedApp->pid());
+    return processId.toStdString();
+}
+
 QList<ApplicationProcess*> ApplicationProcessManager::runningApplications() const
 {
     return m_applications;

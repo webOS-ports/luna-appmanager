@@ -51,6 +51,7 @@ public:
 
     std::string launch(std::string appId, std::string params);
 
+    std::string getPid(std::string appId);
     bool isRunning(std::string appId);
     void killByAppId(std::string appId);
 

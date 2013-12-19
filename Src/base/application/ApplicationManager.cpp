@@ -1976,6 +1976,57 @@ bool ApplicationManager::isLaunchAtBootApp(const std::string& appId)
 
 }
 
+std::string ApplicationManager::launch(std::string appId, std::string params)
+{
+	LSSubscriptionIter *iter;
+	json_object *reply;
+
+	// check if application is already registered and if yes send the signal that it
+	// was relaunched
+	LSSubscriptionAcquire(m_serviceHandlePrivate, appId.c_str(), &iter, NULL);
+	if (iter && LSSubscriptionHasNext(iter))
+	{
+		g_message("Application %s is already running", appId.c_str());
+
+		reply = json_object_new_object();
+		json_object_object_add(reply, "event", json_object_new_string("relaunched"));
+		json_object_object_add(reply, "parameters", json_object_new_string(params.c_str()));
+
+		LSSubscriptionReply(m_serviceHandlePrivate, appId.c_str(),
+			json_object_to_json_string(reply), NULL);
+
+		json_object_put(reply);
+
+		return ApplicationProcessManager::instance()->getPid(appId);
+	}
+
+	// If application is not registered but launched through the process manager its
+	// already running and don't need to be launched again
+	if (ApplicationProcessManager::instance()->isRunning(appId))
+		return ApplicationProcessManager::instance()->getPid(appId);
+
+	// At this point we're not able to detect applications which are not launched
+	// through us and are not registered with the application manager. Normally those
+	// are only occuring through development so we don't try to control them too.
+
+	g_message("Application %s isn't already running", appId.c_str());
+
+	return ApplicationProcessManager::instance()->launch(appId, params);
+}
+
+bool ApplicationManager::registerApplication(std::string appId, LSMessage *message)
+{
+	LSSubscriptionIter *iter = NULL;
+
+	LSSubscriptionAcquire(m_serviceHandlePrivate, appId.c_str(), &iter, NULL);
+	if (iter != NULL && LSSubscriptionHasNext(iter))
+		return false;
+
+	LSSubscriptionAdd(m_serviceHandlePrivate, appId.c_str(), message, NULL);
+
+	return true;
+}
+
 std::string ApplicationManager::addLaunchPoint(const std::string& id,
 		const std::string& title,
 		const std::string& menuName,

@@ -1266,7 +1266,7 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 	{
 		// we'll assume this is an appId, and we'll launch it.
         std::string url = json_object_get_string(appid);
-        processId = ApplicationProcessManager::instance()->launch(url, params);
+        processId = ApplicationManager::instance()->launch(url, params);
 		if (!processId.empty()) {
 			success = true;
 			json_object_object_add(json, "processId", json_object_new_string(processId.c_str()));
@@ -1313,7 +1313,7 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 		// A redirected URL implies streaming.
         g_message( "LAUNCH APP ID %s with %s", redirectHandler.appId().c_str(), targetUri.c_str() );
         std::string appid = redirectHandler.appId();
-        processId = ApplicationProcessManager::instance()->launch(appid, appArgUrl);
+        processId = ApplicationManager::instance()->launch(appid, appArgUrl);
 		if (!processId.empty()) {
 			success = true;
 			json_object_object_add(json, "processId", json_object_new_string(processId.c_str()));
@@ -1342,7 +1342,7 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 				targetAppId = ovrHandlerAppId;
 			}
 
-            processId = ApplicationProcessManager::instance()->launch(targetAppId, appArgUrl);
+            processId = ApplicationManager::instance()->launch(targetAppId, appArgUrl);
 			if (!processId.empty()) {
 				success = true;
 				json_object_object_add(json, "processId", json_object_new_string(processId.c_str()));
@@ -1406,7 +1406,7 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 			else {
 				//targetAppId = resourceHandler->appId();
 				targetAppId = resourceHandler.appId();
-                processId = ApplicationProcessManager::instance()->launch(targetAppId, appArgUrl);
+                processId = ApplicationManager::instance()->launch(targetAppId, appArgUrl);
 				if (!processId.empty()) {
 					success = true;
 					json_object_object_add(json, "processId", json_object_new_string(processId.c_str()));
@@ -1423,7 +1423,7 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 	if (redirectHandler.valid()) {
 		g_debug ("Command handler detected");
         targetAppId = redirectHandler.appId();
-        processId = ApplicationProcessManager::instance()->launch(targetAppId, appArgUrl);
+        processId = ApplicationManager::instance()->launch(targetAppId, appArgUrl);
 		if (!processId.empty()) {
 			success = true;
 			json_object_object_add(json, "processId", json_object_new_string(processId.c_str()));
@@ -1595,7 +1595,7 @@ static bool servicecallback_launch( LSHandle* lshandle, LSMessage *message,
 	g_message("ApplicationManagerService:: servicecallback_launch(): launching as: appId = [%s] , param json = [%s]\n",
 			id.c_str(), params.c_str());
 
-    processId = ApplicationProcessManager::instance()->launch(id, params);
+    processId = ApplicationManager::instance()->launch(id, params);
 	success = !processId.empty();
 
 	Done:
@@ -7606,6 +7606,64 @@ static bool servicecallback_getappbasepath( LSHandle* lshandle, LSMessage *messa
 	return true;
 }
 
+static bool servicecallback_register_application(LSHandle *handle, LSMessage *message, void *user_data)
+{
+	LSError lserror;
+	LSErrorInit(&lserror);
+	std::string errMsg;
+	bool success = false;
+	struct json_object* reply = 0;
+	struct json_object* root = 0;
+	const char *payload;
+	const char *appId;
+	std::string applicationId;
+	bool subscribed = false;
+
+	VALIDATE_SCHEMA_AND_RETURN(handle, message,
+		SCHEMA_1(REQUIRED(appId, string)));
+
+	if (!LSMessageIsSubscription(message)) {
+		errMsg = "You have to subscribe for further responses";
+		goto done;
+	}
+
+	payload = LSMessageGetPayload( message );
+	if (!payload) {
+		errMsg = "No payload provided";
+		goto done;
+	}
+
+	root = json_tokener_parse(payload);
+	if (!root || is_error(root)) {
+		errMsg = "Malformed JSON detected in payload";
+		root = 0;
+		goto done;
+	}
+
+	if (extractFromJson(root,"appId", applicationId) == false) {
+		errMsg = "Missing appId parameter";
+		goto done;
+	}
+
+	success = ApplicationManager::instance()->registerApplication(applicationId, message);
+	subscribed = true;
+
+done:
+	reply = json_object_new_object();
+	json_object_object_add(reply, "subscribed", json_object_new_boolean(subscribed));
+	json_object_object_add(reply, "returnValue", json_object_new_boolean(success));
+	if (!success)
+	json_object_object_add(reply, "errorText", json_object_new_string(errMsg.c_str()));
+
+	if (!LSMessageReply(handle, message, json_object_to_json_string(reply), &lserror ))
+		LSErrorFree (&lserror);
+
+	if (root && !is_error(root))
+		json_object_put(root);
+
+	json_object_put(reply);
+	return true;
+}
 
 ////////////////////////////// ----- DEBUG SECTION ----- ///////////////////////////////////////////////////////////////
 
@@ -8074,6 +8132,7 @@ static LSMethod appMgrMethodsPrivate[] = {
 		{ "resetToMimeDefaults",	servicecallback_deleteSavedTable},
 		{ "_dbg_getAppEntryPoint",   servicecallback_dbg_getAppEntryPoint},
 		{ "forceSingleAppScan",		servicecallback_forceSingleAppScan},
+		{ "registerApplication", servicecallback_register_application },
 
 #ifdef AMS_TEST_MIME
 		{ "TESTMIME_interleaveAddRemove" , testcallback_mimeAddRemoveInterleave },

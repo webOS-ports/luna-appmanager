@@ -105,6 +105,10 @@ public:
 	void launchBootTimeApps();
 	bool isLaunchAtBootApp(const std::string& appId);
 
+	std::string launch(std::string appId, std::string params);
+
+	bool registerApplication(std::string appId, LSMessage *message);
+
 	ApplicationDescription* getAppById(const std::string& id);
 	ApplicationDescription* getAppByIdHardwareCompatibleAppsOnly(const std::string& id);
 	ApplicationDescription* getAppByMime(const std::string& mime);
