@@ -191,7 +191,10 @@ qint64 ApplicationProcessManager::launchWebApp(ApplicationDescription *desc, std
     }
 
     QStringList parameters;
+    QString appParams = QString::fromStdString(params);
     parameters << "-a" << appInfoFilePath;
+    if (appParams.length() > 0)
+        parameters << "-p" << appParams;
 
     return launchProcess(QString::fromStdString(desc->id()), WEBAPP_LAUNCHER_PATH, parameters);
 }
