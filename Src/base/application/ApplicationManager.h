@@ -305,6 +305,8 @@ private:
 	static long s_ticketId;
 	bool m_initialScan;
 
+	void focusApplication(std::string appId);
+
 	ApplicationManager( );
 	ApplicationManager& operator=( const ApplicationManager& );
 	ApplicationManager( const ApplicationManager& );

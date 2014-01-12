@@ -1976,6 +1976,17 @@ bool ApplicationManager::isLaunchAtBootApp(const std::string& appId)
 
 }
 
+void ApplicationManager::focusApplication(std::string appId)
+{
+	const char *params = g_strdup_printf("{\"appId\":\"%s\"}", appId.c_str());
+
+	LSCall(m_serviceHandlePrivate,
+		"palm://org.webosports.luna/focusApplication", params,
+		NULL, NULL, NULL, NULL);
+
+	g_free(params);
+}
+
 std::string ApplicationManager::launch(std::string appId, std::string params)
 {
 	LSSubscriptionIter *iter;
@@ -1987,6 +1998,8 @@ std::string ApplicationManager::launch(std::string appId, std::string params)
 	if (iter && LSSubscriptionHasNext(iter))
 	{
 		g_message("Application %s is already running", appId.c_str());
+
+		focusApplication(appId);
 
 		reply = json_object_new_object();
 		json_object_object_add(reply, "event", json_object_new_string("relaunched"));
