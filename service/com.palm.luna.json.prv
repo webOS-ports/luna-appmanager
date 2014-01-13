@@ -69,11 +69,6 @@
             "service":"org.webosports.bootmgr",
             "inbound":["*"],
             "outbound":["*"]
-        },
-        {
-            "service":"org.webosports.bootmgr",
-            "inbound":["*"],
-            "outbound":["*"]
         }
     ]
 }
