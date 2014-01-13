@@ -29,6 +29,7 @@
 #include <set>
 #include <QFile>
 #include <QDebug>
+#include <fcntl.h>
 
 #include "Common.h"
 #include "ApplicationDescription.h"
@@ -136,7 +137,35 @@ bool BootStateFirstUse::cbCreateLocalAccount(LSHandle *handle, LSMessage *messag
 
 void BootStateNormal::enter()
 {
+	activateSuspend();
 	launchBootTimeApps();
+}
+
+void BootStateNormal::activateSuspend()
+{
+	int fd;
+	const int len = 64;
+	char buf[len];
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	int numChars;
+
+	fd = open("/tmp/suspend_active", O_RDWR | O_CREAT,
+		  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	if (fd < 0) {
+		g_critical("Could not activate suspend: Could not create /tmp/suspend_active");
+		return;
+	}
+
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+
+	numChars = snprintf(buf, len, "%ld\n", ts.tv_sec);
+	if (numChars > 0) {
+		ssize_t result = write(fd, buf, numChars);
+		Q_UNUSED(result);
+	}
+
+	close(fd);
 }
 
 void BootStateNormal::launchBootTimeApps()

@@ -78,6 +78,7 @@ public:
 	virtual void handleEvent(BootEvent event);
 
 private:
+	void activateSuspend();
 	void launchBootTimeApps();
 };
 
