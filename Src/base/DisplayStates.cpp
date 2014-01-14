@@ -1997,18 +1997,19 @@ void DisplayOffSuspended::handleEvent (DisplayEvent displayEvent, sptr<Event> ev
 	    break;
 
 	case DisplayEventUsbIn:
-	    if (isOnPuck()) {
-		g_debug ("%s: usb in when on puck, move to on puck", __PRETTY_FUNCTION__);
-		m_restoreState = DisplayStateOnPuck;
-		m_restoreDisplayEvent = displayEvent;
-		m_restoreEvent = event;
-	    }
-	    else {
-		g_debug ("%s: usb in, moving to on", __PRETTY_FUNCTION__);
-		m_restoreState = DisplayStateOn;
-		m_restoreDisplayEvent = displayEvent;
-		m_restoreEvent = event;
-	    }
+        /*
+        if (isOnPuck()) {
+        g_debug ("%s: usb in when on puck, move to on puck", __PRETTY_FUNCTION__);
+        m_restoreState = DisplayStateOnPuck;
+        m_restoreDisplayEvent = displayEvent;
+        m_restoreEvent = event;
+        }
+        else {
+        g_debug ("%s: usb in, moving to on", __PRETTY_FUNCTION__);
+        m_restoreState = DisplayStateOn;
+        m_restoreDisplayEvent = displayEvent;
+        m_restoreEvent = event;
+        }*/
 	    break;
 
 	case DisplayEventUsbOut:
