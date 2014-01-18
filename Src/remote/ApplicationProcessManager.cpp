@@ -222,7 +222,11 @@ qint64 ApplicationProcessManager::launchNativeApp(ApplicationDescription *desc, 
     QStringList parameters;
     parameters << QString::fromStdString(params);
 
-    return launchProcess(QString::fromStdString(desc->id()), QString::fromStdString(desc->entryPoint()), parameters);
+    QString entryPoint = QString::fromStdString(desc->entryPoint());
+    if (entryPoint.startsWith("file://"))
+        entryPoint = entryPoint.right(entryPoint.length() - 7);
+
+    return launchProcess(QString::fromStdString(desc->id()), entryPoint, parameters);
 }
 
 qint64 ApplicationProcessManager::launchQMLApp(ApplicationDescription *desc, std::string &params)
