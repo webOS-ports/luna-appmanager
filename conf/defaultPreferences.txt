@@ -37,6 +37,14 @@
 		},
 		"flashplugins" : true,
 		"click2play" : true,
-		"enableALS": true
+		"enableALS": true,
+		"keyboard": {
+				"enabledLanguages": ["en","de","es","fi","fr","ru","sv"],
+				"autoCapitalization": false,
+				"autoCompletion": false,
+				"predictiveText": false,
+				"spellChecking": false,
+				"keyPressFeedback": false
+		}
 	}
 }
