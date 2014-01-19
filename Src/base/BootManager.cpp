@@ -57,21 +57,21 @@ static LSMethod s_methods[]  = {
 
 std::string bootStateToStr(BootState state)
 {
-    std::string stateStr = "unknown";
+	std::string stateStr = "unknown";
 
-    switch (state) {
-    case BOOT_STATE_STARTUP:
-        stateStr = "startup";
-        break;
-    case BOOT_STATE_FIRSTUSE:
-        stateStr = "firstuse";
-        break;
-    case BOOT_STATE_NORMAL:
-        stateStr = "normal";
-        break;
-    }
+	switch (state) {
+	case BOOT_STATE_STARTUP:
+		stateStr = "startup";
+		break;
+	case BOOT_STATE_FIRSTUSE:
+		stateStr = "firstuse";
+		break;
+	case BOOT_STATE_NORMAL:
+		stateStr = "normal";
+		break;
+	}
 
-    return stateStr;
+	return stateStr;
 }
 
 void BootStateStartup::handleEvent(BootEvent event)
@@ -80,22 +80,23 @@ void BootStateStartup::handleEvent(BootEvent event)
 
 void BootStateStartup::enter()
 {
-    if (!QFile::exists("/var/luna/preferences/ran-first-use"))
-        BootManager::instance()->switchState(BOOT_STATE_FIRSTUSE);
-    else
-        BootManager::instance()->switchState(BOOT_STATE_NORMAL);
+	if (!QFile::exists("/var/luna/preferences/ran-first-use"))
+		BootManager::instance()->switchState(BOOT_STATE_FIRSTUSE);
+	else
+		BootManager::instance()->switchState(BOOT_STATE_NORMAL);
 }
 
 void BootStateFirstUse::enter()
 {
-    ApplicationProcessManager::instance()->launch("org.webosports.app.firstuse", "");
+	if (BootManager::instance()->compositorAvailable())
+		ApplicationProcessManager::instance()->launch("org.webosports.app.firstuse", "");
 
 	DisplayManager::instance()->pushDNAST("org.webosports.bootmgr");
 }
 
 void BootStateFirstUse::leave()
 {
-    ApplicationProcessManager::instance()->killByAppId("org.webosports.app.firstuse");
+	ApplicationProcessManager::instance()->killByAppId("org.webosports.app.firstuse");
 
 	DisplayManager::instance()->popDNAST("org.webosports.bootmgr");
 }
@@ -104,6 +105,8 @@ void BootStateFirstUse::handleEvent(BootEvent event)
 {
 	if (event == BOOT_EVENT_FIRST_USE_DONE)
 		createLocalAccount();
+	else if (event == BOOT_EVENT_COMPOSITOR_AVAILABLE)
+		ApplicationProcessManager::instance()->launch("org.webosports.app.firstuse", "");
 }
 
 void BootStateFirstUse::createLocalAccount()
@@ -138,7 +141,8 @@ bool BootStateFirstUse::cbCreateLocalAccount(LSHandle *handle, LSMessage *messag
 void BootStateNormal::enter()
 {
 	activateSuspend();
-	launchBootTimeApps();
+	if (BootManager::instance()->compositorAvailable())
+		launchBootTimeApps();
 }
 
 void BootStateNormal::activateSuspend()
@@ -180,33 +184,36 @@ void BootStateNormal::leave()
 
 void BootStateNormal::handleEvent(BootEvent event)
 {
+	if (event == BOOT_EVENT_COMPOSITOR_AVAILABLE)
+		launchBootTimeApps();
 }
 
 BootManager* BootManager::instance()
 {
 	static BootManager *instance = 0;
 
-    if (!instance)
+	if (!instance)
 		instance = new BootManager;
 
 	return instance;
 }
 
 BootManager::BootManager() :
-    m_service(0),
-	m_currentState(BOOT_STATE_STARTUP)
+	m_service(0),
+	m_currentState(BOOT_STATE_STARTUP),
+	m_compositorAvailable(false)
 {
 	m_states[BOOT_STATE_STARTUP] = new BootStateStartup();
 	m_states[BOOT_STATE_FIRSTUSE] = new BootStateFirstUse();
 	m_states[BOOT_STATE_NORMAL] = new BootStateNormal();
 
-    startService();
+	startService();
 
 	m_fileWatch.addPath("/var/luna/preferences");
 	connect(&m_fileWatch, SIGNAL(directoryChanged(QString)), this, SLOT(onFileChanged(QString)));
 	connect(&m_fileWatch, SIGNAL(fileChanged(QString)), this, SLOT(onFileChanged(QString)));
 
-    QTimer::singleShot(0, this, SLOT(onInitialize()));
+	QTimer::singleShot(0, this, SLOT(onInitialize()));
 }
 
 BootManager::~BootManager()
@@ -220,7 +227,15 @@ BootManager::~BootManager()
 
 void BootManager::onInitialize()
 {
-    switchState(BOOT_STATE_STARTUP);
+	switchState(BOOT_STATE_STARTUP);
+}
+
+static bool cbCompositorAvailable(LSHandle *handle, const char *serviceName, bool connected, void *user_data)
+{
+	g_message("compositor status: %s", connected ? "connected" : "disconnected");
+
+	BootManager::instance()->handleEvent(connected ? BOOT_EVENT_COMPOSITOR_AVAILABLE :
+					BOOT_EVENT_COMPOSITOR_NOT_AVAILABLE);
 }
 
 void BootManager::startService()
@@ -231,7 +246,7 @@ void BootManager::startService()
 
 	GMainLoop *mainLoop = HostBase::instance()->mainLoop();
 
-	g_debug("BootManager starting...");
+	g_message("BootManager starting...");
 
 	if (!LSRegister("org.webosports.bootmgr", &m_service, &error)) {
 		g_warning("Failed in BootManager: %s", error.message);
@@ -249,7 +264,13 @@ void BootManager::startService()
 		g_warning("Failed in BootManager: %s", error.message);
 		LSErrorFree(&error);
 		return;
-    }
+	}
+
+	if (!LSRegisterServerStatus(m_service, "org.webosports.luna",
+				cbCompositorAvailable, NULL, &error)) {
+		g_warning("Failed to register for compositor status");
+		LSErrorFree(&error);
+	}
 }
 
 void BootManager::stopService()
@@ -267,7 +288,7 @@ void BootManager::stopService()
 
 void BootManager::switchState(BootState state)
 {
-    qDebug() << __PRETTY_FUNCTION__ << "Switching to state" << QString::fromStdString(bootStateToStr(state));
+	qDebug() << __PRETTY_FUNCTION__ << "Switching to state" << QString::fromStdString(bootStateToStr(state));
 
 	m_states[m_currentState]->leave();
 	m_currentState = state;
@@ -278,6 +299,11 @@ void BootManager::switchState(BootState state)
 
 void BootManager::handleEvent(BootEvent event)
 {
+	if (event == BOOT_EVENT_COMPOSITOR_AVAILABLE)
+		m_compositorAvailable = true;
+	else if (event == BOOT_EVENT_COMPOSITOR_NOT_AVAILABLE)
+		m_compositorAvailable = false;
+
 	m_states[m_currentState]->handleEvent(event);
 }
 
@@ -295,6 +321,11 @@ BootState BootManager::currentState() const
 LSHandle* BootManager::service() const
 {
 	return m_service;
+}
+
+bool BootManager::compositorAvailable() const
+{
+	return m_compositorAvailable;
 }
 
 void BootManager::postCurrentState()

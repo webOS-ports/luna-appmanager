@@ -36,6 +36,8 @@ enum BootState {
 
 enum BootEvent {
 	BOOT_EVENT_FIRST_USE_DONE,
+	BOOT_EVENT_COMPOSITOR_AVAILABLE,
+	BOOT_EVENT_COMPOSITOR_NOT_AVAILABLE,
 };
 
 class BootStateBase
@@ -91,7 +93,11 @@ public:
 
 	static BootManager* instance();
 
+	bool compositorAvailable() const;
+
 	void switchState(BootState state);
+	void handleEvent(BootEvent event);
+
 
 	BootState currentState() const;
 
@@ -102,8 +108,6 @@ private:
 
 	void startService();
 	void stopService();
-
-	void handleEvent(BootEvent event);
 
 	void postCurrentState();
 
@@ -116,6 +120,7 @@ private:
 	BootState m_currentState;
 	BootStateBase *m_states[BOOT_STATE_MAX];
 	QFileSystemWatcher m_fileWatch;
+	bool m_compositorAvailable;
 
 	friend class BootStateBase;
 };
