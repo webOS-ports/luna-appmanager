@@ -81,16 +81,15 @@ static bool getLunaPrefSystemValue(const char* key, std::string& value)
 
 void DeviceInfo::gatherInfo()
 {
-    // Display information --------------------------------------------------------
-	const HostInfo& hostInfo = HostBase::instance()->getInfo();
+	Settings* settings = Settings::LunaSettings();
+
+	// Display information --------------------------------------------------------
 	m_screenDensity = 1.0f;
-	m_hardwareScreenWidth = hostInfo.displayWidth;
-	m_hardwareScreenHeight = hostInfo.displayHeight;
+	m_hardwareScreenWidth = settings->displayWidth;
+	m_hardwareScreenHeight = settings->displayHeight;
 
 	m_screenWidth = (int) (m_hardwareScreenWidth / m_screenDensity);
 	m_screenHeight = (int) (m_hardwareScreenHeight / m_screenDensity);
-
-	Settings* settings = Settings::LunaSettings();
 
 	int maxNegativeSpaceHeight = (int) (settings->maximumNegativeSpaceHeightRatio *
 										m_screenHeight);
