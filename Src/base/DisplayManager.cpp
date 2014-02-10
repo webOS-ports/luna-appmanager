@@ -3283,3 +3283,11 @@ void DisplayManager::changeVsyncControl(bool enable)
 	if (s_forceVsyncDisable)
 		return;
 }
+
+void DisplayManager::handlePowerKey(bool pressed)
+{
+    if (pressed)
+        updateState(DISPLAY_EVENT_POWER_BUTTON_DOWN);
+    else if (!m_dropPowerKey)
+        updateState(DISPLAY_EVENT_POWER_BUTTON_UP);
+}

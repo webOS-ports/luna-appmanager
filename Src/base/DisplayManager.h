@@ -107,6 +107,8 @@ public:
     virtual ~DisplayManager();
     GMainLoop* mainLoop();
 
+    void handlePowerKey(bool pressed);
+
     void handleDisplayEvent(DisplayEvent event);
     void handleTouchEvent();
 

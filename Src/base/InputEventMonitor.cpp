@@ -107,7 +107,7 @@ void InputEventMonitor::readKeyboardData()
         }
 
         if (keycode == NYX_KEYS_CUSTOM_KEY_POWER_ON)
-            DisplayManager::instance()->updateState(is_press ? DISPLAY_EVENT_POWER_BUTTON_DOWN : DISPLAY_EVENT_POWER_BUTTON_UP);
+            DisplayManager::instance()->handlePowerKey(is_press);
 
         error = nyx_device_release_event(mKeyboardHandle, event_handle);
         if (error != NYX_ERROR_NONE) {
