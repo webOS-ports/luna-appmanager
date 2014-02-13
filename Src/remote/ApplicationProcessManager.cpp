@@ -156,6 +156,7 @@ qint64 ApplicationProcessManager::launchProcess(const QString& id, const QString
     environment.insert("XDG_RUNTIME_DIR","/tmp/luna-session");
     environment.insert("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1");
     environment.insert("QT_IM_MODULE", "Maliit");
+    environment.insert("SDL_VIDEODRIVER", "wayland");
 
     process->setProcessEnvironment(environment);
     process->setProcessChannelMode(QProcess::ForwardedChannels);
