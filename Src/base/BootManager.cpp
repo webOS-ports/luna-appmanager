@@ -119,13 +119,10 @@ void BootStateFirstUse::createLocalAccount()
 		if (!LSCall(BootManager::instance()->service(), "palm://com.palm.service.accounts/createLocalAccount",
 					"{}", cbCreateLocalAccount, NULL, NULL, &error)) {
 			g_warning("Failed to create local account after first use is done: %s", error.message);
-
-			// regardless wether the local account creation was successfull or not we switch into
-			// normal state
-			BootManager::instance()->switchState(BOOT_STATE_NORMAL);
-
-			return;
 		}
+	}
+	else {
+		BootManager::instance()->switchState(BOOT_STATE_NORMAL);
 	}
 }
 
