@@ -102,8 +102,14 @@ std::string ApplicationProcessManager::launch(std::string appId, std::string par
     qDebug() << "Launching application" << QString::fromStdString(appId);
 
     ApplicationDescription* desc = ApplicationManager::instance()->getPendingAppById(appId);
-    if (!desc)
+    if (!desc) {
         desc = ApplicationManager::instance()->getAppById(appId);
+        if (!desc) {
+            g_warning("Failed to find application description for app %s",
+                      appId.c_str());
+            return std::string("");
+        }
+    }
 
     bool running = false;
     qint64 pid = 0;
