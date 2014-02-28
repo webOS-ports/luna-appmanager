@@ -1917,6 +1917,7 @@ void DisplayOffSuspended::enter (DisplayState state, DisplayEvent displayEvent, 
 void DisplayOffSuspended::handleEvent (DisplayEvent displayEvent, sptr<Event> event) 
 {
     switch (displayEvent) {
+#if 0
 	case DisplayEventPowerKeyPress:
 	    if (isOnPuck()) {
 		if (isDisplayUnlocked() || isOnCall()) {
@@ -1976,7 +1977,7 @@ void DisplayOffSuspended::handleEvent (DisplayEvent displayEvent, sptr<Event> ev
 		m_restoreEvent = event;
 	    }
 	    break;
-
+#endif
 	case DisplayEventOnPuck:
 	    if (isOnCall() || isDisplayUnlocked()) {
 		g_debug ("%s: on puck on a call, moving to onpuck", __PRETTY_FUNCTION__);
