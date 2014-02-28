@@ -268,6 +268,9 @@ private:
 
     SuspendBlocker<DisplayManager> m_suspendBlocker;
 
+    int m_pendingDisplayBrightness;
+    int m_pendingKeyBrightness;
+
     bool off (sptr<Event> event = 0);
     bool on (sptr<Event> event = 0);
     bool dim (sptr<Event> event = 0);
@@ -313,6 +316,7 @@ private:
     bool touchPanelOff();
     static bool touchPanelOffCallback (LSHandle* sh, LSMessage* message, void* ctx);
     static bool updateCompassBearingInfo(LSHandle* sh, LSMessage* message, void* ctx);
+    static bool displayBlankedCallback(LSHandle *service, LSMessage *message, void *user_data);
 
     void initStates();
     void clearStates();

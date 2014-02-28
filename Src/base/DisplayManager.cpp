@@ -2584,24 +2584,41 @@ bool DisplayManager::slider()
     return false;
 }
 
-
 void DisplayManager::backlightOn (int displayBrightness, int keyBrightness, bool als)
 {
+    LSError lserror;
+
+    m_pendingDisplayBrightness = displayBrightness;
+    m_pendingKeyBrightness = keyBrightness;
+
+    LSErrorInit(&lserror);
+    if (!LSCall(m_service, "luna://org.webosports.luna/setDisplayState", "{\"state\":\"on\"}",
+                &DisplayManager::displayBlankedCallback, this, NULL, &lserror)) {
+        LSErrorPrint(&lserror, stdout);
+        LSErrorFree(&lserror);
+    }
+}
+
+bool DisplayManager::displayBlankedCallback(LSHandle *service, LSMessage *message, void *user_data)
+{
+    DisplayManager *dm = (DisplayManager*) user_data;
 
     // Ignore als for now (led-controller module needs t
     LedControl* lcKeypadAndDisplay = HostBase::instance()->getLedControlKeypadAndDisplay();
     if (NULL == lcKeypadAndDisplay) g_message("%s: LedControlKeypad returns NULL", __PRETTY_FUNCTION__);
 
-    if (!m_touchpanelIsOn)
+    if (!dm->m_touchpanelIsOn)
     {
-        if (lcKeypadAndDisplay) lcKeypadAndDisplay->setBrightness(keyBrightness, displayBrightness,
-                &DisplayManager::backlightOnCallback, this);
+        if (lcKeypadAndDisplay) lcKeypadAndDisplay->setBrightness(dm->m_pendingKeyBrightness,
+                dm->m_pendingDisplayBrightness, &DisplayManager::backlightOnCallback, dm);
     }
     else
     {
-        if (lcKeypadAndDisplay) lcKeypadAndDisplay->setBrightness(keyBrightness, displayBrightness, NULL, NULL);
+        if (lcKeypadAndDisplay) lcKeypadAndDisplay->setBrightness(dm->m_pendingKeyBrightness,
+                dm->m_pendingDisplayBrightness, NULL, NULL);
     }
 
+    return true;
 }
 
 void DisplayManager::backlightOnCallback(void *ctx)
@@ -2723,6 +2740,14 @@ void DisplayManager::backlightOffCallback (void *ctx)
     g_message("%s setting m_backlightIsOn to false", __PRETTY_FUNCTION__);
     DisplayManager *dm = (DisplayManager *)ctx;
     dm->m_backlightIsOn = false;
+
+    LSError lserror;
+    LSErrorInit(&lserror);
+    if (!LSCall(dm->m_service, "luna://org.webosports.luna/setDisplayState", "{\"state\":\"off\"}",
+                NULL, NULL, NULL, &lserror)) {
+        LSErrorPrint(&lserror, stdout);
+        LSErrorFree(&lserror);
+    }
 }
 
 bool DisplayManager::orientationSensorOn ()
