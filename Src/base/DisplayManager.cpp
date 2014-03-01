@@ -205,6 +205,7 @@ DisplayManager::DisplayManager()
     , m_homeKeyDown(false)
     , m_suspendBlocker(HostBase::instance()->mainLoop(),
                        this, &DisplayManager::allowSuspend, &DisplayManager::setSuspended)
+    , m_powerKeyPressEventScheduled(false)
 {
     GMainLoop* mainLoop = HostBase::instance()->mainLoop();
 
@@ -2388,6 +2389,15 @@ void DisplayManager::slotBluetoothKeyboardActive(bool active)
         unlock();
 }
 
+gboolean DisplayManager::sendPowerKeyPressedEventCallback(gpointer context)
+{
+    DisplayManager *dm = (DisplayManager*) context;
+    g_message("%s: sending power key press event to current state", __PRETTY_FUNCTION__);
+    dm->m_currentState->handleEvent (DisplayEventPowerKeyPress);
+    dm->m_powerKeyPressEventScheduled =  false;
+    return FALSE;
+}
+
 bool DisplayManager::updateState (int eventType)
 {
     switch (eventType)
@@ -2433,7 +2443,15 @@ bool DisplayManager::updateState (int eventType)
                 {
                     // disable power key if the user is on a call on the puck
                     // this is so that the user never sees a lock screen when on a call
-                    if (!(m_onCall && currentState() == DisplayStateOnPuck))
+                    if (currentState() == DisplayStateOffSuspended)
+                    {
+                        if (!m_powerKeyPressEventScheduled)
+                        {
+                            g_message("%s: rescheduling power key pressed event", __PRETTY_FUNCTION__);
+                            g_timeout_add(300, sendPowerKeyPressedEventCallback, this);
+                        }
+                    }
+                    else if (!(m_onCall && currentState() == DisplayStateOnPuck))
                     {
                         g_message ("%s: power key press", __PRETTY_FUNCTION__);
                         m_currentState->handleEvent (DisplayEventPowerKeyPress);

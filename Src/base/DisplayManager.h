@@ -271,6 +271,8 @@ private:
     int m_pendingDisplayBrightness;
     int m_pendingKeyBrightness;
 
+    bool m_powerKeyPressEventScheduled;
+
     bool off (sptr<Event> event = 0);
     bool on (sptr<Event> event = 0);
     bool dim (sptr<Event> event = 0);
@@ -311,6 +313,8 @@ private:
     static void backlightOnCallback (void* ctx);
     void backlightOff();
     static void backlightOffCallback (void* ctx);
+
+    static gboolean sendPowerKeyPressedEventCallback(gpointer context);
 
     bool touchPanelOn();
     bool touchPanelOff();
