@@ -29,6 +29,7 @@
 #include "Settings.h"
 #include "SystemService.h"
 #include "Time.h"
+#include "BootManager.h"
 
 #ifdef HAS_NYX
 #include <nyx/nyx_client.h>
@@ -216,7 +217,7 @@ DisplayManager::DisplayManager()
     initStates();
 
     // connect(SystemUiController::instance(), SIGNAL(signalEmergencyMode(bool)), this, SLOT(slotEmergencyMode(bool)));
-    // connect(SystemUiController::instance(), SIGNAL(signalBootFinished()), this, SLOT(slotBootFinished()));
+    connect(BootManager::instance(), SIGNAL(bootFinished()), this, SLOT(slotBootFinished()));
     connect(Preferences::instance(), SIGNAL(signalAlsEnabled(bool)), this, SLOT(slotAlsEnabled(bool)));
     // connect(IMEController::instance(), SIGNAL(signalShowIME()), this, SLOT(slotShowIME()));
     // connect(IMEController::instance(), SIGNAL(signalHideIME()), this, SLOT(slotHideIME()));
@@ -425,7 +426,6 @@ DisplayManager::DisplayManager()
 
     m_currentState->enter(DisplayStateOff, DisplayEventApiOn, NULL); // initializing state
     m_activity->start (m_activityTimeout);
-
 }
 
 DisplayManager* DisplayManager::instance (void)
