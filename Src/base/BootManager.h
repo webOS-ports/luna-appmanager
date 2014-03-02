@@ -80,7 +80,7 @@ public:
 	virtual void handleEvent(BootEvent event);
 
 private:
-	void activateSuspend();
+	void activateSuspend(bool enable);
 	void launchBootTimeApps();
 };
 
@@ -100,13 +100,13 @@ public:
 
 	BootState currentState() const;
 
-    bool isBootFinished() const;
+	bool isBootFinished() const;
 
 	LSHandle* service() const;
 
 Q_SIGNALS:
-    void compositorAvailableChanged();
-    void bootFinished();
+	void compositorAvailableChanged();
+	void bootFinished();
 
 private:
 	explicit BootManager();
@@ -116,7 +116,7 @@ private:
 
 	void postCurrentState();
 
-    void setCompositorAvailabe(bool value);
+	void setCompositorAvailabe(bool value);
 
 private Q_SLOTS:
 	void onFileChanged(const QString& path);

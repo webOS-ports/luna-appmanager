@@ -137,12 +137,14 @@ bool BootStateFirstUse::cbCreateLocalAccount(LSHandle *handle, LSMessage *messag
 
 void BootStateNormal::enter()
 {
-	activateSuspend();
 	if (BootManager::instance()->compositorAvailable())
+	{
+		activateSuspend(true);
 		launchBootTimeApps();
+	}
 }
 
-void BootStateNormal::activateSuspend()
+void BootStateNormal::activateSuspend(bool enable)
 {
 	int fd;
 	const int len = 64;
@@ -151,22 +153,27 @@ void BootStateNormal::activateSuspend()
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	int numChars;
 
-	fd = open("/tmp/suspend_active", O_RDWR | O_CREAT,
-		  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-	if (fd < 0) {
-		g_critical("Could not activate suspend: Could not create /tmp/suspend_active");
-		return;
+	if (enable) {
+		fd = open("/tmp/suspend_active", O_RDWR | O_CREAT,
+			  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+		if (fd < 0) {
+			g_critical("Could not activate suspend: Could not create /tmp/suspend_active");
+			return;
+		}
+
+		clock_gettime(CLOCK_MONOTONIC, &ts);
+
+		numChars = snprintf(buf, len, "%ld\n", ts.tv_sec);
+		if (numChars > 0) {
+			ssize_t result = write(fd, buf, numChars);
+			Q_UNUSED(result);
+		}
+
+		close(fd);
 	}
-
-	clock_gettime(CLOCK_MONOTONIC, &ts);
-
-	numChars = snprintf(buf, len, "%ld\n", ts.tv_sec);
-	if (numChars > 0) {
-		ssize_t result = write(fd, buf, numChars);
-		Q_UNUSED(result);
+	else {
+		unlink("/tmp/suspend_active");
 	}
-
-	close(fd);
 }
 
 void BootStateNormal::launchBootTimeApps()
@@ -177,12 +184,23 @@ void BootStateNormal::launchBootTimeApps()
 
 void BootStateNormal::leave()
 {
+	activateSuspend(false);
 }
 
 void BootStateNormal::handleEvent(BootEvent event)
 {
-	if (event == BOOT_EVENT_COMPOSITOR_AVAILABLE)
+	switch (event)
+	{
+	case BOOT_EVENT_COMPOSITOR_AVAILABLE:
+		activateSuspend(true);
 		launchBootTimeApps();
+		break;
+	case BOOT_EVENT_COMPOSITOR_NOT_AVAILABLE:
+		activateSuspend(false);
+		break;
+	default:
+		break;
+	}
 }
 
 BootManager* BootManager::instance()
