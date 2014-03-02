@@ -296,12 +296,12 @@ void BootManager::switchState(BootState state)
 
 void BootManager::handleEvent(BootEvent event)
 {
-	if (event == BOOT_EVENT_COMPOSITOR_AVAILABLE)
-		m_compositorAvailable = true;
-	else if (event == BOOT_EVENT_COMPOSITOR_NOT_AVAILABLE)
-		m_compositorAvailable = false;
+    if (event == BOOT_EVENT_COMPOSITOR_AVAILABLE)
+        setCompositorAvailabe(true);
+    else if (event == BOOT_EVENT_COMPOSITOR_NOT_AVAILABLE)
+        setCompositorAvailabe(false);
 
-	m_states[m_currentState]->handleEvent(event);
+    m_states[m_currentState]->handleEvent(event);
 }
 
 void BootManager::onFileChanged(const QString& path)
@@ -315,9 +315,24 @@ BootState BootManager::currentState() const
 	return m_currentState;
 }
 
+bool BootManager::isBootFinished() const
+{
+    return m_currentState == BOOT_STATE_NORMAL ||
+           m_currentState == BOOT_STATE_FIRSTUSE;
+}
+
 LSHandle* BootManager::service() const
 {
 	return m_service;
+}
+
+void BootManager::setCompositorAvailabe(bool value)
+{
+    if (value == m_compositorAvailable)
+        return;
+
+    m_compositorAvailable = value;
+    Q_EMIT compositorAvailableChanged();
 }
 
 bool BootManager::compositorAvailable() const
@@ -329,6 +344,10 @@ void BootManager::postCurrentState()
 {
 	LSError error;
 	json_object* json = 0;
+
+    if (m_currentState == BOOT_STATE_FIRSTUSE ||
+        m_currentState == BOOT_STATE_NORMAL)
+        Q_EMIT bootFinished();
 
 	LSErrorInit(&error);
 

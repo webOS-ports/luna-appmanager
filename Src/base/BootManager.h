@@ -98,10 +98,15 @@ public:
 	void switchState(BootState state);
 	void handleEvent(BootEvent event);
 
-
 	BootState currentState() const;
 
+    bool isBootFinished() const;
+
 	LSHandle* service() const;
+
+Q_SIGNALS:
+    void compositorAvailableChanged();
+    void bootFinished();
 
 private:
 	explicit BootManager();
@@ -110,6 +115,8 @@ private:
 	void stopService();
 
 	void postCurrentState();
+
+    void setCompositorAvailabe(bool value);
 
 private Q_SLOTS:
 	void onFileChanged(const QString& path);
