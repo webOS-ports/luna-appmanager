@@ -227,7 +227,7 @@ qint64 ApplicationProcessManager::launchWebApp(ApplicationDescription *desc, std
 qint64 ApplicationProcessManager::launchNativeApp(ApplicationDescription *desc, std::string &params)
 {
     QStringList parameters;
-    parameters << QString::fromStdString(params);
+    parameters << QString("'%1'").arg(params.c_str());
 
     QString entryPoint = QString::fromStdString(desc->entryPoint());
     if (entryPoint.startsWith("file://"))
