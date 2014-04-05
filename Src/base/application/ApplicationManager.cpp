@@ -31,7 +31,9 @@
 #include "Preferences.h"
 
 #include "Settings.h"
+#if 0
 #include "SystemService.h"
+#endif
 #include "HostBase.h"
 #include "Utils.h"
 

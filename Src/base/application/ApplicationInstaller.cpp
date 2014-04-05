@@ -29,7 +29,9 @@
 #include "JSONUtils.h"
 #include "Logging.h"
 #include "Settings.h"
+#if 0
 #include "SystemService.h"
+#endif
 #include "Time.h"
 #include "Preferences.h"
 
@@ -212,7 +214,7 @@ bool ApplicationInstaller::init()
 		LSErrorFree(&lsError);
 	}
 
-	connect(SystemService::instance(), SIGNAL(signalMediaPartitionAvailable(bool)), this, SLOT(slotMediaPartitionAvailable(bool)));
+	// connect(SystemService::instance(), SIGNAL(signalMediaPartitionAvailable(bool)), this, SLOT(slotMediaPartitionAvailable(bool)));
 
 	return true;
 }
@@ -568,8 +570,10 @@ static void util_validateCryptofs()
 		Settings::LunaSettings()->createNeededFolders();
 		ApplicationManager::instance()->scan();
 
+#if 0
 		if (!cryptofsPathAvailable)
-			SystemService::instance()->postAppRestoredNeeded();			
+			SystemService::instance()->postAppRestoredNeeded();
+#endif
 	}
 	else {
 		g_message("Cryptofs fine after MSM mode exit");

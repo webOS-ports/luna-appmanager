@@ -1,8 +1,8 @@
 {
     "role": {
-        "exeName":"/usr/sbin/LunaSysMgr",
+        "exeName":"/usr/sbin/LunaAppManager",
         "type": "privileged",
-        "allowedNames": ["", "com.palm.appinstaller", "com.palm.applicationManager", "com.palm.lunastats", "com.palm.nativealertmanager", "com.palm.systemmanager", "com.palm.vibrate", "com.palm.ambientLightSensor", "com.palm.display", "com.palm.keys", "com.palm.sysMgrDataBackup", "com.palm.eventreporter.LunaSysMgr", "com.palm.eventreporter.WebAppMgr", "com.palm.luna-*", "org.webosports.bootmgr"]
+        "allowedNames": ["", "com.palm.appinstaller", "com.palm.applicationManager", "com.palm.eventreporter.LunaAppManager"]
     },
     "permissions": [
         {
@@ -16,57 +16,7 @@
             "outbound":["*"]
         },
         {
-            "service":"com.palm.lunastats",
-            "inbound":["*"],
-            "outbound":["*"]
-        },
-        {
-            "service":"com.palm.nativealertmanager",
-            "inbound":["*"],
-            "outbound":["*"]
-        },
-        {
-            "service":"com.palm.systemmanager",
-            "inbound":["*"],
-            "outbound":["*"]
-        },
-        {
-            "service":"com.palm.vibrate",
-            "inbound":["*"],
-            "outbound":["*"]
-        },
-        {
-            "service":"com.palm.ambientLightSensor",
-            "inbound":["*"],
-            "outbound":["*"]
-        },
-        {
-            "service":"com.palm.display",
-            "inbound":["*"],
-            "outbound":["*"]
-        },
-        {
-            "service":"com.palm.keys",
-            "inbound":["*"],
-            "outbound":["*"]
-        },
-        {
-            "service":"com.palm.sysMgrDataBackup",
-            "inbound":["*"],
-            "outbound":["*"]
-        },
-        {
-            "service":"com.palm.eventreporter.LunaSysMgr",
-            "inbound":["*"],
-            "outbound":["*"]
-        },
-        {
-            "service":"com.palm.eventreporter.WebAppMgr",
-            "inbound":["*"],
-            "outbound":["*"]
-        },
-        {
-            "service":"org.webosports.bootmgr",
+            "service":"com.palm.eventreporter.LunaAppManager",
             "inbound":["*"],
             "outbound":["*"]
         }

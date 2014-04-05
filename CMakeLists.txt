@@ -1,4 +1,4 @@
-project(LunaSysMgr)
+project(LunaAppManager)
 
 cmake_minimum_required(VERSION 2.8.8)
 
@@ -7,7 +7,7 @@ set(CMAKE_AUTOMOC TRUE)
 
 include(webOS/webOS)
 webos_modules_init(1 0 0 QUALIFIER RC3)
-webos_component(3 0 0)
+webos_component(1 0 0)
 
 webos_add_compiler_flags(ALL -fno-rtti -fno-exceptions -fvisibility=hidden -fvisibility-inlines-hidden -Wall -fpermissive)
 webos_add_compiler_flags(ALL -Wno-unused-parameter -Wno-unused-variable -Wno-reorder -Wno-missing-field-initializers -Wno-extra)
@@ -74,26 +74,13 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/Src/remote)
 
 set(HEADERS
-    Src/base/AmbientLightSensor.h
     Src/base/LsmUtils.h
     Src/base/settings/AnimationSettings.h
     Src/base/settings/DeviceInfo.h
-    Src/base/DisplayStates.h
-    Src/base/HapticsController.h
     Src/base/CpuAffinity.h
-    Src/base/AmbientLightSensor.cpp
-    Src/base/SuspendBlocker.h
     Src/base/CircularBuffer.h
     Src/base/MemoryMonitor.h
-    Src/base/EASPolicyManager.h
     Src/base/SharedGlobalProperties.h
-    Src/base/Security.h
-    Src/base/SystemService.h
-    Src/base/BootManager.h
-    Src/base/DisplayManager.h
-    Src/base/EventReporter.h
-    Src/base/BackupManager.h
-    Src/base/InputEventMonitor.h
     Src/base/application/ServiceDescription.h
     Src/base/application/ApplicationStatus.h
     Src/base/application/ApplicationInstaller.h
@@ -111,26 +98,14 @@ set(HEADERS
     Src/remote/ApplicationProcessManager.h)
 
 set(SOURCES
-    Src/base/Security.cpp
-    Src/base/DisplayStates.cpp
-    Src/base/HapticsController.cpp
     Src/base/settings/Settings.cpp
     Src/base/settings/DeviceInfo.cpp
     Src/base/settings/AnimationSettings.cpp
     Src/base/EventReporter.cpp
     Src/base/MemoryMonitor.cpp
-    Src/base/DisplayManager.cpp
-    Src/base/CpuAffinity.cpp
     Src/base/LsmUtils.cpp
     Src/base/JSONUtils.cpp
-    Src/base/AmbientLightSensor.cpp
-    Src/base/BackupManager.cpp
-    Src/base/EASPolicyManager.cpp
-    Src/base/SuspendBlocker.cpp
-    Src/base/SystemService.cpp
-    Src/base/BootManager.cpp
     Src/base/Logging.cpp
-    Src/base/InputEventMonitor.cpp
     Src/base/application/ApplicationDescription.cpp
     Src/base/application/MimeSystem.cpp
     Src/base/application/PackageDescription.cpp
@@ -146,8 +121,8 @@ set(SOURCES
     Src/remote/ApplicationProcessManager.cpp
     Src/Main.cpp)
 
-add_executable(LunaSysMgr ${SOURCES})
-target_link_libraries(LunaSysMgr
+add_executable(LunaAppManager ${SOURCES})
+target_link_libraries(LunaAppManager
     ${LS2_LIBRARIES}
     ${GLIB2_LIBRARIES}
     ${GTHREAD2_LIBRARIES}
@@ -164,7 +139,7 @@ target_link_libraries(LunaSysMgr
     ${PMLOGLIB_LIBRARIES}
     ${ROLEGEN_LIBRARIES}
     pthread)
-qt5_use_modules(LunaSysMgr Core Gui Widgets)
+qt5_use_modules(LunaAppManager Core Gui Widgets)
 
 webos_build_daemon()
 webos_build_system_bus_files()

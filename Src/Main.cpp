@@ -29,25 +29,15 @@
 #include "HostBase.h"
 #include "ApplicationDescription.h"
 #include "ApplicationManager.h"
-#include "CpuAffinity.h"
-#include "HapticsController.h"
 #include "Localization.h"
 
 
 #include "MemoryMonitor.h"
 #include "Settings.h"
-#include "SystemService.h"
 #include "ApplicationInstaller.h"
 #include "Preferences.h"
-#include "DeviceInfo.h"
-#include "Security.h"
-#include "EASPolicyManager.h"
 #include "Logging.h"
-#include "BackupManager.h"
-#include "DisplayManager.h"
 #include "EventReporter.h"
-#include "InputEventMonitor.h"
-#include "BootManager.h"
 
 #include "ApplicationProcessManager.h"
 
@@ -726,8 +716,10 @@ int main( int argc, char** argv)
 	// resolution may get picked up from the fb driver on arm
 	host->init(settings->displayWidth, settings->displayHeight);
 
+#if 0
 	// Tie LunaSysMgr to Processor 0
 	setCpuAffinity(getpid(), 1);
+#endif
 
 	// Safe to create logging threads now
 	logInit();
@@ -760,23 +752,6 @@ int main( int argc, char** argv)
 	// Initialize Localization handler
 	(void) Localization::instance();
 
-	//Register vibration/haptics support
-	HapticsController::instance()->startService();
-
-	(void) DeviceInfo::instance();
-
-	// Initialize Security handler
-	(void) Security::instance();
-
-	// Initialize BackupManager
-	BackupManager::instance()->init(HostBase::instance()->mainLoop());
-
-	// Initialize the System Service
-	SystemService::instance()->init();
-
-	// Initialize the Boot Manager
-	BootManager::instance();
-
 	// Initialize the application mgr
 	ApplicationManager::instance()->init();
 
@@ -790,15 +765,6 @@ int main( int argc, char** argv)
 
 	// Initialize the SysMgr MemoryMonitor
 	MemoryMonitor::instance();
-
-	// load all set policies
-	EASPolicyManager::instance()->load();
-
-	// Initialize our display manager
-	new DisplayManager();
-
-	// Initialize input event monitor
-	InputEventMonitor::instance();
 
 	app.exec();
 
