@@ -2,7 +2,7 @@
     "role": {
         "exeName":"/usr/sbin/LunaAppManager",
         "type": "privileged",
-        "allowedNames": ["", "com.palm.appinstaller", "com.palm.applicationManager", "com.palm.eventreporter.LunaAppManager"]
+        "allowedNames": ["", "com.palm.appinstaller", "com.palm.applicationManager", "com.palm.eventreporter.LunaAppManager", "org.webosports.bootmgr"]
     },
     "permissions": [
         {
@@ -17,6 +17,11 @@
         },
         {
             "service":"com.palm.eventreporter.LunaAppManager",
+            "inbound":["*"],
+            "outbound":["*"]
+        },
+        {
+            "service":"org.webosports.bootmgr",
             "inbound":["*"],
             "outbound":["*"]
         }
