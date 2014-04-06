@@ -38,6 +38,7 @@
 #include "Preferences.h"
 #include "Logging.h"
 #include "EventReporter.h"
+#include "BootManager.h"
 
 #include "ApplicationProcessManager.h"
 
@@ -751,6 +752,9 @@ int main( int argc, char** argv)
 
 	// Initialize Localization handler
 	(void) Localization::instance();
+
+	// Initialize the Boot Manager
+	BootManager::instance();
 
 	// Initialize the application mgr
 	ApplicationManager::instance()->init();

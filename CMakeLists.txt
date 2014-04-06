@@ -81,6 +81,7 @@ set(HEADERS
     Src/base/CircularBuffer.h
     Src/base/MemoryMonitor.h
     Src/base/SharedGlobalProperties.h
+    Src/base/BootManager.h
     Src/base/application/ServiceDescription.h
     Src/base/application/ApplicationStatus.h
     Src/base/application/ApplicationInstaller.h
@@ -106,6 +107,7 @@ set(SOURCES
     Src/base/LsmUtils.cpp
     Src/base/JSONUtils.cpp
     Src/base/Logging.cpp
+    Src/base/BootManager.cpp
     Src/base/application/ApplicationDescription.cpp
     Src/base/application/MimeSystem.cpp
     Src/base/application/PackageDescription.cpp
