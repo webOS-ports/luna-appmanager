@@ -1,8 +1,0 @@
-{
-	"title": "Memory",
-	"type": "web",
-	"main": "index.html",
-	"id":   "com.palm.memory",
-	"icon": "icon.png"
-}
-

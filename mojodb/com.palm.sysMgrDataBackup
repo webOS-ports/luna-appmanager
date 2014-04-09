@@ -1,5 +1,0 @@
-{
-	"id" : "com.palm.sysMgrDataBackup",
-	"preBackup" : "preBackup",
-	"postRestore" : "postRestore"
-}
