@@ -16,9 +16,6 @@
 *
 * LICENSE@@@ */
 
-
-
-
 #ifndef MEMORYMONITOR_H
 #define MEMORYMONITOR_H
 
@@ -31,18 +28,11 @@
 #include "Timer.h"
 #include "Mutex.h"
 
-#if defined(HAS_MEMCHUTE)
-extern "C" {
-#include <memchute.h>
-}
-#endif
-
 class MemoryMonitor : public QObject
 {
 	Q_OBJECT
 
 public:
-
 	enum MemState {
 		Normal = 0,
 		Medium,
@@ -63,11 +53,9 @@ public:
 	bool getMemInfo(int& lowMemoryEntryRem, int& criticalMemoryEntryRem, int& rebootMemoryEntryRem);
 
 Q_SIGNALS:
-
 	void memoryStateChanged(bool critical);
 
 private:
-
 	MemoryMonitor();
 	~MemoryMonitor();
 
@@ -78,40 +66,14 @@ private:
 
 	void adjustOomScore();
 
-#if defined(HAS_MEMCHUTE)
-    static void memchuteCallback(MemchuteThreshold threshold);
-	void memchuteStateChanged();
-    int getMonitoredProcessesMemoryOffset();
-    void checkMonitoredProcesses();
-#endif
-
 private:
-
 	Timer<MemoryMonitor> m_timer;
 	int m_currRssUsage;
 
 	static const int kFileNameLen = 128;
 	char m_fileName[kFileNameLen];
 
-	MemState m_state;	
-
-#if defined(HAS_MEMCHUTE)
-	MemchuteWatcher* m_memWatch;
-	
-	typedef struct 
-	{
-		pid_t pid;
-		int   maxMemAllowed;
-		int   violationNumber;
-	} ProcMemMonitor;
-	
-	typedef std::map<pid_t, ProcMemMonitor*> ProcMemRestrictions;
-
-	ProcMemRestrictions memRestrict;
-
-#endif	
-	
-
+	MemState m_state;
 };
 
 #endif /* MEMORYMONITOR_H */
