@@ -69,6 +69,8 @@ private:
 
     qint64 launchProcess(const QString& id, const QString& path, const QStringList& parameters);
 
+    QString getAppInfoPathFromDesc(ApplicationDescription *desc);
+
     QList<ApplicationProcess*> m_applications;
 };
 

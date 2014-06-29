@@ -24,7 +24,7 @@
 #include "ApplicationManager.h"
 
 #define WEBAPP_LAUNCHER_PATH    "/usr/sbin/webapp-launcher"
-#define QMLAPP_LAUNCHER_PATH    "/usr/bin/qt5/qmlscene"
+#define QMLAPP_LAUNCHER_PATH    "/usr/sbin/luna-qml-launcher"
 
 ApplicationProcess::ApplicationProcess(const QString& id, QObject *parent) :
     QProcess(parent),
@@ -191,11 +191,13 @@ void ApplicationProcessManager::onProcessFinished(int exitCode, QProcess::ExitSt
 
     qDebug() << "Application" << process->id() << "exited";
 
+    process->close();
+
     m_applications.removeAll(process);
     delete process;
 }
 
-qint64 ApplicationProcessManager::launchWebApp(ApplicationDescription *desc, std::string &params)
+QString ApplicationProcessManager::getAppInfoPathFromDesc(ApplicationDescription *desc)
 {
     QString appInfoFilePath;
 
@@ -215,9 +217,14 @@ qint64 ApplicationProcessManager::launchWebApp(ApplicationDescription *desc, std
         appInfoFilePath = QString::fromStdString(desc->filePath());
     }
 
+    return appInfoFilePath;
+}
+
+qint64 ApplicationProcessManager::launchWebApp(ApplicationDescription *desc, std::string &params)
+{
     QStringList parameters;
     QString appParams = QString::fromStdString(params);
-    parameters << "-a" << appInfoFilePath;
+    parameters << "-a" << getAppInfoPathFromDesc(desc);
     if (appParams.length() > 0)
         parameters << "-p" << appParams;
 
@@ -238,5 +245,15 @@ qint64 ApplicationProcessManager::launchNativeApp(ApplicationDescription *desc, 
 
 qint64 ApplicationProcessManager::launchQMLApp(ApplicationDescription *desc, std::string &params)
 {
+    QStringList parameters;
+    QString appParams = QString::fromStdString(params);
+    parameters << getAppInfoPathFromDesc(desc);
+    if (appParams.length() > 0)
+        parameters << appParams;
+
+    return launchProcess(QString::fromStdString(desc->id()), QMLAPP_LAUNCHER_PATH, parameters);
+
+
+
     return -1;
 }
