@@ -768,7 +768,7 @@ int main( int argc, char** argv)
 	EventReporter::init(host->mainLoop());
 
 	// Initialize the SysMgr MemoryMonitor
-	MemoryMonitor::instance();
+	MemoryMonitor::instance()->start();
 
 	app.exec();
 
