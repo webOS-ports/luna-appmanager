@@ -107,7 +107,7 @@ void MemoryMonitor::start()
 {
 	if (m_timer.running())
 		return;
-	
+
 	m_timer.start(kTimerMs);
 }
 
@@ -123,15 +123,14 @@ static const char* nameForState(MemoryMonitor::MemState state)
 	default:
 		break;
 	}
-	
+
 	return "Normal";
 }
 
 bool MemoryMonitor::timerTicked()
 {
-	if (m_state == Normal)	{
+	if (m_state == Normal)
 		return true;
-	}
 
 	m_currRssUsage = getCurrentRssUsage();
 
@@ -150,67 +149,67 @@ int MemoryMonitor::getCurrentRssUsage() const
 	int totalSize, rssSize;
 
 	int result = fscanf(f, "%d %d", &totalSize, &rssSize);
-	(void)result;
+	(void) result;
 
-	fclose(f);	
-	
-    return (rssSize * 4096) / (1024 * 1024);
+	fclose(f);
+
+	return (rssSize * 4096) / (1024 * 1024);
 }
 
 int MemoryMonitor::getProcessMemInfo(pid_t pid)
 {
 	int procRss  = -1;
 	int procSwap = -1;
-	
- 	char fileName[kFileNameLen];
- 	fileName[kFileNameLen - 1] = 0;
- 	
+	char fileName[kFileNameLen];
+	fileName[kFileNameLen - 1] = 0;
+
 	snprintf(fileName, kFileNameLen - 1, "/proc/%d/status", pid);
-    std::ifstream status(fileName);
-   
-    if (!status) {
-        return -1;
-    }
-    std::string field;
-    std::string label;
+	std::ifstream status(fileName);
 
-    while(status >> field) {
-        // strip off the ':' on the end of each label
-        field = field.substr(0, field.length() - 1);
-        
-        if (field == sProcRSS) {
-            status >> procRss;
-            status >> label;
+	if (!status)
+		return -1;
 
-            //Make sure the value is in megabytes
-            if (!strcasecmp(label.c_str(), sKBLabel.c_str())) {
-            	procRss /= 1024;
-            } else if (strcasecmp(label.c_str(), sMBLabel.c_str())) {
-            	procRss /= 1024 * 1024;
-            }
+	std::string field;
+	std::string label;
 
-            if(procSwap != -1) break;
-        } else if (field == sProcSwap) {
-            status >> procSwap;
-            status >> label;
+	while(status >> field) {
+		// strip off the ':' on the end of each label
+		field = field.substr(0, field.length() - 1);
+		
+		if (field == sProcRSS) {
+			status >> procRss;
+			status >> label;
 
-            //Make sure the value is in megabytes
-            if (!strcasecmp(label.c_str(), sKBLabel.c_str())) {
-            	procSwap /= 1024;
-            } else if (strcasecmp(label.c_str(), sMBLabel.c_str())) {
-            	procSwap /= 1024 * 1024;
-            }
-            
-            if(procRss != -1) break;
-        }       
-    }
-    
-    status.close();
-    
-    if ((-1 == procRss) || (-1 == procSwap))
-    	return -1;
-    
-    return procRss + procSwap;
+			// Make sure the value is in megabytes
+			if (!strcasecmp(label.c_str(), sKBLabel.c_str()))
+				procRss /= 1024;
+			else if (strcasecmp(label.c_str(), sMBLabel.c_str()))
+				procRss /= 1024 * 1024;
+
+			if (procSwap != -1)
+				break;
+		}
+		else if (field == sProcSwap) {
+			status >> procSwap;
+			status >> label;
+
+			//Make sure the value is in megabytes
+			if (!strcasecmp(label.c_str(), sKBLabel.c_str()))
+				procSwap /= 1024;
+			else if (strcasecmp(label.c_str(), sMBLabel.c_str()))
+				procSwap /= 1024 * 1024;
+
+			if(procRss != -1)
+				break;
+		}
+	}
+
+	status.close();
+
+	if ((-1 == procRss) || (-1 == procSwap))
+		return -1;
+
+	return procRss + procSwap;
 }
 
 void MemoryMonitor::monitorNativeProcessMemory(pid_t pid, int maxMemAllowed, pid_t updateFromPid)
@@ -219,10 +218,9 @@ void MemoryMonitor::monitorNativeProcessMemory(pid_t pid, int maxMemAllowed, pid
 
 bool MemoryMonitor::allowNewNativeAppLaunch(int appMemoryRequirement)
 {
-	if (m_state >= Low){
+	if (m_state >= Low)
 		// already in Low or critical memory states, so do not allow new apps to be launched
 		return false;
-	}
 	
 	// OK to launch new app with specified memory requirements
 	return true;
