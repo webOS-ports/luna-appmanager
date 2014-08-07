@@ -1965,7 +1965,7 @@ void ApplicationManager::launchBootTimeApps()
 		if (appsToLaunchAtBoot.find(app->id()) != appsToLaunchAtBoot.end()) {
 			luna_log(sAppMgrChnl, "Launching headless app: %s (%s)",
 					app->id().c_str(), app->entryPoint().c_str());
-			ApplicationProcessManager::instance()->launch(app->id(), "{\"launchedAtBoot\":true}");
+            ApplicationProcessManager::instance()->launch(app->id(), "{\"launchedAtBoot\":true}");
 		}
 	}
 }

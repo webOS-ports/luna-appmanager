@@ -96,7 +96,8 @@ set(HEADERS
     Src/core/PtrArray.h
     Src/core/AnimationEquations.h
     Src/core/GraphicsDefs.h
-    Src/remote/ApplicationProcessManager.h)
+    Src/remote/ApplicationProcessManager.h
+    Src/remote/WebAppMgrProxy.h)
 
 set(SOURCES
     Src/base/settings/Settings.cpp
@@ -121,6 +122,7 @@ set(SOURCES
     Src/core/MallocHooks.cpp
     Src/core/KeywordMap.cpp
     Src/remote/ApplicationProcessManager.cpp
+    Src/remote/WebAppMgrProxy.cpp
     Src/Main.cpp)
 
 add_executable(LunaAppManager ${SOURCES})

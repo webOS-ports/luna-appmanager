@@ -29,18 +29,61 @@
 #include "Common.h"
 #include "WindowTypes.h"
 
-class ApplicationProcess : public QProcess
+enum ApplicationType {
+    APPLICATION_TYPE_NATIVE,
+    APPLICATION_TYPE_WEB,
+};
+
+class ApplicationInfo : public QObject
 {
+    Q_OBJECT
 public:
-    ApplicationProcess(const QString &id, QObject *parent = 0);
+    ApplicationInfo(const QString& appId, qint64 processId, ApplicationType type) :
+        mAppId(appId),
+        mProcessId(processId),
+        mType(type)
+    {
+    }
 
-    QString id() const;
+    QString appId() const { return mAppId; }
+    qint64 processId() const { return mProcessId; }
+    ApplicationType type() const { return mType; }
 
-protected:
-    void setupChildProcess();
+    virtual void kill() = 0;
+
+Q_SIGNALS:
+    void finished();
 
 private:
-    QString m_id;
+    QString mAppId;
+    qint64 mProcessId;
+    ApplicationType mType;
+};
+
+class WebApplication : public ApplicationInfo
+{
+    Q_OBJECT
+public:
+    WebApplication(const QString& appId, qint64 processId, QObject *parent = 0);
+
+    virtual void kill();
+};
+
+class NativeApplication : public ApplicationInfo
+{
+    Q_OBJECT
+public:
+    NativeApplication(const QString& appId, qint64 processId, QProcess *process, QObject *parent = 0);
+
+    qint64 nativePid() { return mProcess->pid(); }
+
+    virtual void kill();
+
+private Q_SLOTS:
+    void onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
+
+private:
+    QProcess *mProcess;
 };
 
 class ApplicationProcessManager : public QObject
@@ -55,23 +98,32 @@ public:
     bool isRunning(std::string appId);
     void killByAppId(std::string appId);
 
-    QList<ApplicationProcess*> runningApplications() const;
+    QList<ApplicationInfo*> runningApplications() const;
+
+    void notifyApplicationHasStarted(ApplicationInfo *app);
+    void notifyApplicationHasFinished(qint64 processId);
+    void notifyApplicationHasFinished(ApplicationInfo *app);
+
+    void removeAllWebApplications();
 
 private Q_SLOTS:
-    void onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
+    void onApplicationHasFinished();
 
 private:
     ApplicationProcessManager();
 
-    qint64 launchWebApp(ApplicationDescription *desc, std::string& params);
+    qint64 launchWebApp(const std::string& id, const std::string& params);
     qint64 launchNativeApp(ApplicationDescription *desc, std::string& params);
     qint64 launchQMLApp(ApplicationDescription *desc, std::string& params);
-
     qint64 launchProcess(const QString& id, const QString& path, const QStringList& parameters);
 
     QString getAppInfoPathFromDesc(ApplicationDescription *desc);
 
-    QList<ApplicationProcess*> m_applications;
+    qint64 newProcessId();
+
+    QList<ApplicationInfo*> mApplications;
+    QMap<QPair<std::string,std::string>> mBootTimeApps;
+    qint64 mNextProcessId;
 };
 
 #endif // APPLICATONPROCESSMANAGER_H

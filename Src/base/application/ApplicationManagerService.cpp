@@ -241,11 +241,11 @@ static bool servicecallback_listRunningApps( LSHandle* lshandle,
     reply_obj = json_object_new_object();
     applications_obj = json_object_new_array();
 
-    Q_FOREACH(ApplicationProcess *process, ApplicationProcessManager::instance()->runningApplications()) {
+    Q_FOREACH(ApplicationInfo *app, ApplicationProcessManager::instance()->runningApplications()) {
         process_obj = json_object_new_object();
-        json_object_object_add(process_obj, "id", json_object_new_string(process->id().toUtf8().constData()));
+        json_object_object_add(process_obj, "id", json_object_new_string(app->appId().toUtf8().constData()));
 
-        QString processId = QString::number(process->pid());
+        QString processId = QString::number(app->processId());
         json_object_object_add(process_obj, "processid", json_object_new_string(processId.toUtf8().constData()));
 
         json_object_array_add(applications_obj, process_obj);

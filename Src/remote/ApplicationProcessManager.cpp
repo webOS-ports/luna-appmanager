@@ -23,22 +23,38 @@
 #include "ApplicationDescription.h"
 #include "ApplicationManager.h"
 
+#include "WebAppMgrProxy.h"
+
 #define WEBAPP_LAUNCHER_PATH    "/usr/sbin/webapp-launcher"
 #define QMLAPP_LAUNCHER_PATH    "/usr/sbin/luna-qml-launcher"
 
-ApplicationProcess::ApplicationProcess(const QString& id, QObject *parent) :
-    QProcess(parent),
-    m_id(id)
+NativeApplication::NativeApplication(const QString &appId, qint64 processId, QProcess *process, QObject *parent) :
+    ApplicationInfo(appId, processId, APPLICATION_TYPE_NATIVE),
+    mProcess(process)
+{
+    connect(mProcess, SIGNAL(finished(int,QProcess::ExitStatus)), this, SLOT(onProcessFinished(int,QProcess::ExitStatus)));
+}
+
+void NativeApplication::kill()
 {
 }
 
-void ApplicationProcess::setupChildProcess()
+void NativeApplication::onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus)
+{
+    mProcess->close();
+    delete mProcess;
+
+    Q_EMIT finished();
+}
+
+WebApplication::WebApplication(const QString &appId, qint64 processId, QObject *parent) :
+    ApplicationInfo(appId, processId, APPLICATION_TYPE_WEB)
 {
 }
 
-QString ApplicationProcess::id() const
+void WebApplication::kill()
 {
-    return m_id;
+    WebAppMgrProxy::instance()->killApp(processId());
 }
 
 ApplicationProcessManager* ApplicationProcessManager::instance()
@@ -51,14 +67,15 @@ ApplicationProcessManager* ApplicationProcessManager::instance()
 }
 
 ApplicationProcessManager::ApplicationProcessManager() :
-    QObject(0)
+    QObject(0),
+    mNextProcessId(1000)
 {
 }
 
 bool ApplicationProcessManager::isRunning(std::string appId)
 {
-    Q_FOREACH(ApplicationProcess *app, m_applications) {
-        if (app->id() == QString::fromStdString(appId))
+    Q_FOREACH(ApplicationInfo *app, mApplications) {
+        if (app->appId() == QString::fromStdString(appId))
             return true;
     }
 
@@ -67,10 +84,10 @@ bool ApplicationProcessManager::isRunning(std::string appId)
 
 std::string ApplicationProcessManager::getPid(std::string appId)
 {
-    ApplicationProcess *selectedApp = 0;
+    ApplicationInfo *selectedApp = 0;
 
-    Q_FOREACH(ApplicationProcess *app, m_applications) {
-        if (app->id() == QString::fromStdString(appId)) {
+    Q_FOREACH(ApplicationInfo *app, mApplications) {
+        if (app->appId() == QString::fromStdString(appId)) {
             selectedApp = app;
             break;
         }
@@ -79,20 +96,21 @@ std::string ApplicationProcessManager::getPid(std::string appId)
     if (selectedApp == 0)
         return std::string("");
 
-    QString processId = QString::number(selectedApp->pid());
+    QString processId = QString::number(selectedApp->processId());
     return processId.toStdString();
 }
 
-QList<ApplicationProcess*> ApplicationProcessManager::runningApplications() const
+QList<ApplicationInfo*> ApplicationProcessManager::runningApplications() const
 {
-    return m_applications;
+    return mApplications;
 }
 
 void ApplicationProcessManager::killByAppId(std::string appId)
 {
-    Q_FOREACH(ApplicationProcess *app, m_applications) {
-        if (app->id() == QString::fromStdString(appId)) {
+    Q_FOREACH(ApplicationInfo *app, mApplications) {
+        if (app->appId() == QString::fromStdString(appId)) {
             app->kill();
+            break;
         }
     }
 }
@@ -112,28 +130,29 @@ std::string ApplicationProcessManager::launch(std::string appId, std::string par
     }
 
     bool running = false;
-    qint64 pid = 0;
-    Q_FOREACH(ApplicationProcess *app, m_applications) {
-        if (app->id() == QString::fromStdString(appId)) {
+    qint64 processId = 0;
+
+    Q_FOREACH(ApplicationInfo *app, mApplications) {
+        if (app->appId() == QString::fromStdString(appId)) {
             running = true;
-            pid = app->pid();
+            processId = app->processId();
             break;
         }
     }
 
     if (!running) {
-        pid = 0;
+        processId = 0;
         switch (desc->type()) {
         case ApplicationDescription::Type_Web:
-            pid = launchWebApp(desc, params);
+            processId = launchWebApp(appId, params);
             break;
         case ApplicationDescription::Type_Native:
         case ApplicationDescription::Type_PDK:
         case ApplicationDescription::Type_Qt:
-            pid = launchNativeApp(desc, params);
+            processId = launchNativeApp(desc, params);
             break;
         case ApplicationDescription::Type_QML:
-            pid = launchQMLApp(desc, params);
+            processId = launchQMLApp(desc, params);
             break;
         default:
             break;
@@ -145,18 +164,35 @@ std::string ApplicationProcessManager::launch(std::string appId, std::string par
         // FIXME send relaunch signal
     }
 
-    if (pid <= 0)
+    if (processId <= 0)
         return std::string("");
 
-    QString processId = QString::number(pid);
-    return processId.toStdString();
+    return QString::number(processId).toStdString();
+}
+
+qint64 ApplicationProcessManager::newProcessId()
+{
+    return mNextProcessId++;
+}
+
+qint64 ApplicationProcessManager::launchWebApp(const std::string& id, const std::string& params)
+{
+    int64_t processId = newProcessId();
+
+    std::string launchingAppId = "";
+    std::string launchingProcId = "";
+    std::string errMsg = "";
+
+    WebAppMgrProxy::instance()->launchApp(id, params, processId, launchingAppId, launchingProcId, errMsg);
+
+    return processId;
 }
 
 qint64 ApplicationProcessManager::launchProcess(const QString& id, const QString &path, const QStringList &parameters)
 {
     qDebug() << "Starting process" << id << path << parameters;
 
-    ApplicationProcess *process = new ApplicationProcess(id);
+    QProcess *process = new QProcess();
 
     QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
     environment.insert("XDG_RUNTIME_DIR","/tmp/luna-session");
@@ -166,8 +202,6 @@ qint64 ApplicationProcessManager::launchProcess(const QString& id, const QString
 
     process->setProcessEnvironment(environment);
     process->setProcessChannelMode(QProcess::ForwardedChannels);
-
-    connect(process, SIGNAL(finished(int,QProcess::ExitStatus)), this, SLOT(onProcessFinished(int,QProcess::ExitStatus)));
 
     // NOTE: Currently we're just forking once so the new process will be a child of ours and
     // will exit once we exit.
@@ -180,21 +214,62 @@ qint64 ApplicationProcessManager::launchProcess(const QString& id, const QString
         return -1;
     }
 
-    m_applications.append(process);
+    int64_t processId = newProcessId();
+    notifyApplicationHasStarted(new NativeApplication(id, process, processId));
 
-    return process->pid();
+    return processId;
 }
 
-void ApplicationProcessManager::onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus)
+void ApplicationProcessManager::notifyApplicationHasFinished(qint64 processId)
 {
-    ApplicationProcess *process = static_cast<ApplicationProcess*>(sender());
+    ApplicationInfo *appToRemove = 0;
+    Q_FOREACH(ApplicationInfo *appInfo, mApplications) {
+        if (appInfo->processId() == processId) {
+            appToRemove = appInfo;
+            break;
+        }
+    }
 
-    qDebug() << "Application" << process->id() << "exited";
+    notifyApplicationHasFinished(appToRemove);
+}
 
-    process->close();
+void ApplicationProcessManager::notifyApplicationHasFinished(ApplicationInfo *app)
+{
+    qDebug() << __PRETTY_FUNCTION__ << app->appId();
 
-    m_applications.removeAll(process);
-    delete process;
+    // FIXME do we have to do something else?
+
+    mApplications.removeAll(app);
+    delete app;
+}
+
+void ApplicationProcessManager::notifyApplicationHasStarted(ApplicationInfo *app)
+{
+    qDebug() << __PRETTY_FUNCTION__ << app->appId();
+    connect(app, SIGNAL(finished()), this, SLOT(onApplicationHasFinished()));
+    mApplications.append(app);
+}
+
+void ApplicationProcessManager::onApplicationHasFinished()
+{
+    ApplicationInfo *app = static_cast<ApplicationInfo*>(sender());
+    notifyApplicationHasFinished(app);
+}
+
+void ApplicationProcessManager::removeAllWebApplications()
+{
+    qDebug() << __PRETTY_FUNCTION__;
+
+    QList<ApplicationInfo*> appsToRemove;
+
+    Q_FOREACH(ApplicationInfo *app, mApplications) {
+        if (app->type() == APPLICATION_TYPE_WEB)
+            appsToRemove.append(app);
+    }
+
+    Q_FOREACH(ApplicationInfo *app, appsToRemove) {
+        mApplications.removeAll(app);
+    }
 }
 
 QString ApplicationProcessManager::getAppInfoPathFromDesc(ApplicationDescription *desc)
@@ -220,17 +295,6 @@ QString ApplicationProcessManager::getAppInfoPathFromDesc(ApplicationDescription
     return appInfoFilePath;
 }
 
-qint64 ApplicationProcessManager::launchWebApp(ApplicationDescription *desc, std::string &params)
-{
-    QStringList parameters;
-    QString appParams = QString::fromStdString(params);
-    parameters << "-a" << getAppInfoPathFromDesc(desc);
-    if (appParams.length() > 0)
-        parameters << "-p" << appParams;
-
-    return launchProcess(QString::fromStdString(desc->id()), WEBAPP_LAUNCHER_PATH, parameters);
-}
-
 qint64 ApplicationProcessManager::launchNativeApp(ApplicationDescription *desc, std::string &params)
 {
     QStringList parameters;
@@ -252,8 +316,4 @@ qint64 ApplicationProcessManager::launchQMLApp(ApplicationDescription *desc, std
         parameters << appParams;
 
     return launchProcess(QString::fromStdString(desc->id()), QMLAPP_LAUNCHER_PATH, parameters);
-
-
-
-    return -1;
 }
