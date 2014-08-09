@@ -122,7 +122,6 @@ private:
     qint64 newProcessId();
 
     QList<ApplicationInfo*> mApplications;
-    QMap<QPair<std::string,std::string>> mBootTimeApps;
     qint64 mNextProcessId;
 };
 
