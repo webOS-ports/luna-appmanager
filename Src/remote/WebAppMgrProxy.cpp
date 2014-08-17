@@ -255,7 +255,7 @@ void WebAppMgrProxy::killApp(qint64 processId)
     LSError err;
     LSErrorInit(&err);
 
-    char *payload = g_strdup_printf("{\"processId\":%i}", processId);
+    char *payload = g_strdup_printf("{\"processId\":%llu}", processId);
 
     if (!LSCallOneReply(mService, "luna://org.webosports.webappmanager/killApp", payload,
                         NULL, NULL, NULL, &err)) {

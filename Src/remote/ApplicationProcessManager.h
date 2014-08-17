@@ -73,14 +73,17 @@ class NativeApplication : public ApplicationInfo
 {
     Q_OBJECT
 public:
-    NativeApplication(const QString& appId, qint64 processId, QProcess *process, QObject *parent = 0);
+    NativeApplication(const QString& appId, qint64 processId, QObject *parent = 0);
+    ~NativeApplication();
 
     qint64 nativePid() { return mProcess->pid(); }
+    QProcess* process() { return mProcess; }
 
     virtual void kill();
 
 private Q_SLOTS:
     void onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
+    void onTerminationTimeoutReached();
 
 private:
     QProcess *mProcess;
@@ -97,6 +100,7 @@ public:
     std::string getPid(std::string appId);
     bool isRunning(std::string appId);
     void killByAppId(std::string appId);
+    void killByProcessId(qint64 processId);
 
     QList<ApplicationInfo*> runningApplications() const;
 

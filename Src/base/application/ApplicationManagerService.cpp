@@ -347,9 +347,12 @@ static bool servicecallback_close( LSHandle* lshandle, LSMessage *message,
 
 	processid = json_object_object_get(root,"processId");
 	if(processid) {
-        // WebAppMgrProxy::instance()->sendAsyncMessage(new View_Mgr_CloseByProcessId(json_object_get_string(processid)));
-		// FIXME: $$$ this was now made asynchronous, so we can't find out if the call succeeded or failed. 
-		success = true;
+		qint64 processId = (qint64) atol(json_object_get_string(processid));
+		if (processid > 0) {
+			ApplicationProcessManager::instance()->killByProcessId(processId);
+			// FIXME: $$$ this was now made asynchronous, so we can't find out if the call succeeded or failed.
+			success = true;
+		}
 	}
 
 	if (!success)

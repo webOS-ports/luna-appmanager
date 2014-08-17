@@ -18,6 +18,7 @@
 
 #include <QProcess>
 #include <QDebug>
+#include <QTimer>
 
 #include "ApplicationProcessManager.h"
 #include "ApplicationDescription.h"
@@ -28,15 +29,28 @@
 #define WEBAPP_LAUNCHER_PATH    "/usr/sbin/webapp-launcher"
 #define QMLAPP_LAUNCHER_PATH    "/usr/sbin/luna-qml-launcher"
 
-NativeApplication::NativeApplication(const QString &appId, qint64 processId, QProcess *process, QObject *parent) :
+NativeApplication::NativeApplication(const QString &appId, qint64 processId, QObject *parent) :
     ApplicationInfo(appId, processId, APPLICATION_TYPE_NATIVE),
-    mProcess(process)
+    mProcess(new QProcess)
 {
     connect(mProcess, SIGNAL(finished(int,QProcess::ExitStatus)), this, SLOT(onProcessFinished(int,QProcess::ExitStatus)));
 }
 
+NativeApplication::~NativeApplication()
+{
+    mProcess->deleteLater();
+}
+
 void NativeApplication::kill()
 {
+    mProcess->terminate();
+    QTimer::singleShot(500, this, SLOT(onTerminationTimeoutReached()));
+}
+
+void NativeApplication::onTerminationTimeoutReached()
+{
+    if (mProcess->state() == QProcess::Running)
+        mProcess->kill();
 }
 
 void NativeApplication::onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus)
@@ -109,6 +123,16 @@ void ApplicationProcessManager::killByAppId(std::string appId)
 {
     Q_FOREACH(ApplicationInfo *app, mApplications) {
         if (app->appId() == QString::fromStdString(appId)) {
+            app->kill();
+            break;
+        }
+    }
+}
+
+void ApplicationProcessManager::killByProcessId(qint64 processId)
+{
+    Q_FOREACH(ApplicationInfo *app, mApplications) {
+        if (app->processId() == processId) {
             app->kill();
             break;
         }
@@ -192,7 +216,9 @@ qint64 ApplicationProcessManager::launchProcess(const QString& id, const QString
 {
     qDebug() << "Starting process" << id << path << parameters;
 
-    QProcess *process = new QProcess();
+    int64_t processId = newProcessId();
+    NativeApplication *application = new NativeApplication(id, processId);
+    QProcess *process = application->process();
 
     QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
     environment.insert("XDG_RUNTIME_DIR","/tmp/luna-session");
@@ -210,12 +236,11 @@ qint64 ApplicationProcessManager::launchProcess(const QString& id, const QString
 
     if (process->state() != QProcess::Running) {
         qDebug() << "Failed to start process";
-        process->deleteLater();
+        application->deleteLater();
         return -1;
     }
 
-    int64_t processId = newProcessId();
-    notifyApplicationHasStarted(new NativeApplication(id, process, processId));
+    notifyApplicationHasStarted(application);
 
     return processId;
 }
