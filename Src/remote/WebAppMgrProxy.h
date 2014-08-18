@@ -53,6 +53,9 @@ public:
                           const std::string& launchingProcId,
                           std::string& errMsg);
 
+    void relaunch(const std::string& appId,
+                  const std::string& params);
+
     void killApp(qint64 processId);
 
     static gboolean retryConnectWebAppMgr(gpointer user_data);

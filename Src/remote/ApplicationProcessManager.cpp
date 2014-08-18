@@ -194,6 +194,29 @@ std::string ApplicationProcessManager::launch(std::string appId, std::string par
     return QString::number(processId).toStdString();
 }
 
+void ApplicationProcessManager::relaunch(std::string appId, std::string params)
+{
+    ApplicationInfo *targetApp = 0;
+
+    Q_FOREACH(ApplicationInfo *app, mApplications) {
+        if (app->appId() == QString::fromStdString(appId)) {
+            targetApp = app;
+            break;
+        }
+    }
+
+    if (!targetApp)
+        return;
+
+    if (targetApp->type() == APPLICATION_TYPE_WEB) {
+        WebAppMgrProxy::instance()->relaunch(appId, params);
+    }
+    else {
+        qWarning("No wait to handle relaunch for application %s of type %d",
+                 targetApp->appId().toUtf8().constData(), targetApp->type());
+    }
+}
+
 qint64 ApplicationProcessManager::newProcessId()
 {
     return mNextProcessId++;

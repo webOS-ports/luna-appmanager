@@ -402,3 +402,18 @@ std::string WebAppMgrProxy::launchApp(const std::string& appId,
     g_warning("%s: Attempted to launch application with unknown type", __PRETTY_FUNCTION__);
     return "";
 }
+
+void WebAppMgrProxy::relaunch(const std::string &appId, const std::string &params)
+{
+    LSError lserror;
+    LSErrorInit(&lserror);
+
+    gchar *payload = g_strdup_printf("{\"appId\":\"%s\",\"params\":\"%s\"}",
+                                     appId.c_str(), params.c_str());
+
+    if (!LSCallOneReply(mService, "luna://org.webosports.webappmanager/relaunch",
+                        payload, NULL, NULL, NULL, &lserror)) {
+        g_warning("Failed to send relaunch signa to WebAppMgr: %s", lserror.message);
+        LSErrorFree(&lserror);
+    }
+}

@@ -96,6 +96,7 @@ public:
     static ApplicationProcessManager* instance();
 
     std::string launch(std::string appId, std::string params);
+    void relaunch(std::string appId, std::string params);
 
     std::string getPid(std::string appId);
     bool isRunning(std::string appId);

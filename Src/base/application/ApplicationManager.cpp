@@ -1994,8 +1994,8 @@ std::string ApplicationManager::launch(std::string appId, std::string params)
 	LSSubscriptionIter *iter;
 	json_object *reply;
 
-	// check if application is already registered and if yes send the signal that it
-	// was relaunched
+    // Check if we have a native application registered through libwebos-application and
+    // send it the relaunch signal
 	LSSubscriptionAcquire(m_serviceHandlePrivate, appId.c_str(), &iter, NULL);
 	if (iter && LSSubscriptionHasNext(iter))
 	{
@@ -2015,10 +2015,13 @@ std::string ApplicationManager::launch(std::string appId, std::string params)
 		return ApplicationProcessManager::instance()->getPid(appId);
 	}
 
-	// If application is not registered but launched through the process manager its
-	// already running and don't need to be launched again
-	if (ApplicationProcessManager::instance()->isRunning(appId))
-		return ApplicationProcessManager::instance()->getPid(appId);
+    // If the appication is registered with the process manager instead send it the
+    // relaunch signal this way
+    if (ApplicationProcessManager::instance()->isRunning(appId)) {
+        std::string processId = ApplicationProcessManager::instance()->getPid(appId);
+        ApplicationProcessManager::instance()->relaunch(appId, params);
+        return processId;
+    }
 
 	// At this point we're not able to detect applications which are not launched
 	// through us and are not registered with the application manager. Normally those
