@@ -56,7 +56,6 @@ void NativeApplication::onTerminationTimeoutReached()
 void NativeApplication::onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
     mProcess->close();
-    delete mProcess;
 
     Q_EMIT finished();
 }
