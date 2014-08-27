@@ -60,7 +60,6 @@ private:
 	~MemoryMonitor();
 
 	bool timerTicked();
-	int getCurrentRssUsage() const;
 
 	int getProcessMemInfo(pid_t pid);
 
@@ -71,7 +70,6 @@ private:
 
 private:
 	Timer<MemoryMonitor> m_timer;
-	int m_currRssUsage;
 
 	static const int kFileNameLen = 128;
 	char m_fileName[kFileNameLen];

@@ -51,7 +51,6 @@ MemoryMonitor* MemoryMonitor::instance()
 
 MemoryMonitor::MemoryMonitor()
 	: m_timer(HostBase::instance()->masterTimer(), this, &MemoryMonitor::timerTicked)
-	, m_currRssUsage(0)
 	, m_state(MemoryMonitor::Normal)
 {
 	m_fileName[kFileNameLen - 1] = 0;
@@ -90,32 +89,6 @@ bool MemoryMonitor::timerTicked()
 {
 	if (!memRestrict.empty())
 		checkMonitoredProcesses();
-
-	if (m_state == Normal)
-		return true;
-
-	m_currRssUsage = getCurrentRssUsage();
-
-	g_warning("SysMgr MemoryMonitor: LOW MEMORY: State: %s, current RSS usage: %dMB\n",
-			  nameForState(m_state), m_currRssUsage);
-
-	return true;
-}
-
-int MemoryMonitor::getCurrentRssUsage() const
-{
-	FILE* f = fopen(m_fileName, "rb");
-	if (!f)
-		return m_currRssUsage;
-
-	int totalSize, rssSize;
-
-	int result = fscanf(f, "%d %d", &totalSize, &rssSize);
-	(void) result;
-
-	fclose(f);
-
-	return (rssSize * 4096) / (1024 * 1024);
 }
 
 int MemoryMonitor::getProcessMemInfo(pid_t pid)
@@ -289,6 +262,7 @@ bool MemoryMonitor::allowNewNativeAppLaunch(int appMemoryRequirement)
 		// already in Low or critical memory states, so do not allow new apps to be launched
 		return false;
 
+#if 0
 	// FIXME find a way to determine those requirements
 	int lowMemoryEntryRem = -1;
 	int criticalMemoryEntryRem = -1;
@@ -302,6 +276,7 @@ bool MemoryMonitor::allowNewNativeAppLaunch(int appMemoryRequirement)
 				  appMemoryRequirement + monitoredProcessMemoryOffset, criticalMemoryEntryRem);
 		return false;
 	}
+#endif
 
 	// OK to launch new app with specified memory requirements
 	return true;
