@@ -278,10 +278,6 @@ qint64 ApplicationProcessManager::launchProcess(const QString& id, const QString
 		return 0;
     }
 
-    qDebug() << "Generating ls2 role files for app" << id << "...";
-
-    ndkGenerateRole(id.toStdString(), path.toStdString());
-
     qDebug() << "Starting process" << id << path << parameters;
 
     int64_t processId = newProcessId();
@@ -397,6 +393,8 @@ qint64 ApplicationProcessManager::launchNativeApp(ApplicationDescription *desc, 
     if (entryPoint.startsWith("file://"))
         entryPoint = entryPoint.right(entryPoint.length() - 7);
 
+	ndkGenerateRole(desc->id(), entryPoint.toStdString());
+
     return launchProcess(QString::fromStdString(desc->id()), entryPoint, parameters, desc->runtimeMemoryRequired());
 }
 
@@ -406,7 +404,9 @@ qint64 ApplicationProcessManager::launchQMLApp(ApplicationDescription *desc, std
     QString appParams = QString::fromStdString(params);
     parameters << getAppInfoPathFromDesc(desc);
     if (appParams.length() > 0)
-        parameters << appParams;
+		parameters << appParams;
+
+	qmlGenerateRole(desc->id());
 
     return launchProcess(QString::fromStdString(desc->id()), QMLAPP_LAUNCHER_PATH, parameters, desc->runtimeMemoryRequired());
 }
