@@ -27,6 +27,7 @@
 #include "ApplicationManager.h"
 
 #include "WebAppMgrProxy.h"
+#include "MemoryMonitor.h"
 
 #define WEBAPP_LAUNCHER_PATH    "/usr/sbin/webapp-launcher"
 #define QMLAPP_LAUNCHER_PATH    "/usr/sbin/luna-qml-launcher"
@@ -236,8 +237,17 @@ qint64 ApplicationProcessManager::launchWebApp(const std::string& id, const std:
     return processId;
 }
 
-qint64 ApplicationProcessManager::launchProcess(const QString& id, const QString &path, const QStringList &parameters)
+qint64 ApplicationProcessManager::launchProcess(const QString& id, const QString &path, const QStringList &parameters, unsigned int requiredRuntimeMemory)
 {
+    qDebug() << "Check if we have enough memory left for another native application ...";
+
+    if (!MemoryMonitor::instance()->allowNewNativeAppLaunch(requiredRuntimeMemory)) {
+        qWarning("Not enough memory to launch native app %s", id.toUtf8().constData());
+        // FIXME try to free some memory (tell webappmanager about this!)
+        // FIXME send out notification to the user to free memory
+        return 0;
+    }
+
     qDebug() << "Generating ls2 role files for app" << id << "...";
 
     ndkGenerateRole(id.toStdString(), path.toStdString());
@@ -357,7 +367,7 @@ qint64 ApplicationProcessManager::launchNativeApp(ApplicationDescription *desc, 
     if (entryPoint.startsWith("file://"))
         entryPoint = entryPoint.right(entryPoint.length() - 7);
 
-    return launchProcess(QString::fromStdString(desc->id()), entryPoint, parameters);
+    return launchProcess(QString::fromStdString(desc->id()), entryPoint, parameters, desc->runtimeMemoryRequired());
 }
 
 qint64 ApplicationProcessManager::launchQMLApp(ApplicationDescription *desc, std::string &params)
@@ -368,5 +378,5 @@ qint64 ApplicationProcessManager::launchQMLApp(ApplicationDescription *desc, std
     if (appParams.length() > 0)
         parameters << appParams;
 
-    return launchProcess(QString::fromStdString(desc->id()), QMLAPP_LAUNCHER_PATH, parameters);
+    return launchProcess(QString::fromStdString(desc->id()), QMLAPP_LAUNCHER_PATH, parameters, desc->runtimeMemoryRequired());
 }

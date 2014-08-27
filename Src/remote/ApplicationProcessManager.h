@@ -120,7 +120,7 @@ private:
     qint64 launchWebApp(const std::string& id, const std::string& params);
     qint64 launchNativeApp(ApplicationDescription *desc, std::string& params);
     qint64 launchQMLApp(ApplicationDescription *desc, std::string& params);
-    qint64 launchProcess(const QString& id, const QString& path, const QStringList& parameters);
+    qint64 launchProcess(const QString& id, const QString& path, const QStringList& parameters, unsigned int requiredRuntimeMemory);
 
     QString getAppInfoPathFromDesc(ApplicationDescription *desc);
 
