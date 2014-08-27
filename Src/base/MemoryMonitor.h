@@ -43,11 +43,11 @@ public:
 	static MemoryMonitor* instance();
 
 	void start();
-	
+
 	MemState state() const { return m_state; }
 
 	bool allowNewNativeAppLaunch(int appMemoryRequirement); // appMemoryRequirement in MB
-	
+
 	void monitorNativeProcessMemory(pid_t pid, int maxMemAllowed, pid_t updateFromPid = 0);
 
 	bool getMemInfo(int& lowMemoryEntryRem, int& criticalMemoryEntryRem, int& rebootMemoryEntryRem);
@@ -66,6 +66,9 @@ private:
 
 	void adjustOomScore();
 
+	int getMonitoredProcessesMemoryOffset();
+	void checkMonitoredProcesses();
+
 private:
 	Timer<MemoryMonitor> m_timer;
 	int m_currRssUsage;
@@ -74,6 +77,17 @@ private:
 	char m_fileName[kFileNameLen];
 
 	MemState m_state;
+
+	typedef struct
+	{
+		pid_t pid;
+		int   maxMemAllowed;
+		int   violationNumber;
+	} ProcMemMonitor;
+
+	typedef std::map<pid_t, ProcMemMonitor*> ProcMemRestrictions;
+
+	ProcMemRestrictions memRestrict;
 };
 
 #endif /* MEMORYMONITOR_H */

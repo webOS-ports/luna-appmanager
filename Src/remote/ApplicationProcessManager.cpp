@@ -25,11 +25,11 @@
 #include "ApplicationProcessManager.h"
 #include "ApplicationDescription.h"
 #include "ApplicationManager.h"
+#include "LaunchPoint.h"
 
 #include "WebAppMgrProxy.h"
 #include "MemoryMonitor.h"
 
-#define WEBAPP_LAUNCHER_PATH    "/usr/sbin/webapp-launcher"
 #define QMLAPP_LAUNCHER_PATH    "/usr/sbin/luna-qml-launcher"
 
 NativeApplication::NativeApplication(const QString &appId, qint64 processId, QObject *parent) :
@@ -121,24 +121,54 @@ QList<ApplicationInfo*> ApplicationProcessManager::runningApplications() const
     return mApplications;
 }
 
-void ApplicationProcessManager::killByAppId(std::string appId)
+void ApplicationProcessManager::killByAppId(std::string appId, bool notifyUser)
 {
+	ApplicationInfo *targetApp = 0;
+
     Q_FOREACH(ApplicationInfo *app, mApplications) {
         if (app->appId() == QString::fromStdString(appId)) {
-            app->kill();
+			targetApp = app;
             break;
         }
     }
+
+	killApp(targetApp);
 }
 
-void ApplicationProcessManager::killByProcessId(qint64 processId)
+void ApplicationProcessManager::killByProcessId(qint64 processId, bool notifyUser)
 {
+	ApplicationInfo *targetApp = 0;
+
     Q_FOREACH(ApplicationInfo *app, mApplications) {
         if (app->processId() == processId) {
-            app->kill();
+			targetApp = app;
             break;
         }
     }
+
+	killApp(targetApp);
+}
+
+void ApplicationProcessManager::killApp(ApplicationInfo *app)
+{
+	if (!app)
+		return;
+
+	app->kill();
+
+	ApplicationDescription *desc = ApplicationManager::instance()->getAppById(app->appId().toStdString());
+
+	std::string appName = "Application";
+	std::string appTitle = "";
+
+	if (desc) {
+		appName = desc->menuName();
+		const LaunchPoint *lp = desc->getDefaultLaunchPoint();
+		if (lp)
+			appTitle = lp->title();
+	}
+
+	ApplicationManager::instance()->postApplicationHasBeenTerminated(appTitle, appName, app->appId().toStdString());
 }
 
 std::string ApplicationProcessManager::launch(std::string appId, std::string params)
@@ -245,7 +275,7 @@ qint64 ApplicationProcessManager::launchProcess(const QString& id, const QString
         qWarning("Not enough memory to launch native app %s", id.toUtf8().constData());
         // FIXME try to free some memory (tell webappmanager about this!)
         // FIXME send out notification to the user to free memory
-        return 0;
+		return 0;
     }
 
     qDebug() << "Generating ls2 role files for app" << id << "...";

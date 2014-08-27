@@ -207,6 +207,8 @@ public:
 	void dbgEmitSignalLaunchPointUpdated(const LaunchPoint * lp,const QBitArray& statusBits);
 	static QString dbgOutputLaunchpointUpdateReasons(const QBitArray& reasons);
 
+	void postApplicationHasBeenTerminated(const std::string& title, const std::string& menuname, const std::string& id);
+
 Q_SIGNALS:
 
 	//LAUNCHER3-ADD: (modified)

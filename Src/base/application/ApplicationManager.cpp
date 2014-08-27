@@ -3101,3 +3101,7 @@ QString ApplicationManager::dbgOutputLaunchpointUpdateReasons(const QBitArray& r
 	s.append("}");
 	return QString("Reason Bits: ")+s;
 }
+
+void ApplicationManager::postApplicationHasBeenTerminated(const string &title, const string &menuname, const string &id)
+{
+}
