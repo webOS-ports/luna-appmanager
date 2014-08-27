@@ -20,6 +20,8 @@
 #include <QDebug>
 #include <QTimer>
 
+#include <rolegen.h>
+
 #include "ApplicationProcessManager.h"
 #include "ApplicationDescription.h"
 #include "ApplicationManager.h"
@@ -236,6 +238,10 @@ qint64 ApplicationProcessManager::launchWebApp(const std::string& id, const std:
 
 qint64 ApplicationProcessManager::launchProcess(const QString& id, const QString &path, const QStringList &parameters)
 {
+    qDebug() << "Generating ls2 role files for app" << id << "...";
+
+    ndkGenerateRole(id.toStdString(), path.toStdString());
+
     qDebug() << "Starting process" << id << path << parameters;
 
     int64_t processId = newProcessId();
