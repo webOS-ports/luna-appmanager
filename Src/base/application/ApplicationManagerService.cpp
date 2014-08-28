@@ -132,6 +132,7 @@ static std::string getAbsolutePath(const std::string& inStr,
  *  - \ref com_palm_application_manager_search_apps
  *  - \ref com_palm_application_manager_swap_redirect_handler
  *  - \ref com_palm_application_manager_swap_resource_handler
+ *  - \ref com_palm_application_manager_application_has_been_terminated
  *
  */
 /*  Leaving these out as the functionality is not implemented.
@@ -7668,6 +7669,79 @@ done:
 	return true;
 }
 
+/*!
+\page com_palm_application_manager
+\n
+\section com_palm_application_manager_applicationHasBeenTerminated
+
+\e Private.
+
+com.palm.applicationManage/applicationHasBeenTerminated
+
+Subscribe to events indicating application has been terminated
+
+\subsection com_palm_application_manager_application_has_been_terminated_syntax Syntax:
+\code
+{
+    "subscribe": boolean
+}
+\endcode
+
+\param subscribe Set to true to subscribe to events.
+
+\subsection com_palm_application_manager_application_has_been_terminated_returns Returns:
+\code
+{
+    "returnValue": boolean,
+    "subscribed": boolean
+}
+\endcode
+
+\param returnValue Indicates if the call was succesful.
+\param subscribed True if subscribed to events.
+
+\subsection com_palm_application_manager_application_has_been_terminated_examples Examples:
+\code
+luna-send -n 10 -f luna://com.palm.applicationManager/applicationHasBeenTerminated '{ "subscribe": true }'
+\endcode
+
+Example response for a succesful call:
+\code
+{
+    "returnValue": true,
+    "subscribed": true
+}
+\endcode
+*/
+static bool servicecallback_applicationHasBeenTerminated(LSHandle* lsHandle, LSMessage *message, void *user_data)
+{
+    SUBSCRIBE_SCHEMA_RETURN(lsHandle, message);
+
+	bool success = true;
+	bool subscribed = false;
+	LSError lsError;
+	json_object* json = json_object_new_object();
+
+	LSErrorInit(&lsError);
+
+	if (LSMessageIsSubscription(message)) {
+		success = LSSubscriptionProcess(lsHandle, message, &subscribed, &lsError);
+		if (!success) {
+			LSErrorFree(&lsError);
+		}
+	}
+
+	json_object_object_add(json, "returnValue", json_object_new_boolean(success));
+	json_object_object_add(json, "subscribed", json_object_new_boolean(subscribed));
+
+	if (!LSMessageReply(lsHandle, message, json_object_to_json_string(json), &lsError))
+		LSErrorFree(&lsError);
+
+	json_object_put(json);
+
+	return true;
+}
+
 ////////////////////////////// ----- DEBUG SECTION ----- ///////////////////////////////////////////////////////////////
 
 
@@ -8136,6 +8210,7 @@ static LSMethod appMgrMethodsPrivate[] = {
 		{ "_dbg_getAppEntryPoint",   servicecallback_dbg_getAppEntryPoint},
 		{ "forceSingleAppScan",		servicecallback_forceSingleAppScan},
 		{ "registerApplication", servicecallback_register_application },
+		{ "applicationHasBeenTerminated", servicecallback_applicationHasBeenTerminated },
 
 #ifdef AMS_TEST_MIME
 		{ "TESTMIME_interleaveAddRemove" , testcallback_mimeAddRemoveInterleave },
