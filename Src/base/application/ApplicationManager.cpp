@@ -3102,6 +3102,27 @@ QString ApplicationManager::dbgOutputLaunchpointUpdateReasons(const QBitArray& r
 	return QString("Reason Bits: ")+s;
 }
 
-void ApplicationManager::postApplicationHasBeenTerminated(const string &title, const string &menuname, const string &id)
+void ApplicationManager::postApplicationHasBeenTerminated(const std::string& title, const std::string& menuname, const std::string& id)
 {
+	bool retVal;
+	LSError lsError;
+	json_object* json = 0;
+
+	LSErrorInit(&lsError);
+
+	json = json_object_new_object();
+	if (!title.empty())
+		json_object_object_add(json, "title", json_object_new_string(title.c_str()));
+	if (!menuname.empty())
+		json_object_object_add(json, "appmenu", json_object_new_string(menuname.c_str()));
+
+	if (!id.empty())
+		json_object_object_add(json, "id", json_object_new_string(id.c_str()));
+
+	retVal = LSSubscriptionReply(m_serviceHandlePrivate, "/applicationHasBeenTerminated",
+						json_object_to_json_string(json), &lsError);
+	if (!retVal)
+		LSErrorFree (&lsError);
+
+	json_object_put(json);
 }
