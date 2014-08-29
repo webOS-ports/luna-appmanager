@@ -408,12 +408,15 @@ void WebAppMgrProxy::relaunch(const std::string &appId, const std::string &param
     LSError lserror;
     LSErrorInit(&lserror);
 
-    gchar *payload = g_strdup_printf("{\"appId\":\"%s\",\"params\":\"%s\"}",
-                                     appId.c_str(), params.c_str());
+    json_object *obj = json_object_new_object();
+    json_object_object_add(obj, "appId", json_object_new_string(appId.c_str()));
+    json_object_object_add(obj, "params", json_object_new_string(params.c_str()));
 
     if (!LSCallOneReply(mService, "luna://org.webosports.webappmanager/relaunch",
-                        payload, NULL, NULL, NULL, &lserror)) {
+                        json_object_to_json_string(obj), NULL, NULL, NULL, &lserror)) {
         g_warning("Failed to send relaunch signa to WebAppMgr: %s", lserror.message);
         LSErrorFree(&lserror);
     }
+
+    json_object_put(obj);
 }
