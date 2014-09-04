@@ -216,8 +216,14 @@ void BootStateNormal::activateSuspend(bool enable)
 	const int len = 64;
 	char buf[len];
 	struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC, &ts);
 	int numChars;
+
+	/* never enable suspend on emulator or desktop */
+	if (Settings::LunaSettings()->hardwareType == Settings::HardwareTypeEmulator ||
+	    Settings::LunaSettings()->hardwareType == Settings::HardwareTypeDesktop)
+	    return;
+
+	clock_gettime(CLOCK_MONOTONIC, &ts);
 
 	if (enable) {
 		fd = open("/tmp/suspend_active", O_RDWR | O_CREAT,
