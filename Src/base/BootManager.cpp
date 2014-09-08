@@ -142,9 +142,18 @@ void DisplayBlocker::release()
 
 void BootStateStartup::handleEvent(BootEvent event)
 {
+	if (event == BOOT_EVENT_COMPOSITOR_AVAILABLE)
+		advanceState();
 }
 
 void BootStateStartup::enter()
+{
+	// only when the compositor is already available we go to the next state
+	if (BootManager::instance()->compositorAvailable())
+		advanceState();
+}
+
+void BootStateStartup::advanceState()
 {
 	if (!QFile::exists("/var/luna/preferences/ran-first-use"))
 		BootManager::instance()->switchState(BOOT_STATE_FIRSTUSE);
@@ -154,8 +163,7 @@ void BootStateStartup::enter()
 
 void BootStateFirstUse::enter()
 {
-	if (BootManager::instance()->compositorAvailable())
-		ApplicationProcessManager::instance()->launch("org.webosports.app.firstuse", "");
+	ApplicationProcessManager::instance()->launch("org.webosports.app.firstuse", "");
 
 	m_displayBlocker.acquire("org.webosports.bootmgr");
 }
@@ -171,8 +179,6 @@ void BootStateFirstUse::handleEvent(BootEvent event)
 {
 	if (event == BOOT_EVENT_FIRST_USE_DONE)
 		createLocalAccount();
-	else if (event == BOOT_EVENT_COMPOSITOR_AVAILABLE)
-		ApplicationProcessManager::instance()->launch("org.webosports.app.firstuse", "");
 }
 
 void BootStateFirstUse::createLocalAccount()
@@ -203,11 +209,8 @@ bool BootStateFirstUse::cbCreateLocalAccount(LSHandle *handle, LSMessage *messag
 
 void BootStateNormal::enter()
 {
-	if (BootManager::instance()->compositorAvailable())
-	{
-		activateSuspend(true);
-		launchBootTimeApps();
-	}
+	activateSuspend(true);
+	launchBootTimeApps();
 }
 
 void BootStateNormal::activateSuspend(bool enable)
@@ -262,17 +265,9 @@ void BootStateNormal::leave()
 
 void BootStateNormal::handleEvent(BootEvent event)
 {
-	switch (event)
-	{
-	case BOOT_EVENT_COMPOSITOR_AVAILABLE:
-		activateSuspend(true);
-		launchBootTimeApps();
-		break;
-	case BOOT_EVENT_COMPOSITOR_NOT_AVAILABLE:
+	if (event == BOOT_EVENT_COMPOSITOR_NOT_AVAILABLE) {
 		activateSuspend(false);
-		break;
-	default:
-		break;
+		BootManager::instance()->switchState(BOOT_STATE_STARTUP);
 	}
 }
 

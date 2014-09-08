@@ -71,6 +71,9 @@ class BootStateStartup : public BootStateBase
 public:
     virtual void enter();
 	virtual void handleEvent(BootEvent event);
+
+private:
+	void advanceState();
 };
 
 class BootStateFirstUse : public BootStateBase
