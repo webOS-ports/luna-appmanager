@@ -75,12 +75,7 @@ include_directories(
 
 set(HEADERS
     Src/base/LsmUtils.h
-    Src/base/settings/AnimationSettings.h
-    Src/base/settings/DeviceInfo.h
-    Src/base/CpuAffinity.h
-    Src/base/CircularBuffer.h
     Src/base/MemoryMonitor.h
-    Src/base/SharedGlobalProperties.h
     Src/base/BootManager.h
     Src/base/application/ServiceDescription.h
     Src/base/application/ApplicationStatus.h
@@ -92,22 +87,14 @@ set(HEADERS
     Src/base/application/LaunchPoint.h
     Src/base/application/ApplicationDescription.h
     Src/base/application/ApplicationInstallerErrors.h
-    Src/base/application/LaunchPoint.cpp
-    Src/core/PtrArray.h
-    Src/core/AnimationEquations.h
     Src/core/GraphicsDefs.h
     Src/remote/ApplicationProcessManager.h
     Src/remote/WebAppMgrProxy.h)
 
 set(SOURCES
-    Src/base/settings/Settings.cpp
-    Src/base/settings/DeviceInfo.cpp
-    Src/base/settings/AnimationSettings.cpp
     Src/base/EventReporter.cpp
     Src/base/MemoryMonitor.cpp
     Src/base/LsmUtils.cpp
-    Src/base/JSONUtils.cpp
-    Src/base/Logging.cpp
     Src/base/BootManager.cpp
     Src/base/application/ApplicationDescription.cpp
     Src/base/application/MimeSystem.cpp
@@ -119,8 +106,6 @@ set(SOURCES
     Src/base/application/ApplicationStatus.cpp
     Src/base/application/LaunchPoint.cpp
     Src/base/application/ApplicationManagerService.cpp
-    Src/core/MallocHooks.cpp
-    Src/core/KeywordMap.cpp
     Src/remote/ApplicationProcessManager.cpp
     Src/remote/WebAppMgrProxy.cpp
     Src/Main.cpp)
