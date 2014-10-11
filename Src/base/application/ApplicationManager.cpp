@@ -1982,9 +1982,20 @@ void ApplicationManager::focusApplication(std::string appId)
 {
 	const char *params = g_strdup_printf("{\"appId\":\"%s\"}", appId.c_str());
 
-	LSCall(m_serviceHandlePrivate,
-		"palm://org.webosports.luna/focusApplication", params,
-		NULL, NULL, NULL, NULL);
+	LSError error;
+	LSErrorInit(&error);
+
+	g_debug("Giving focus to app %s", appId.c_str());
+
+	// This will let the compositor maximize the existing card for the app. For
+	// the case of an headless app this will do nothing so is safe to call.
+	if (!LSCallOneReply(m_serviceHandlePrivate,
+					"palm://org.webosports.luna/focusApplication", params,
+					NULL, NULL, NULL, &error))
+	{
+		g_warning("Failed to focus application %s: %s", appId.c_str(), error.message);
+		LSErrorFree(&error);
+	}
 
 	g_free(params);
 }
@@ -1999,7 +2010,8 @@ std::string ApplicationManager::launch(std::string appId, std::string params)
 	LSSubscriptionAcquire(m_serviceHandlePrivate, appId.c_str(), &iter, NULL);
 	if (iter && LSSubscriptionHasNext(iter))
 	{
-		g_message("Application %s is already running", appId.c_str());
+		g_message("Application %s is already running and registered through libwebos-application",
+				  appId.c_str());
 
 		focusApplication(appId);
 
@@ -2015,13 +2027,20 @@ std::string ApplicationManager::launch(std::string appId, std::string params)
 		return ApplicationProcessManager::instance()->getPid(appId);
 	}
 
-    // If the appication is registered with the process manager instead send it the
-    // relaunch signal this way
-    if (ApplicationProcessManager::instance()->isRunning(appId)) {
-        std::string processId = ApplicationProcessManager::instance()->getPid(appId);
-        ApplicationProcessManager::instance()->relaunch(appId, params);
-        return processId;
-    }
+	// If the appication is registered with the process manager instead send it the
+	// relaunch signal this way
+	if (ApplicationProcessManager::instance()->isRunning(appId))
+	{
+		g_message("Application %s is already running and registered with the process manager",
+				  appId.c_str());
+
+		focusApplication(appId);
+
+		std::string processId = ApplicationProcessManager::instance()->getPid(appId);
+		ApplicationProcessManager::instance()->relaunch(appId, params);
+
+		return processId;
+	}
 
 	// At this point we're not able to detect applications which are not launched
 	// through us and are not registered with the application manager. Normally those
