@@ -1,7 +1,6 @@
 Summary
 ========
-This is the LunaAppManager component responsible for application
-management within the system.
+Component responsible for application management in LuneOS.
 
 Description
 ===========
