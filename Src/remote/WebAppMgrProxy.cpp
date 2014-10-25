@@ -420,3 +420,50 @@ void WebAppMgrProxy::relaunch(const std::string &appId, const std::string &param
 
     json_object_put(obj);
 }
+
+void WebAppMgrProxy::clearMemoryCaches()
+{
+    LSError lserror;
+    LSErrorInit(&lserror);
+
+    if (!LSCallOneReply(mService, "luna://org.webosports.webappmanager/clearMemoryCaches",
+                        "", NULL, NULL, NULL, &lserror)) {
+        g_warning("Failed to clear memory caches: %s", lserror.message);
+        LSErrorFree(&lserror);
+    }
+}
+
+void WebAppMgrProxy::clearMemoryCaches(qint64 processId)
+{
+    LSError lserror;
+    LSErrorInit(&lserror);
+
+    json_object *obj = json_object_new_object();
+    json_object_object_add(obj, "processId", json_object_new_int(processId));
+
+    if (!LSCallOneReply(mService, "luna://org.webosports.webappmanager/clearMemoryCaches",
+                        json_object_to_json_string(obj), NULL, NULL, NULL, &lserror)) {
+        g_warning("Failed to clear memory caches for process %d: %s", processId, lserror.message);
+        LSErrorFree(&lserror);
+    }
+
+    json_object_put(obj);
+}
+
+void WebAppMgrProxy::clearMemoryCaches(const std::string &appId)
+{
+    LSError lserror;
+    LSErrorInit(&lserror);
+
+    json_object *obj = json_object_new_object();
+    json_object_object_add(obj, "appId", json_object_new_string(appId.c_str()));
+
+    if (!LSCallOneReply(mService, "luna://org.webosports.webappmanager/clearMemoryCaches",
+                        json_object_to_json_string(obj), NULL, NULL, NULL, &lserror)) {
+        g_warning("Failed to clear memory caches for app %s: %s", appId.c_str(), lserror.message);
+        LSErrorFree(&lserror);
+    }
+
+    json_object_put(obj);
+
+}

@@ -74,8 +74,8 @@
 #include <cjson/json.h>
 
 #include "MimeSystem.h"
-
 #include "Logging.h"
+#include "WebAppMgrProxy.h"
 
 #include <QProcess>
 
@@ -456,11 +456,7 @@ void ApplicationManager::scan()
 	}
 
 	//force caches to clear
-    // WebAppMgrProxy::instance()->clearWebkitCache();
-
-	//force a repaint
-
-    //WindowServer::instance()->update(0, 0,SystemUiController::instance()->currentUiWidth(),SystemUiController::instance()->currentUiHeight());
+	WebAppMgrProxy::instance()->clearMemoryCaches();
 }
 
 void ApplicationManager::postInstallScan(const std::string& appId) {
@@ -479,10 +475,7 @@ void ApplicationManager::postInstallScan(const std::string& appId) {
 	serviceInstallerInstallApp(appId, sServiceInstallerTypeApplication, Settings::LunaSettings()->appInstallBase);
 
 	//force caches to clear
-    //WebAppMgrProxy::instance()->clearWebkitCache();
-
-	//force a repaint
-    // WindowServer::instance()->update(0, 0, SystemUiController::instance()->currentUiWidth(),SystemUiController::instance()->currentUiHeight());
+	WebAppMgrProxy::instance()->clearMemoryCaches();
 }
 
 void ApplicationManager::postInstallScan(json_object * pPackageInfoJson, const std::string& packageFolder)
@@ -521,10 +514,7 @@ void ApplicationManager::postInstallScan(json_object * pPackageInfoJson, const s
 	createOrUpdatePackageManifest(packageDesc);
 
 	//force caches to clear
-    // WebAppMgrProxy::instance()->clearWebkitCache();
-
-	//force a repaint
-    // WindowServer::instance()->update(0, 0, SystemUiController::instance()->currentUiWidth(),SystemUiController::instance()->currentUiHeight());
+	WebAppMgrProxy::instance()->clearMemoryCaches();
 }
 
 ApplicationDescription* ApplicationManager::installSysApp(const std::string& appId)
