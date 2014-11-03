@@ -163,8 +163,7 @@ void BootStateStartup::advanceState()
 
 void BootStateFirstUse::enter()
 {
-	ApplicationProcessManager::instance()->launch("org.webosports.app.firstuse", "");
-
+	launchFirstUseApp();
 	m_displayBlocker.acquire("org.webosports.bootmgr");
 }
 
@@ -179,6 +178,13 @@ void BootStateFirstUse::handleEvent(BootEvent event)
 {
 	if (event == BOOT_EVENT_FIRST_USE_DONE)
 		createLocalAccount();
+	else if (event == BOOT_EVENT_COMPOSITOR_AVAILABLE)
+		launchFirstUseApp();
+}
+
+void BootStateFirstUse::launchFirstUseApp()
+{
+	ApplicationProcessManager::instance()->launch("org.webosports.app.firstuse", "");
 }
 
 void BootStateFirstUse::createLocalAccount()
@@ -253,8 +259,8 @@ void BootStateNormal::activateSuspend(bool enable)
 
 void BootStateNormal::launchBootTimeApps()
 {
-    ApplicationProcessManager::instance()->launch("com.palm.launcher", "");
-    ApplicationProcessManager::instance()->launch("com.palm.systemui", "");
+	ApplicationProcessManager::instance()->launch("com.palm.launcher", "");
+	ApplicationProcessManager::instance()->launch("com.palm.systemui", "");
 	ApplicationManager::instance()->launchBootTimeApps();
 }
 

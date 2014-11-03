@@ -87,6 +87,7 @@ private:
 	DisplayBlocker m_displayBlocker;
 
 private:
+	void launchFirstUseApp();
 	void createLocalAccount();
 
 	static bool cbCreateLocalAccount(LSHandle *handle, LSMessage *message, void *user_data);
