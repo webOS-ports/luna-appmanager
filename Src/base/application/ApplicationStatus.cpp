@@ -24,7 +24,7 @@
 #include "ApplicationStatus.h"
 
 #include <glib.h>
-#include <cjson/json.h>
+#include <json.h>
 
 ApplicationStatus::ApplicationStatus(json_object* item)
 	: id("")

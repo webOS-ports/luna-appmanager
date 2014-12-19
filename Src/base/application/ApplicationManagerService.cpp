@@ -32,14 +32,14 @@
 #include "Utils.h"
 #include "ApplicationProcessManager.h"
 
-#include <cjson/json_object.h>
+#include <json_object.h>
 #include "lunaservice.h"
 
 #include <QBitArray>
 #include <QList>
 #include <QUrl>
 
-#include <cjson/json.h>
+#include <json.h>
 #include <glib.h>
 #include <map>
 #include <stdlib.h>

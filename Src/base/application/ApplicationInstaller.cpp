@@ -47,8 +47,8 @@
 #include <sys/resource.h>
 #include <sys/mount.h>
 #include <unistd.h>
-#include "cjson/json.h"
-#include "cjson/json_util.h"
+#include <json.h>
+#include <json_util.h>
 #include <errno.h>
 
 #include <ftw.h>
@@ -2802,7 +2802,7 @@ Done:
 		json_object_object_add(root,"returnValue",json_object_new_boolean(true));
 		json_object_object_add(root,"result",json_object_new_int(queryCapacityResult));
 		std::string sizeStr = toSTLString<uint64_t>(spaceNeeded);
-		//returning as string to workaround cjson's inability to express unsigned int32
+		//returning as string to workaround json-c's inability to express unsigned int32
 		json_object_object_add(root,"spaceNeededInKB",json_object_new_string(sizeStr.c_str()));
 	}
 

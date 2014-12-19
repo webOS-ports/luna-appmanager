@@ -25,8 +25,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include <cjson/json.h>
-#include <cjson/json_util.h>
+#include <json.h>
+#include <json_util.h>
 #include <glib.h>
 #include "MimeSystem.h"
 #include "MutexLocker.h"

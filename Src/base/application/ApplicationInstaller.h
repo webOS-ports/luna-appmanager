@@ -29,8 +29,8 @@
 #include <map>
 #include <vector>
 #include <glib.h>
-#include <cjson/json.h>
-#include <cjson/json_util.h>
+#include <json.h>
+#include <json_util.h>
 
 #include <lunaservice.h>
 

@@ -20,7 +20,7 @@
 #include "Common.h"
 
 #include <string.h>
-#include <cjson/json.h>
+#include <json.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/prctl.h>

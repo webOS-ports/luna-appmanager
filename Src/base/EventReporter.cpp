@@ -22,7 +22,7 @@
 #include "Common.h"
 
 #include <glib.h>
-#include <cjson/json.h>
+#include <json.h>
 #include <sys/prctl.h>
 
 #include "EventReporter.h"

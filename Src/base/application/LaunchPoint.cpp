@@ -23,7 +23,7 @@
 
 #include <stdio.h>
 #include <glib.h>
-#include <cjson/json.h>
+#include <json.h>
 
 #include "ApplicationDescription.h"
 #include "PackageDescription.h"

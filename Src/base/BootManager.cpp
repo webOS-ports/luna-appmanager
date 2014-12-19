@@ -43,7 +43,7 @@
 #include "Utils.h"
 #include "ApplicationProcessManager.h"
 
-#include "cjson/json.h"
+#include <json.h>
 #include <pbnjson.hpp>
 #include "JSONUtils.h"
 

@@ -26,8 +26,8 @@
 #include <string>
 #include "CmdResourceHandlers.h"
 #include "MimeSystem.h"
-#include <cjson/json.h>
-#include <cjson/json_util.h>
+#include <json.h>
+#include <json_util.h>
 
 /**
  * Constructor.

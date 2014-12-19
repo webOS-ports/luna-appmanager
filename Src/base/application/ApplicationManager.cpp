@@ -71,7 +71,7 @@
 #endif
 #include <sys/time.h>
 
-#include <cjson/json.h>
+#include <json.h>
 
 #include "MimeSystem.h"
 #include "Logging.h"

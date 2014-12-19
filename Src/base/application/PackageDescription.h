@@ -25,7 +25,7 @@
 #include <string>
 #include <stdint.h>
 #include <vector>
-#include <cjson/json.h>
+#include <json.h>
 
 struct json_object;
 
