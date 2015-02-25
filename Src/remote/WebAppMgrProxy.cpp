@@ -126,6 +126,8 @@ void WebAppMgrProxy::onWebAppManagerConnected()
 
     mConnected = true;
 
+    Q_EMIT connectionStatusChanged();
+
     LSError err;
     LSErrorInit(&err);
 
@@ -150,6 +152,8 @@ void WebAppMgrProxy::onWebAppManagerDisconnected()
     mConnected = false;
 
     ApplicationProcessManager::instance()->removeAllWebApplications();
+
+    Q_EMIT connectionStatusChanged();
 }
 
 bool WebAppMgrProxy::listRunningAppsCb(LSHandle *handle, LSMessage *message, void *user_data)
@@ -255,6 +259,12 @@ void WebAppMgrProxy::killApp(qint64 processId)
     LSError err;
     LSErrorInit(&err);
 
+    if (!connected()) {
+        g_warning("WebAppManager is not connected so can't kill app with process id %d",
+                  processId);
+        return;
+    }
+
     char *payload = g_strdup_printf("{\"processId\":%llu}", processId);
 
     if (!LSCallOneReply(mService, "luna://org.webosports.webappmanager/killApp", payload,
@@ -273,6 +283,12 @@ void WebAppMgrProxy::launchUrl(const char* url, WindowType::Type winType,
 {
     LSError err;
     LSErrorInit(&err);
+
+    if (!connected()) {
+        g_warning("WebAppManager is not connected so can't launch url %s for app %s",
+                  url, appDesc->id().c_str());
+        return;
+    }
 
     std::string windowType = "card";
     switch (winType) {
@@ -325,6 +341,12 @@ std::string WebAppMgrProxy::launchApp(const std::string& appId,
     std::string appIdToLaunch = appId;
     std::string paramsToLaunch = params;
     errMsg.erase();
+
+    if (!connected()) {
+        g_warning("WebAppManager is not connected so can't launch app %s",
+                  appId.c_str());
+        return;
+    }
 
     ApplicationDescription* desc = ApplicationManager::instance()->getPendingAppById(appIdToLaunch);
     if (!desc)
@@ -408,6 +430,12 @@ void WebAppMgrProxy::relaunch(const std::string &appId, const std::string &param
     LSError lserror;
     LSErrorInit(&lserror);
 
+    if (!connected()) {
+        g_warning("WebAppManager is not connected so can't relaunch app %s",
+                  appId.c_str());
+        return;
+    }
+
     json_object *obj = json_object_new_object();
     json_object_object_add(obj, "appId", json_object_new_string(appId.c_str()));
     json_object_object_add(obj, "params", json_object_new_string(params.c_str()));
@@ -426,6 +454,11 @@ void WebAppMgrProxy::clearMemoryCaches()
     LSError lserror;
     LSErrorInit(&lserror);
 
+    if (!connected()) {
+        g_warning("WebAppManager is not connected so can't clear its memory caches");
+        return;
+    }
+
     if (!LSCallOneReply(mService, "luna://org.webosports.webappmanager/clearMemoryCaches",
                         "", NULL, NULL, NULL, &lserror)) {
         g_warning("Failed to clear memory caches: %s", lserror.message);
@@ -437,6 +470,12 @@ void WebAppMgrProxy::clearMemoryCaches(qint64 processId)
 {
     LSError lserror;
     LSErrorInit(&lserror);
+
+    if (!connected()) {
+        g_warning("WebAppManager is not connected so can't clear its memory caches for process id %d",
+                  processId);
+        return;
+    }
 
     json_object *obj = json_object_new_object();
     json_object_object_add(obj, "processId", json_object_new_int(processId));
@@ -454,6 +493,12 @@ void WebAppMgrProxy::clearMemoryCaches(const std::string &appId)
 {
     LSError lserror;
     LSErrorInit(&lserror);
+
+    if (!connected()) {
+        g_warning("WebAppManager is not connected so can't clear its memory caches for app %s",
+                  appId.c_str());
+        return;
+    }
 
     json_object *obj = json_object_new_object();
     json_object_object_add(obj, "appId", json_object_new_string(appId.c_str()));

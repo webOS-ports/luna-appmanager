@@ -69,6 +69,7 @@ public:
 
 
 Q_SIGNALS:
+    void connectionStatusChanged();
     void signalAppLaunchPreventedUnderLowMemory();
     void signalLowMemoryActionsRequested (bool allowExpensive);
 

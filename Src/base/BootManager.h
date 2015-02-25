@@ -38,6 +38,8 @@ enum BootEvent {
 	BOOT_EVENT_FIRST_USE_DONE,
 	BOOT_EVENT_COMPOSITOR_AVAILABLE,
 	BOOT_EVENT_COMPOSITOR_NOT_AVAILABLE,
+	BOOT_EVENT_WEBAPPMGR_AVAILABLE,
+	BOOT_EVENT_WEBAPPMGR_NOT_AVAILABLE
 };
 
 class DisplayBlocker
@@ -74,6 +76,7 @@ public:
 
 private:
 	void advanceState();
+	void tryAdvanceState();
 };
 
 class BootStateFirstUse : public BootStateBase
@@ -141,7 +144,8 @@ private:
 
 private Q_SLOTS:
 	void onFileChanged(const QString& path);
-    void onInitialize();
+	void onInitialize();
+	void onWebAppMgrConnectionStatusChanged();
 
 private:
     LSHandle* m_service;
