@@ -42,6 +42,7 @@
 #include "BootManager.h"
 #include "Utils.h"
 #include "ApplicationProcessManager.h"
+#include "WebAppMgrProxy.h"
 
 #include <json.h>
 #include <pbnjson.hpp>
@@ -142,15 +143,24 @@ void DisplayBlocker::release()
 
 void BootStateStartup::handleEvent(BootEvent event)
 {
-	if (event == BOOT_EVENT_COMPOSITOR_AVAILABLE)
-		advanceState();
+	if (event == BOOT_EVENT_COMPOSITOR_AVAILABLE || event == BOOT_EVENT_WEBAPPMGR_AVAILABLE)
+		tryAdvanceState();
 }
 
 void BootStateStartup::enter()
 {
-	// only when the compositor is already available we go to the next state
-	if (BootManager::instance()->compositorAvailable())
-		advanceState();
+	tryAdvanceState();
+}
+
+void BootStateStartup::tryAdvanceState()
+{
+	if (!BootManager::instance()->compositorAvailable())
+		return;
+
+	if (!WebAppMgrProxy::instance()->connected())
+		return;
+
+	advanceState();
 }
 
 void BootStateStartup::advanceState()
@@ -298,6 +308,9 @@ BootManager::BootManager() :
 
 	startService();
 
+	connect(WebAppMgrProxy::instance(), SIGNAL(connectionStatusChanged()),
+		this, SLOT(onWebAppMgrConnectionStatusChanged()));
+
 	m_fileWatch.addPath("/var/luna/preferences");
 	connect(&m_fileWatch, SIGNAL(directoryChanged(QString)), this, SLOT(onFileChanged(QString)));
 	connect(&m_fileWatch, SIGNAL(fileChanged(QString)), this, SLOT(onFileChanged(QString)));
@@ -400,6 +413,14 @@ void BootManager::onFileChanged(const QString& path)
 {
 	if (QFile::exists("/var/luna/preferences/ran-first-use"))
 		handleEvent(BOOT_EVENT_FIRST_USE_DONE);
+}
+
+void BootManager::onWebAppMgrConnectionStatusChanged()
+{
+	if (WebAppMgrProxy::instance()->connected())
+		handleEvent(BOOT_EVENT_WEBAPPMGR_AVAILABLE);
+	else
+		handleEvent(BOOT_EVENT_WEBAPPMGR_NOT_AVAILABLE);
 }
 
 BootState BootManager::currentState() const
