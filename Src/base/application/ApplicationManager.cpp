@@ -1555,7 +1555,7 @@ void ApplicationManager::scanApplicationsFolders(const std::string& appFoldersPa
 ApplicationDescription* ApplicationManager::scanOneApplicationFolder(const std::string& appFolderPath)
 {
 	// Do we have a locale setting
-	std::string locale = LocalePreferences::instance()->locale();
+	std::string locale = LocalePreferences::instance()->locale().toStdString();
 
 	// Look for the language/region specific appinfo.json
 
@@ -1651,7 +1651,7 @@ PackageDescription* ApplicationManager::scanOnePackageFolder(const std::string& 
 	PackageDescription* packageDesc = NULL;
 
 	// Do we have a locale setting
-	std::string locale = LocalePreferences::instance()->locale();
+	std::string locale = LocalePreferences::instance()->locale().toStdString();
 
 	// Look for the language/region specific appinfo.json
 
@@ -2819,7 +2819,7 @@ bool ApplicationManager::getAppEntryPointFromAppinfoFile(const std::string& base
 	 */
 
 	// Do we have a locale setting
-	std::string locale = LocalePreferences::instance()->locale();
+	std::string locale = LocalePreferences::instance()->locale().toStdString();
 
 	// Look for the language specific appinfo.json
 	std::string filePath = baseDirOfApp + "/resources/" + locale + "/appinfo.json";

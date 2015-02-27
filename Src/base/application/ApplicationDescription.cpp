@@ -1152,7 +1152,7 @@ void ApplicationDescription::updateSysmgrBuiltinWithLocalization()
 		return;			//not a valid app descriptor to call this fn on
 
 	// Do we have a locale setting
-    std::string locale = LocalePreferences::instance()->locale();
+	std::string locale = LocalePreferences::instance()->locale().toStdString();
 
 	// Look for the language/region specific appinfo.json
 
