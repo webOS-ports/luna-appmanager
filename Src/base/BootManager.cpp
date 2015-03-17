@@ -180,6 +180,7 @@ void BootStateFirstUse::enter()
 void BootStateFirstUse::leave()
 {
 	ApplicationProcessManager::instance()->killByAppId("org.webosports.app.firstuse");
+	ApplicationProcessManager::instance()->killByAppId("org.webosports.app.phone");
 
 	m_displayBlocker.release();
 }
@@ -195,6 +196,7 @@ void BootStateFirstUse::handleEvent(BootEvent event)
 void BootStateFirstUse::launchFirstUseApp()
 {
 	ApplicationProcessManager::instance()->launch("org.webosports.app.firstuse", "");
+	ApplicationProcessManager::instance()->launch("org.webosports.app.phone", "{\"mode\":\"first-use\"}");
 }
 
 void BootStateFirstUse::createLocalAccount()
