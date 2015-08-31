@@ -117,48 +117,26 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 	
 	appDesc = new ApplicationDescription();
 
+	if( !appDesc->fromJsonObject(root) ) {
+		// ID: mandatory
+		if( appDesc->id().length() == 0 )
+		{
+			g_warning("%s: App %s does not have an ID", __FUNCTION__, filePath.c_str() );
+		}
+		// TITLE: mandatory
+		if( appDesc->title().length() == 0 )
+		{
+			g_warning("%s: App %s does not have a title",__FUNCTION__, filePath.c_str() );
+		}
+		goto Done;
+	}
+
     appDesc->m_filePath = filePath;
 	appDesc->m_folderPath = folderPath;
 
-	// ID: mandatory
-	label = json_object_object_get(root, "id");
-	if( label && !is_error(label) )
-	{
-		appDesc->m_id = json_object_get_string(label);
-	}
-	else
-	{
-		g_warning("%s: App %s does not have an ID", __FUNCTION__, filePath.c_str() );
-		goto Done;
-	}
-	
-
 	// MAIN: optional
-	label = json_object_object_get(root, "main");
-	if( label && !is_error(label) )
-	{
-		appDesc->m_entryPoint = json_object_get_string(label);
-	}
-	else
-	{
-		appDesc->m_entryPoint = "index.html";
-	}
-	
 	if (!strstr(appDesc->m_entryPoint.c_str(), "://"))
 		appDesc->m_entryPoint = std::string("file://") + dirPath + appDesc->m_entryPoint;
-
-	
-	// TITLE: mandatory
-	label = json_object_object_get(root, "title");
-	if( label && !is_error(label) )
-	{
-		appDesc->m_title = json_object_get_string(label);
-	}
-	else
-	{
-		g_warning("%s: App %s does not have a title",__FUNCTION__, filePath.c_str() );
-		goto Done;
-	}
 
 	// SHORT NAME: optional
 	label = json_object_object_get(root,"appmenu");
@@ -215,13 +193,10 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 	}
 	
 	// ICON: we have a default if this is not present.
-	label = json_object_object_get(root, "icon");
-	if( label && !is_error(label) )
+	if( appDesc->icon().length() == 0 )
 	{
-		icon = dirPath + json_object_get_string(label);
-	}
-	else 
 		icon = dirPath + "icon.png";
+	}
 
 	// Optional parameters
 	success = true;
@@ -317,13 +292,6 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 	{
 		appDesc->m_runtimeMemoryRequired = (unsigned int) json_object_get_int(label);
 		//json_object_put( label );
-	}
-	
-	// HEADLESS: optional
-	label = json_object_object_get(root, "noWindow");
-	if( label && !is_error(label) )
-	{
-		appDesc->m_isHeadLess = (strcasecmp( json_object_get_string(label), "true") == 0);
 	}
 
 	//VISIBLE: optional* by default the launch icons are visible...set to false in the json and they won't show in the
@@ -465,14 +433,6 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
         appDesc->m_handlesRelaunch = json_object_get_boolean(label);
     }
 
-	// Requested Window Orientation: optional
-	label = json_object_object_get(root, "requestedWindowOrientation");
-	if( label && !is_error(label) && json_object_is_type(label, json_type_string))
-	{
-		appDesc->m_requestedWindowOrientation = json_object_get_string(label);
-	}
-
-
 	//check to see if it's a sysmgr-builtin
 	if (appDesc->m_type == Type_SysmgrBuiltin)
 	{
@@ -517,9 +477,9 @@ Done:
 
 	// Default launchpoint (with empty params)
 	LaunchPoint * defaultLp = new LaunchPoint(appDesc,
-			  appDesc->m_id,
-			  appDesc->m_id + "_default",
-			  appDesc->m_title, appDesc->m_appmenuName, icon, launchParams,appDesc->m_isRemovable);
+			  appDesc->id(),
+			  appDesc->id() + "_default",
+			  appDesc->title(), appDesc->m_appmenuName, icon, launchParams,appDesc->m_isRemovable);
 	defaultLp->setAsDefault();
 	appDesc->m_launchPoints.push_back(defaultLp);
 	
@@ -543,8 +503,8 @@ ApplicationDescription* ApplicationDescription::fromApplicationStatus(const Appl
 		appDesc->m_status = isUpdating ? Status_Updating : Status_Installing;
 
 	LaunchPoint* defaultLP = new LaunchPoint(appDesc,
-			appDesc->m_id,
-			appDesc->m_id + "_default",
+			appDesc->id(),
+			appDesc->id() + "_default",
 			appStatus.title,
 			appDesc->m_appmenuName,
 			appStatus.iconPath,
@@ -631,7 +591,7 @@ ApplicationDescription* ApplicationDescription::fromNativeDockApp(const std::str
 	appDesc->m_appmenuName = appmenu;
 	appDesc->m_dockModeTitle = appmenu;
 
-	appDesc->m_isHeadLess = false;
+	appDesc->m_headLess = false;
 	appDesc->m_hasTransparentWindows = false;
 	appDesc->m_isRemovable = false;
 	appDesc->m_isUserHideable = true;
@@ -739,19 +699,14 @@ json_object* ApplicationDescription::toJSON() const
 {
 	const LaunchPoint* defaultLP = m_launchPoints.front();
 
-	json_object* json = json_object_new_object();
-	json_object_object_add(json, (char*) "id",   json_object_new_string((char*) m_id.c_str()));
-	json_object_object_add(json, (char*) "main", json_object_new_string((char*) m_entryPoint.c_str()));
+	json_object* json = ApplicationDescriptionBase::getAppDescription();
 	json_object_object_add(json, (char*) "version", json_object_new_string(m_version.c_str()));
 	json_object_object_add(json, (char*) "category", json_object_new_string((char*) m_category.c_str()));
-	json_object_object_add(json, (char*) "title", json_object_new_string((char*) defaultLP->title().c_str()));
 	json_object_object_add(json, (char*) "appmenu",json_object_new_string((char*) defaultLP->menuName().c_str()));
 	json_object_object_add(json, (char*) "vendor", json_object_new_string((char*) m_vendorName.c_str()));
 	json_object_object_add(json, (char*) "vendorUrl", json_object_new_string((char*) m_vendorUrl.c_str()));
 	json_object_object_add(json, (char*) "size", json_object_new_int((int)m_appSize));
-	json_object_object_add(json, (char*) "noWindow", json_object_new_boolean((bool)m_isHeadLess));
 	
-	json_object_object_add(json, (char*) "icon", json_object_new_string((char*) defaultLP->iconPath().c_str()));
 	json_object_object_add(json, (char*) "removable",json_object_new_boolean(this->isRemovable()));	//use isRemovable() instead of m_isRemovable in case "removability" logic changes
 	json_object_object_add(json, (char*) "userInstalled",json_object_new_boolean(this->isRemovable() && !this->isUserHideable()));
 	json_object_object_add(json, (char*) "hasAccounts",json_object_new_boolean(this->hasAccounts()));
@@ -838,7 +793,7 @@ bool ApplicationDescription::strictCompare(const ApplicationDescription& cmp) co
 		return false;
 	if (m_vendorUrl != cmp.m_vendorUrl)
 		return false;	
-	if (m_isHeadLess != cmp.m_isHeadLess)
+	if (m_headLess != cmp.m_headLess)
 		return false;
 	if (m_hasTransparentWindows != cmp.m_hasTransparentWindows)
 		return false;
@@ -879,7 +834,7 @@ int ApplicationDescription::update(const ApplicationDescription& appDesc)
 	m_folderPath = appDesc.m_folderPath;
 	m_vendorName = appDesc.m_vendorName;
 	m_vendorUrl = appDesc.m_vendorUrl;
-	m_isHeadLess = appDesc.m_isHeadLess;
+	m_headLess = appDesc.m_headLess;
 	m_hasTransparentWindows = appDesc.m_hasTransparentWindows;
 	m_isVisible = appDesc.m_isVisible;
 	m_appSize = appDesc.m_appSize;
