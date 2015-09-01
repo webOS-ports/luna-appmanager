@@ -197,10 +197,11 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 	{
 		icon = dirPath + "icon.png";
 	}
-        else
-        {
-            icon = dirPath + appDesc->icon();
-        }
+	else
+	{
+		icon = dirPath + appDesc->icon();
+	}
+	appDesc->m_icon = icon; // replace the local icon path with an absolute file path
 
 	// Optional parameters
 	success = true;
