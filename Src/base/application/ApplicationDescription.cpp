@@ -131,7 +131,7 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 		goto Done;
 	}
 
-    appDesc->m_filePath = filePath;
+        appDesc->m_filePath = filePath;
 	appDesc->m_folderPath = folderPath;
 
 	// MAIN: optional
@@ -197,6 +197,10 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 	{
 		icon = dirPath + "icon.png";
 	}
+        else
+        {
+            icon = dirPath + appDesc->icon();
+        }
 
 	// Optional parameters
 	success = true;
