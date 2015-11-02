@@ -283,7 +283,7 @@ void BootStateNormal::leave()
 
 void BootStateNormal::handleEvent(BootEvent event)
 {
-	if (event == BOOT_EVENT_COMPOSITOR_NOT_AVAILABLE) {
+	if (event == BOOT_EVENT_COMPOSITOR_NOT_AVAILABLE || event == BOOT_EVENT_WEBAPPMGR_NOT_AVAILABLE) {
 		activateSuspend(false);
 		BootManager::instance()->switchState(BOOT_STATE_STARTUP);
 	}
