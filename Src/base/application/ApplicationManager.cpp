@@ -2437,14 +2437,14 @@ ApplicationDescription* ApplicationManager::checkAppAgainstWhiteList( Applicatio
 
 
 bool ApplicationManager::isTrustedInstallerApp (const std::string& app) const {
-	if (app == "com.palm.app.findapps" || app == "com.palm.app.firstuse"  || app == "com.palm.app.updates")
+	if (app == "com.palm.app.findapps" || app == "com.palm.app.firstuse"  || app == "com.palm.app.updates" || app == "org.webosports.app.settings" || app == "org.webosports.app.filemanager" || app == "org.webosports.app.firstuse")
 		return true;
 
 	return false;
 }
 
 bool ApplicationManager::isTrustedPalmApp(const ApplicationDescription* appDesc) const {
-	return (appDesc->id().find("com.palm.") == 0 && ((appDesc->vendorName().find("Palm") == 0) || (appDesc->vendorName().find("HP") == 0))) ? true : false;
+	return ((appDesc->id().find("com.palm.") == 0 && ((appDesc->vendorName().find("Palm") == 0) || (appDesc->vendorName().find("HP") == 0))) || (appDesc->id().find("org.webosports.") == 0))? true : false;
 }
 
 bool ApplicationManager::isTrustedPalmApp(const std::string& appId)
