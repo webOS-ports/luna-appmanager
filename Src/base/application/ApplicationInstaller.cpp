@@ -191,7 +191,9 @@ ApplicationInstaller::~ApplicationInstaller()
 bool ApplicationInstaller::init()
 {
 	// DEBUG ... LOAD FAKEFS SIZES
+	/*We have no idea how this file should look like, it's not available on legacy either. Disabling this call since it spams the log.
 	dbg_restoreFakeFsEntriesAtStartup();
+	*/
 	
 	// Do not bring up com.palm.appInstaller in minimal mode.
 	if (Settings::LunaSettings()->uiType == Settings::UI_MINIMAL)
