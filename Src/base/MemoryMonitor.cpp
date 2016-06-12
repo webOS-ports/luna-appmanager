@@ -89,6 +89,7 @@ bool MemoryMonitor::timerTicked()
 {
 	if (!memRestrict.empty())
 		checkMonitoredProcesses();
+	return true;
 }
 
 int MemoryMonitor::getProcessMemInfo(pid_t pid)

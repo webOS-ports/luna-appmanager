@@ -345,7 +345,7 @@ std::string WebAppMgrProxy::launchApp(const std::string& appId,
     if (!connected()) {
         g_warning("WebAppManager is not connected so can't launch app %s",
                   appId.c_str());
-        return;
+        return "";
     }
 
     ApplicationDescription* desc = ApplicationManager::instance()->getPendingAppById(appIdToLaunch);

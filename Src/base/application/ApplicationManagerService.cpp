@@ -466,7 +466,7 @@ static bool servicecallback_getresourceinfo( LSHandle* lshandle, LSMessage *mess
 	struct json_object* root=0;
 	struct json_object* uri=0;
 	struct json_object* mime=0;
-	char * pUri_cstr=NULL;
+	const char * pUri_cstr=NULL;
 	std::string uriStr;
 	std::string mimeStr;
 	bool success=false;
@@ -509,7 +509,7 @@ static bool servicecallback_getresourceinfo( LSHandle* lshandle, LSMessage *mess
 
 	mime=json_object_object_get(root,"mime");
 	if (mime) {
-		char* pMime_cstr = json_object_get_string(mime);
+		const char* pMime_cstr = json_object_get_string(mime);
 		if (pMime_cstr) {
 			mimeStr = std::string(pMime_cstr);
 		}
@@ -3184,7 +3184,7 @@ static bool servicecallback_addLaunchPoint(LSHandle* lshandle, LSMessage *messag
 	gchar* dirPath = 0;
 	bool removable = true;
 	bool success = false;
-	char* paramsStr = 0;
+	const char* paramsStr = 0;
 
     // {"id": string, "title": string, OPTIONAL: "appMenu": string, "icon": string, "params": string, "removable": boolean}
 

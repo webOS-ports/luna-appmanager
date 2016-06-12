@@ -340,6 +340,7 @@ static bool cbCompositorAvailable(LSHandle *handle, const char *serviceName, boo
 
 	BootManager::instance()->handleEvent(connected ? BOOT_EVENT_COMPOSITOR_AVAILABLE :
 					BOOT_EVENT_COMPOSITOR_NOT_AVAILABLE);
+	return true;
 }
 
 void BootManager::startService()

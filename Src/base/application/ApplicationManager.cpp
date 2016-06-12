@@ -1970,7 +1970,7 @@ bool ApplicationManager::isLaunchAtBootApp(const std::string& appId)
 
 void ApplicationManager::focusApplication(std::string appId)
 {
-	const char *params = g_strdup_printf("{\"appId\":\"%s\"}", appId.c_str());
+	char *params = g_strdup_printf("{\"appId\":\"%s\"}", appId.c_str());
 
 	LSError error;
 	LSErrorInit(&error);
