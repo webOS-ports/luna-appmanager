@@ -1275,6 +1275,10 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 			success = true;
 			json_object_object_add(json, "processId", json_object_new_string(processId.c_str()));
 		}
+		else {
+			errMsg = "\"" + url + "\" was not found";
+		}
+		
 		goto done;
 	}
 
@@ -1601,6 +1605,9 @@ static bool servicecallback_launch( LSHandle* lshandle, LSMessage *message,
 
     processId = ApplicationManager::instance()->launch(id, params);
 	success = !processId.empty();
+	if(processId.empty()){
+		errMsg = "\"" + id + "\" was not found";
+	}
 
 	Done:
 
