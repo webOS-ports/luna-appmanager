@@ -186,7 +186,10 @@ void ApplicationManager::runAppInstallScripts()
 	int ret;
 
 	cmd = "mountcfs";
-	ret = ::system(cmd.c_str());
+	
+	//FIXME: We currently don't have a real cryptofs, but the mount does exist. We therefore want to execute app-install, we therefore set ret to 0 untill we have a proper cryptofs setup. 
+	ret = 0;
+	//ret = ::system(cmd.c_str());
 
 	if (ret == 0) {
 		g_warning("Running app install script");
