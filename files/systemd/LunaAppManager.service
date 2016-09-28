@@ -1,0 +1,13 @@
+[Unit]
+Description=Luna Application Manager
+After=LunaSysMgr.service
+Requires=LunaSysMgr.service
+
+[Service]
+Type=simple
+Restart=on-failure
+ExecStart=/usr/sbin/LunaAppManager
+OOMScoreAdjust=-1000
+
+[Install]
+WantedBy=multi-user.target
