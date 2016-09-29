@@ -1,7 +1,7 @@
 [Unit]
 Description=Luna Application Manager
-After=LunaSysMgr.service
-Requires=LunaSysMgr.service
+After=luna-sysmgr.service
+Requires=luna-sysmgr.service
 
 [Service]
 Type=simple
