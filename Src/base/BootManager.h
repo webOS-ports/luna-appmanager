@@ -1,6 +1,7 @@
 /* @@@LICENSE
 *
 * Copyright (c) 2013 Simon Busch
+* Copyright (c) 2016 Herman van Hazendonk <github.com@herrie.org>
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -36,6 +37,7 @@ enum BootState {
 
 enum BootEvent {
 	BOOT_EVENT_FIRST_USE_DONE,
+	BOOT_EVENT_PROFILE_CREATED,
 	BOOT_EVENT_COMPOSITOR_AVAILABLE,
 	BOOT_EVENT_COMPOSITOR_NOT_AVAILABLE,
 	BOOT_EVENT_WEBAPPMGR_AVAILABLE,
@@ -92,8 +94,10 @@ private:
 private:
 	void launchFirstUseApp();
 	void createLocalAccount();
+	void runConfigurator();
 
 	static bool cbCreateLocalAccount(LSHandle *handle, LSMessage *message, void *user_data);
+	static bool cbRunConfigurator(LSHandle *handle, LSMessage *message, void *user_data);
 };
 
 class BootStateNormal : public BootStateBase

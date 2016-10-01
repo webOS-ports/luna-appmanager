@@ -1,6 +1,7 @@
 /* @@@LICENSE
 *
 * Copyright (c) 2013 Simon Busch
+* Copyright (c) 2016 Herman van Hazendonk <github.com@herrie.org>
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -165,7 +166,7 @@ void BootStateStartup::tryAdvanceState()
 
 void BootStateStartup::advanceState()
 {
-	if (!QFile::exists("/var/luna/preferences/ran-first-use"))
+	if (!QFile::exists("/var/luna/preferences/ran-first-use") || (QFile::exists("/var/luna/preferences/ran-first-use") && !QFile::exists("/var/luna/preferences/first-use-profile-created")))
 		BootManager::instance()->switchState(BOOT_STATE_FIRSTUSE);
 	else
 		BootManager::instance()->switchState(BOOT_STATE_NORMAL);
@@ -189,6 +190,8 @@ void BootStateFirstUse::handleEvent(BootEvent event)
 {
 	if (event == BOOT_EVENT_FIRST_USE_DONE)
 		createLocalAccount();
+	else if (event == BOOT_EVENT_PROFILE_CREATED)
+		runConfigurator();
 	else if (event == BOOT_EVENT_COMPOSITOR_AVAILABLE)
 		launchFirstUseApp();
 }
@@ -211,17 +214,35 @@ void BootStateFirstUse::createLocalAccount()
 			g_warning("Failed to create local account after first use is done: %s", error.message);
 		}
 	}
+}
+
+bool BootStateFirstUse::cbCreateLocalAccount(LSHandle *handle, LSMessage *message, void *user_data)
+{
+	return true;
+}
+
+void BootStateFirstUse::runConfigurator()
+{
+	LSError error;
+	LSErrorInit(&error);
+
+	QFile localProfileMarker("/var/luna/preferences/first-use-profile-created");
+	if (localProfileMarker.exists()) {
+		if (!LSCall(BootManager::instance()->service(), "luna://com.palm.configurator/run",
+					"{\"types\":[\"activities\"]}", cbRunConfigurator, NULL, NULL, &error)) {
+			g_warning("Failed to run configurator after first use is done and profile is created: %s", error.message);
+		}
+	}
 	else {
 		BootManager::instance()->switchState(BOOT_STATE_NORMAL);
 	}
 }
 
-bool BootStateFirstUse::cbCreateLocalAccount(LSHandle *handle, LSMessage *message, void *user_data)
+bool BootStateFirstUse::cbRunConfigurator(LSHandle *handle, LSMessage *message, void *user_data)
 {
 	// regardless wether the local account creation was successfull or not we switch into
 	// normal state
 	BootManager::instance()->switchState(BOOT_STATE_NORMAL);
-
 	return true;
 }
 
@@ -414,8 +435,10 @@ void BootManager::handleEvent(BootEvent event)
 
 void BootManager::onFileChanged(const QString& path)
 {
-	if (QFile::exists("/var/luna/preferences/ran-first-use"))
+	if (QFile::exists("/var/luna/preferences/ran-first-use") && !QFile::exists("/var/luna/preferences/first-use-profile-created"))
 		handleEvent(BOOT_EVENT_FIRST_USE_DONE);
+	else if (QFile::exists("/var/luna/preferences/ran-first-use") && QFile::exists("/var/luna/preferences/first-use-profile-created"))
+		handleEvent(BOOT_EVENT_PROFILE_CREATED);
 }
 
 void BootManager::onWebAppMgrConnectionStatusChanged()
