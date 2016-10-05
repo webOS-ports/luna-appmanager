@@ -460,7 +460,7 @@ void WebAppMgrProxy::clearMemoryCaches()
     }
 
     if (!LSCallOneReply(mService, "luna://org.webosports.webappmanager/clearMemoryCaches",
-                        "", NULL, NULL, NULL, &lserror)) {
+                        "{}", NULL, NULL, NULL, &lserror)) {
         g_warning("Failed to clear memory caches: %s", lserror.message);
         LSErrorFree(&lserror);
     }
