@@ -1894,7 +1894,7 @@ bool ApplicationInstaller::cbInstall(LSHandle* lshandle, LSMessage *msg,void *us
 	
 	const char * target_ccptr = NULL;
 	
-	if (is_error(root)) {
+	if (!root) {
 		root = NULL;
 		success = false;
 		goto Done;
@@ -2095,7 +2095,7 @@ bool ApplicationInstaller::cbInstallNoVerify(LSHandle* lshandle, LSMessage *msg,
 	unsigned long ticket_id=ApplicationManager::generateNewTicket();
 	LSErrorInit(&lserror);
 		
-	if (is_error(root)) {
+	if (!root) {
 		root = NULL;
 		success = false;
 		goto Done;
@@ -2293,7 +2293,7 @@ bool ApplicationInstaller::cbRemove(LSHandle* lshandle, LSMessage *msg,void *use
 
 	const char * packageName_ccptr = NULL;
 
-	if (is_error(root)) {
+	if (!root) {
 		root = NULL;
 		success = false;
 		goto Done;
@@ -2500,7 +2500,7 @@ bool ApplicationInstaller::cbNotifyOnChange(LSHandle* lshandle, LSMessage *msg,v
 
 	const char * appid_ccptr = NULL;
 
-	if (is_error(root)) {
+	if (!root) {
 		root = NULL;
 		luna_warn(s_logChannel, "Failed to find param appId in message...defaulting to all appIds");
 		appid_ccptr = "*";

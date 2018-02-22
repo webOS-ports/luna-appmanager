@@ -1232,11 +1232,11 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 	activityMgrParam = json_object_object_get(root,"$activity");
 	trueFileNameParam = json_object_object_get(root,"fileName");
 
-	if (is_error(trueFileNameParam))
+	if (!trueFileNameParam)
 		trueFileNameParam = 0;
-	if (is_error(activityMgrParam))
+	if (!activityMgrParam)
 		activityMgrParam  = 0;
-	if (is_error(paramblock))
+	if (!paramblock)
 		paramblock = 0;
 
 	if (paramblock) {
@@ -1568,9 +1568,9 @@ static bool servicecallback_launch( LSHandle* lshandle, LSMessage *message,
 	label = json_object_object_get(root,"params");
 	activityMgrParam = json_object_object_get(root,"$activity");
 
-	if (is_error(activityMgrParam))
+	if (!activityMgrParam)
 		activityMgrParam  = 0;
-	if (is_error(label))
+	if (!label)
 		label = 0;
 
 	if (label) {
@@ -2872,7 +2872,7 @@ static bool servicecallback_addDockModeLaunchPoint(LSHandle* lsHandle, LSMessage
 		return false;
 
 	root = json_tokener_parse(str);
-	if (is_error(root)) {
+	if (!root) {
 		g_warning("%s: malformed json\n", __PRETTY_FUNCTION__);
 		return true;
 	}
@@ -2960,7 +2960,7 @@ static bool servicecallback_removeDockModeLaunchPoint(LSHandle* lsHandle, LSMess
 		return false;
 
 	root = json_tokener_parse(str);
-	if (is_error(root)) {
+	if (!root) {
 		g_warning("%s: malformed json\n", __PRETTY_FUNCTION__);
 		return true;
 	}
@@ -3094,7 +3094,7 @@ static bool servicecallback_inspect( LSHandle* lshandle, LSMessage* message, voi
 		return false;
 
 	root = json_tokener_parse(str);
-	if( is_error(root) )
+	if( !root )
 	{
 		g_message("servicecallback_inspect: malformed json\n");
 		return true;
