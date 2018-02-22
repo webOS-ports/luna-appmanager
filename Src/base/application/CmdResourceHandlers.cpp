@@ -132,7 +132,7 @@ bool RedirectHandler::reValid() const
 bool RedirectHandler::addVerb(const std::string& verb,const std::string& jsonizedParams)
 {
 	struct json_object * jobj = json_tokener_parse(jsonizedParams.c_str());
-	if ((!jobj) || (is_error(jobj)))
+	if (!jobj)
 		return false;
 	
 	m_verbs[verb] = jsonizedParams;
@@ -237,7 +237,7 @@ ResourceHandler& ResourceHandler::operator=(const ResourceHandler& c)
 bool ResourceHandler::addVerb(const std::string& verb,const std::string& jsonizedParams)
 {
 	struct json_object * jobj = json_tokener_parse(jsonizedParams.c_str());
-	if ((!jobj) || (is_error(jobj)))
+	if (!jobj)
 		return false;
 	
 	m_verbs[verb] = jsonizedParams;

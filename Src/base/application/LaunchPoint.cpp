@@ -70,7 +70,7 @@ bool LaunchPoint::toFile() const
 	// persist a launch points appinfo
 	json_object* json = toJSON();
 	int res = json_object_to_file((char*)filePath.c_str(), json);
-	if (json && !is_error(json))
+	if (json)
 		json_object_put(json);
 	return res != -1;
 }
@@ -87,29 +87,29 @@ LaunchPoint* LaunchPoint::fromJSON(ApplicationDescription* appDesc,
 	bool success = false;
 
 	root = json_tokener_parse(jsonStr);
-	if (!root || is_error(root)) {
+	if (!root) {
 		fprintf(stderr, "Failed to parse '%s' into a JSON string.\n", launchPointId.c_str());
 		goto Done;
 	}
 
 	label = json_object_object_get(root, "title");
-	if (!label || is_error(label))
+	if (!label)
 		goto Done;
 	title = json_object_get_string(label);
 
 	label = json_object_object_get(root, "appmenu");
-	if (label && (!is_error(label)))
+	if (label)
 		menuName = json_object_get_string(label);
 	else
 		menuName = title;
 
 	label = json_object_object_get(root, "icon");
-	if (!label || is_error(label))
+	if (!label)
 		goto Done;
 	icon = json_object_get_string(label);
 
 	label = json_object_object_get(root, "params");
-	if (!label || is_error(label))
+	if (!label)
 		goto Done;
     if (appDesc && appDesc->type() == ApplicationDescription::Type_Qt)
         params = json_object_get_string(label);
@@ -117,19 +117,19 @@ LaunchPoint* LaunchPoint::fromJSON(ApplicationDescription* appDesc,
     	params = json_object_to_json_string(label);
 
 	label = json_object_object_get(root, "id");
-	if (!label || is_error(label))
+	if (!label)
 		goto Done;
 	id = json_object_get_string(label);
 
 	label = json_object_object_get(root, "removable");
-	if (label && (!is_error(label)))
+	if (label)
 		removable = json_object_get_boolean(label);
 
 	success = true;
 
 Done:
 
-	if (root && !is_error(root))
+	if (root)
 		json_object_put(root);
 
 	if (success)

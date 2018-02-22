@@ -53,7 +53,7 @@ PackageDescription* PackageDescription::fromFile(const std::string& filePath, co
 	}
 
 	struct json_object* root = json_tokener_parse(jsonStr);
-	if (!root || is_error( root )) {
+	if (!root) {
 		g_warning("Failed to parse '%s' into a JSON string", filePath.c_str());
 		goto Done;
 	}
@@ -62,7 +62,7 @@ PackageDescription* PackageDescription::fromFile(const std::string& filePath, co
 
 Done:
 
-	if (root && !is_error(root))
+	if (root)
 		json_object_put(root);
 
 	delete[] jsonStr;
@@ -105,7 +105,7 @@ PackageDescription* PackageDescription::fromJson(json_object* root, const std::s
 		if (label) {
 			for (int i = 0; i < json_object_array_length(label); i++) {
 				struct json_object* app = json_object_array_get_idx(label, i);
-				if (app && !is_error(app)) {
+				if (app) {
 					packageDesc->m_appIds.push_back(std::string(json_object_get_string(app)));
 				}
 			}
@@ -117,7 +117,7 @@ PackageDescription* PackageDescription::fromJson(json_object* root, const std::s
 	if (label) {
 		for (int i = 0; i < json_object_array_length(label); i++) {
 			struct json_object* service = json_object_array_get_idx(label, i);
-			if (service && !is_error(service)) {
+			if (service) {
 				packageDesc->m_serviceIds.push_back(std::string(json_object_get_string(service)));
 			}
 		}
@@ -142,7 +142,7 @@ PackageDescription* PackageDescription::fromJson(json_object* root, const std::s
 	if (label) {
 		for (int i = 0; i < json_object_array_length(label); i++) {
 			struct json_object* accountId = json_object_array_get_idx(label, i);
-			if (accountId && !is_error(accountId)) {
+			if (accountId) {
 				packageDesc->m_accountIds.push_back(std::string(json_object_get_string(accountId)));
 			}
 		}
@@ -194,7 +194,7 @@ json_object* PackageDescription::toJSON() const
 
 	} else {
 		json = json_tokener_parse(m_jsonString.c_str());
-		if (!json || is_error(json)) {
+		if (!json) {
 			g_warning("%s: Failed to parse '%s' into a JSON string", __PRETTY_FUNCTION__, m_jsonString.c_str());
 			return NULL;
 		}

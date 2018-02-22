@@ -109,7 +109,7 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 	g_free(dirPathCStr);
 	
 	root = json_tokener_parse( jsonStr );
-	if( !root || is_error( root ) )
+	if( !root )
 	{
 		g_warning("%s: Failed to parse '%s' into a JSON string", __FUNCTION__, filePath.c_str() );
 		goto Done;
@@ -140,7 +140,7 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 
 	// SHORT NAME: optional
 	label = json_object_object_get(root,"appmenu");
-	if ( label && !is_error(label))
+	if ( label)
 	{
 		appDesc->m_appmenuName = json_object_get_string(label);
 	}
@@ -149,13 +149,13 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 	
 	// KEYWORDS: optional
 	label = json_object_object_get(root,"keywords");
-	if ( label && !is_error(label)) {
+	if ( label) {
 		appDesc->m_keywords.addKeywords(label);
 	}
 	
 	//MIME HANDLING REGISTRATIONS: optional
 	label = json_object_object_get(root,"mimeTypes");
-	if ( label && !is_error(label)) {
+	if ( label) {
 		if (utilExtractMimeTypes(label,extractedMimeTypes)) {
 			//found some!
 			for (std::vector<MimeRegInfo>::iterator it = extractedMimeTypes.begin();
@@ -208,7 +208,7 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 
 	// Type: optional (defaults to Type_Web)
 	label = json_object_object_get(root, "type");
-	if (label && !is_error(label) && json_object_is_type(label, json_type_string)) {
+	if (label && json_object_is_type(label, json_type_string)) {
 		if (strncmp(json_object_get_string(label), "game", 4) == 0)
 			appDesc->m_type = Type_Native;
 		else if (strncmp(json_object_get_string(label), "pdk", 3) == 0)
@@ -225,24 +225,24 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 
 	// SPLASH ICON: optional (Used for loading/splash screen for cards)
 	label = json_object_object_get(root, "splashicon");
-	if (label && !is_error(label)) {
+	if (label) {
 		appDesc->m_splashIconName = dirPath + json_object_get_string(label);
 	}
 	// SPLASH BACKGROUND: optional (Used for loading/splash screen for cards)
 	label = json_object_object_get(root, "splashBackground");
-	if (label && !is_error(label) && json_object_is_type(label, json_type_string)) {
+	if (label && json_object_is_type(label, json_type_string)) {
 		appDesc->m_splashBackgroundName = dirPath + json_object_get_string(label);
 	}
 	else {
 		label = json_object_object_get(root, "splashbackground");
-		if (label && !is_error(label) && json_object_is_type(label, json_type_string)) {
+		if (label && json_object_is_type(label, json_type_string)) {
 			appDesc->m_splashBackgroundName = dirPath + json_object_get_string(label);
 		}
 	}
 
 	// MINI ICON: optional (Used for notification banner area)
 	label = json_object_object_get(root, "miniicon");
-	if( label && !is_error(label) )
+	if( label )
 	{
 		appDesc->m_miniIconName = json_object_get_string(label);
 	}
@@ -253,7 +253,7 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 
 	// LAUNCH IN NEW GROUP: optional (Used to prevent app from launching in current card stack)
 	label = json_object_object_get(root, "launchinnewgroup");
-	if( label && !is_error(label) )
+	if( label )
 	{
 		appDesc->m_launchInNewGroup = json_object_get_boolean(label);
 	}
@@ -262,14 +262,14 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 
 	// CATEGORY: optional
 	label = json_object_object_get(root, "category");
-	if( label && !is_error(label) )
+	if( label )
 	{
 		appDesc->m_category = json_object_get_string(label);
 	}
 
 	// VENDOR: optional
 	label = json_object_object_get(root, "vendor");
-	if( label && !is_error(label) )
+	if( label )
 	{
 		appDesc->m_vendorName = json_object_get_string(label);
 	}
@@ -279,21 +279,21 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 	
 	// VENDOR URL: optional
 	label = json_object_object_get(root, "vendorurl");
-	if( label && !is_error(label) )
+	if( label )
 	{
 		appDesc->m_vendorUrl = json_object_get_string(label);
 	}
 
 	// SIZE: optional
 	label = json_object_object_get(root, "appsize");
-	if( label && !is_error(label) )
+	if( label )
 	{
 		appDesc->m_appSize = (unsigned int) json_object_get_int(label);
 	}
 	
 	// RUNTIME MEMORY REQUIRED: optional
 	label = json_object_object_get(root, "requiredMemory");
-	if( label && !is_error(label) )
+	if( label )
 	{
 		appDesc->m_runtimeMemoryRequired = (unsigned int) json_object_get_int(label);
 		//json_object_put( label );
@@ -302,7 +302,7 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 	//VISIBLE: optional* by default the launch icons are visible...set to false in the json and they won't show in the
 	//launcher screen
 	label = json_object_object_get(root, "visible");
-	if( label && !is_error(label) )
+	if( label )
 	{
 		if (json_object_is_type(label,json_type_string))
 			appDesc->m_isVisible = (strcasecmp( json_object_get_string(label), "true") == 0);
@@ -312,26 +312,26 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 
 	// TRANSPARENT: optional
 	label = json_object_object_get(root, "transparent");
-	if( label && !is_error(label) )
+	if( label )
 	{
 		appDesc->m_hasTransparentWindows = (strcasecmp( json_object_get_string(label), "true") == 0);
 	}
 
 	// VERSION: optional?
 	label = json_object_object_get(root, "version");
-	if (label && !is_error(label)) {
+	if (label) {
 		appDesc->m_version = json_object_get_string(label);
 	}
 	
 	// additional attributes, like http proxy
     label = json_object_object_get(root, "attributes");
-    if (label && !is_error(label)) {
+    if (label) {
         appDesc->m_attributes = json_object_get_string(label);
     }
 
 	// REMOVABLE: optional
 	label = json_object_object_get(root, "removable");
-	if (label && !is_error(label) && json_object_is_type(label, json_type_boolean)) {
+	if (label && json_object_is_type(label, json_type_boolean)) {
 		// Any appinfo.json can set removable to true. But if you want to set removable to false you better be a trusted palm application
         // NOTE: we should always be able to trust the removable flag set in the appinfo
 		appDesc->m_isRemovable = json_object_get_boolean(label);
@@ -345,10 +345,10 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 
 	// DOCK ENABLED: optional (defines if this app can provide a Dock mode stage)
 	label = json_object_object_get(root, "exhibitionMode");
-	if (!label || is_error (label)) // maintaining backward compatibility
+	if (!label) // maintaining backward compatibility
 		label = json_object_object_get(root, "dockMode");
 
-	if (label && !is_error(label) && json_object_is_type(label, json_type_boolean))
+	if (label && json_object_is_type(label, json_type_boolean))
 	{
 		appDesc->m_dockMode = json_object_get_boolean(label);
 		if(appDesc->m_dockMode) {
@@ -357,12 +357,12 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 						
 			// DOCK Mode options: (optional)
 			dockOptions = json_object_object_get(root, "exhibitionModeOptions");
-			if (!dockOptions || is_error (dockOptions)) // maintaining backward compatibility
+			if (!dockOptions) // maintaining backward compatibility
 				dockOptions = json_object_object_get(root, "dockModeOptions");
 
-			if (dockOptions && !is_error(dockOptions)) {
+			if (dockOptions) {
 				dockLabel = json_object_object_get(dockOptions, "title");
-				if (dockLabel && !is_error(dockLabel) && json_object_is_type(dockLabel, json_type_string)) {
+				if (dockLabel && json_object_is_type(dockLabel, json_type_string)) {
 					appDesc->m_dockModeTitle = json_object_get_string(dockLabel);
 				}
 				else {
@@ -377,12 +377,12 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 
 	// Hardware features needed: optional
 	label = json_object_object_get(root, "hardwareFeaturesNeeded");
-	if (label && !is_error(label) && json_object_is_type(label, json_type_array)) {
+	if (label && json_object_is_type(label, json_type_array)) {
 
 		for (int i = 0; i < json_object_array_length(label); i++) {
 
 			struct json_object* entry = json_object_array_get_idx(label, i);
-			if (!entry  || is_error(entry))
+			if (!entry)
 				continue;
 
 			if (!json_object_is_type(entry, json_type_string))
@@ -403,23 +403,23 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 	
 	//Universal Search JSON objct: optional
 	label = json_object_object_get(root, "universalSearch");
-	if(label && !is_error(label)) {
+	if(label) {
 		appDesc->m_universalSearchJsonStr = json_object_to_json_string(label);
 	}
 
 	// Services JSON array: optional
 	label = json_object_object_get(root, "services");
-	if (label && !is_error(label))
+	if (label)
 		appDesc->m_servicesJsonStr = json_object_to_json_string(label);
 
 	// Accounts JSON array: optional
 	label = json_object_object_get(root, "accounts");
-	if (label && !is_error(label))
+	if (label)
 		appDesc->m_accountsJsonStr = json_object_to_json_string(label);
 
 	// Launch params: optional
 	label = json_object_object_get(root, "params");
-	if (label && !is_error(label)) {
+	if (label) {
 		if (appDesc->m_type == Type_Qt)
             launchParams = json_object_get_string(label);
         else
@@ -428,13 +428,13 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 
 	// Tap to Share Supported: optional
 	label = json_object_object_get(root, "tapToShareSupported");
-	if (label && !is_error(label)) {
+	if (label) {
 		appDesc->m_tapToShareSupported = json_object_get_boolean(label);
 	}
 
     // Should handle relaunch event itself instead of just focusing first window
     label = json_object_object_get(root, "handlesRelaunch");
-    if (label && !is_error(label)) {
+    if (label) {
         appDesc->m_handlesRelaunch = json_object_get_boolean(label);
     }
 
@@ -443,7 +443,7 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 	{
 		//must have an entrypoint
 		label = json_object_object_get(root,"entrypoint");
-		if ((!label) || is_error(label))
+		if (!label)
 		{
 			g_warning("%s: App %s of type SysmgrBuiltin doesn't name an entrypoint",__FUNCTION__,appDesc->m_id.c_str());
 			success = false;
@@ -451,7 +451,7 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 		}
 		builtinEntrypt = json_object_get_string(label);
 		label = json_object_object_get(root,"args");
-		if (label && !is_error(label))
+		if (label)
 			builtinArgs = json_object_get_string(label);
 		else
 			builtinArgs = "";
@@ -471,7 +471,7 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 	}
 Done:
 
-	if( root && !is_error(root) )json_object_put(root);
+	if( root )json_object_put(root);
 
 	delete [] jsonStr;
 
@@ -526,7 +526,7 @@ ApplicationDescription* ApplicationDescription::fromApplicationStatus(const Appl
 ApplicationDescription* ApplicationDescription::fromJsonString(const char* jsonStr)
 {
     struct json_object* root = json_tokener_parse( jsonStr );
-    if( !root || is_error( root ) )
+    if( !root )
     {
         fprintf( stderr, "ApplicationDescriptionBase::fromJsonString: Failed to parse string into a JSON string.\n" );
         return 0;
@@ -572,7 +572,7 @@ ApplicationDescription* ApplicationDescription::fromJsonString(const char* jsonS
         delete appDesc;
         appDesc = 0;
     }
-    if(root && !is_error(root))
+    if(root)
         json_object_put(root);
     return appDesc;
 }
@@ -625,14 +625,14 @@ std::string ApplicationDescription::versionFromFile(const std::string& filePath,
 	std::string version ="1.0";			///default from constructor
 	
 	root = json_tokener_parse( jsonStr );
-	if( !root || is_error( root ) )
+	if( !root )
 	{
 		g_warning("%s: Failed to parse '%s' into a JSON string.\n",__FUNCTION__,filePath.c_str() );
 		return version;
 	}
 	
 	label = json_object_object_get(root, "version");
-	if (label && !is_error(label)) {
+	if (label) {
 		version = json_object_get_string(label);
 	}
 		
@@ -718,7 +718,7 @@ json_object* ApplicationDescription::toJSON() const
 
 	if(!m_universalSearchJsonStr.empty()) {
 		json_object* universalSearch = json_tokener_parse(m_universalSearchJsonStr.c_str());
-		if(universalSearch && !is_error(universalSearch)) {
+		if(universalSearch) {
 			json_object_object_add(json, (char*) "universalSearch",universalSearch);
 		}
 	}
@@ -1132,7 +1132,7 @@ void ApplicationDescription::updateSysmgrBuiltinWithLocalization()
 
 	//the only 2 that are localizable in the special builtin appinfo.json
 	root = json_tokener_parse( jsonStr );
-	if( !root || is_error( root ) )
+	if( !root )
 	{
 		g_warning("%s: Failed to parse '%s' into a JSON string", __FUNCTION__, filePath.c_str() );
 		delete [] jsonStr;
@@ -1141,7 +1141,7 @@ void ApplicationDescription::updateSysmgrBuiltinWithLocalization()
 
 	// TITLE
 	label = json_object_object_get(root, "title");
-	if( label && !is_error(label) )
+	if( label )
 	{
 		m_title = json_object_get_string(label);
 	}
@@ -1152,7 +1152,7 @@ void ApplicationDescription::updateSysmgrBuiltinWithLocalization()
 
 	//CATEGORY
 	label = json_object_object_get(root, "category");
-	if( label && !is_error(label) )
+	if( label )
 	{
 		m_category = json_object_get_string(label);
 

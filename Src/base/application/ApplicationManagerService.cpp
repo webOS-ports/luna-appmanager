@@ -341,7 +341,7 @@ static bool servicecallback_close( LSHandle* lshandle, LSMessage *message,
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errMsg = "Malformed JSON detected in payload";
 		goto done;
 	}
@@ -369,7 +369,7 @@ static bool servicecallback_close( LSHandle* lshandle, LSMessage *message,
 	if (!LSMessageReply( lshandle, message, json_object_to_json_string(json), &lserror ))
 		LSErrorFree (&lserror); 
 
-	if (root && !is_error(root))
+	if (root)
 		json_object_put(root);
 	json_object_put(json);
 	return true;	
@@ -490,7 +490,7 @@ static bool servicecallback_getresourceinfo( LSHandle* lshandle, LSMessage *mess
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errMsg = "Malformed JSON detected in payload";
 		goto done;
 	}
@@ -587,7 +587,7 @@ static bool servicecallback_getresourceinfo( LSHandle* lshandle, LSMessage *mess
 	if (!LSMessageReply( lshandle, message, json_object_to_json_string(json), &lserror ))
 		LSErrorFree (&lserror); 
 
-	if (root && !is_error(root))
+	if (root)
 		json_object_put(root);
 	json_object_put(json);
 
@@ -772,13 +772,13 @@ static bool servicecallback_getappinfo( LSHandle* lshandle, LSMessage *message,
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errMsg = "Malformed JSON detected in payload";
 		goto done;
 	}
 
 	label = json_object_object_get(root,"appId");
-	if (!label || is_error(label)) {
+	if (!label) {
 		errMsg = "Provide an appId";
 		goto done;
 	}
@@ -813,7 +813,7 @@ static bool servicecallback_getappinfo( LSHandle* lshandle, LSMessage *message,
 	if (!LSMessageReply( lshandle, message, json_object_to_json_string(json), &lserror))
 		LSErrorFree (&lserror); 
 
-	if (root && !is_error(root))
+	if (root)
 		json_object_put(root);
 	json_object_put(json);
 	return true;
@@ -919,7 +919,7 @@ static bool servicecallback_install( LSHandle* lshandle, LSMessage *message,
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errMsg = "Malformed JSON detected in payload";
 		goto done;
 	}
@@ -1000,7 +1000,7 @@ static bool servicecallback_install( LSHandle* lshandle, LSMessage *message,
 	if (!LSMessageReply( lshandle, message, json_object_to_json_string(json), &lserror ))
 		LSErrorFree (&lserror); 
 
-	if (root && !is_error(root))
+	if (root)
 		json_object_put( root );
 	json_object_put(json);
 	return true;
@@ -1217,7 +1217,7 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errMsg = "Malformed JSON detected in payload";
 		goto done;
 	}
@@ -1263,7 +1263,7 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 		params = json_object_to_json_string( paramblock );
 	}
 
-	if ((ovrhandlerappid) && (!is_error(ovrhandlerappid)))
+	if (ovrhandlerappid)
 		ovrHandlerAppId=json_object_get_string(ovrhandlerappid);
 
 	if (appid)
@@ -1453,7 +1453,7 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 	if (!LSMessageReply( lshandle, message, json_object_to_json_string(json), &lserror ))
 		LSErrorFree (&lserror); 
 
-	if (root && !is_error(root))
+	if (root)
 		json_object_put( root );
 	json_object_put(json);
 	return true;
@@ -1547,7 +1547,7 @@ static bool servicecallback_launch( LSHandle* lshandle, LSMessage *message,
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errMsg = "Malformed JSON detected in payload";
 		goto Done;
 	}
@@ -1611,7 +1611,7 @@ static bool servicecallback_launch( LSHandle* lshandle, LSMessage *message,
 
 	Done:
 
-	if( root && !is_error(root) ) 
+	if( root ) 
 		json_object_put( root );
 
 	json_object* json = json_object_new_object();
@@ -2080,7 +2080,7 @@ static bool servicecallback_getSizeOf(LSHandle* lshandle, LSMessage *message,
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_getSizeOf;
@@ -2112,7 +2112,7 @@ static bool servicecallback_getSizeOf(LSHandle* lshandle, LSMessage *message,
 	}
 	else {
 		appIdArray = json_object_get_array(label);
-		if (!appIdArray || is_error(appIdArray)) {
+		if (!appIdArray) {
 			errorText = "Bad 'appIds' array parameter specified";
 			goto Done_servicecallback_getSizeOf;
 		}
@@ -2254,7 +2254,7 @@ static bool servicecallback_searchForApps(LSHandle* lshandle, LSMessage *message
 	}
 
 	root = json_tokener_parse(str);
-	if (!root || is_error(root)) {
+	if (!root) {
 		root = NULL;
 		errMsg = "Malformed JSON detected in payload";
 		goto Done;
@@ -2312,7 +2312,7 @@ static bool servicecallback_searchForApps(LSHandle* lshandle, LSMessage *message
 	if (returnObj)
 		json_object_put(returnObj);
 
-	if (root && !is_error(root))
+	if (root)
 		json_object_put(root);
 
 	return true;
@@ -2878,7 +2878,7 @@ static bool servicecallback_addDockModeLaunchPoint(LSHandle* lsHandle, LSMessage
 	}
 
 	appId = json_object_object_get(root, "appId");
-	if (appId && !is_error(appId)) {
+	if (appId) {
 		returnValue = ApplicationManager::instance()->enableDockModeLaunchPoint(json_object_get_string(appId));
 	}
 
@@ -2888,7 +2888,7 @@ static bool servicecallback_addDockModeLaunchPoint(LSHandle* lsHandle, LSMessage
 		LSErrorFree(&lserror);
 	}
 
-	if (root && !is_error(root))
+	if (root)
 		json_object_put(root);
 
 	json_object_put(returnJson);
@@ -2976,7 +2976,7 @@ static bool servicecallback_removeDockModeLaunchPoint(LSHandle* lsHandle, LSMess
 		LSErrorFree(&lserror);
 	}
 
-	if (root && !is_error(root))
+	if (root)
 		json_object_put(root);
 
 	json_object_put(returnJson);
@@ -3037,7 +3037,7 @@ static bool servicecallback_rescan( LSHandle* lshandle,
 	ApplicationManager::instance()->scan();
 
 	json = json_object_new_object();
-	if (!json || is_error(json))
+	if (!json)
 		goto Done;
 
 	json_object_object_add(json, "returnValue",json_object_new_boolean(true));
@@ -3107,7 +3107,7 @@ static bool servicecallback_inspect( LSHandle* lshandle, LSMessage* message, voi
         json_object_put( processid );
 	}
 
-	if( root && !is_error(root) ) json_object_put( root );
+	if( root ) json_object_put( root );
 	return true;
 }
 
@@ -3207,34 +3207,34 @@ static bool servicecallback_addLaunchPoint(LSHandle* lshandle, LSMessage *messag
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errMsg = "Malformed JSON detected in payload";
 		goto Done;
 	}
 
 	label = json_object_object_get(root, "id");
-	if( !label || is_error(label))
+	if( !label)
 		goto Done;
 	id = json_object_get_string(label);
 
 	label = json_object_object_get(root, "title");
-	if( !label || is_error(label))
+	if( !label)
 		goto Done;
 	title = json_object_get_string(label);
 
 	label = json_object_object_get(root, "appmenu");
-	if ( label && (!is_error(label)))
+	if ( label)
 		menuName = json_object_get_string(label);
 	else
 		menuName = title;
 
 	label = json_object_object_get(root, "icon");
-	if( !label || is_error(label))
+	if( !label)
 		goto Done;
 	icon = json_object_get_string(label);
 
 	label = json_object_object_get(root, "params");
-	if( !label || is_error(label))
+	if( !label)
 		goto Done;
 	paramsStr = json_object_get_string(label);
 	if (!paramsStr)
@@ -3242,7 +3242,7 @@ static bool servicecallback_addLaunchPoint(LSHandle* lshandle, LSMessage *messag
 	params = paramsStr;
 
 	label = json_object_object_get(root, "removable");
-	if(label && (!is_error(label)))
+	if(label)
 		removable = json_object_get_boolean(label);
 
 	appDesc = ApplicationManager::instance()->getAppById(id);
@@ -3284,7 +3284,7 @@ static bool servicecallback_addLaunchPoint(LSHandle* lshandle, LSMessage *messag
 	if (!LSMessageReply( lshandle, message, json_object_to_json_string(json), &lserror))
 		LSErrorFree (&lserror);
 
-	if (root && !is_error(root))
+	if (root)
 		json_object_put(root);
 	json_object_put(json);
 
@@ -3365,13 +3365,13 @@ static bool servicecallback_removeLaunchPoint(LSHandle* lshandle, LSMessage *mes
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errMsg = "Malformed JSON detected in payload";
 		goto Done;
 	}
 
 	label = json_object_object_get(root, "launchPointId");
-	if (!label || is_error(label)) {
+	if (!label) {
 		errMsg = "Must provide a launchPointId";
 		goto Done;
 	}
@@ -3390,7 +3390,7 @@ static bool servicecallback_removeLaunchPoint(LSHandle* lshandle, LSMessage *mes
 	if (!LSMessageReply( lshandle, message, json_object_to_json_string(json), &lserror)) 
 		LSErrorFree (&lserror);
 
-	if (root && !is_error(root)) 
+	if (root) 
 		json_object_put(root);
 	json_object_put(json);
 
@@ -3484,14 +3484,14 @@ static bool servicecallback_updateLaunchPointIcon(LSHandle* lsHandle, LSMessage 
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errMsg = "Malformed JSON detected in payload";
 		goto Done;
 	}
 
 	// parse the launchPointId
 	lpid = json_object_object_get(root, "launchPointId");
-	if (!lpid || is_error(lpid)) {
+	if (!lpid) {
 		errMsg = "Must provide launchPointId";
 		goto Done;
 	}
@@ -3499,7 +3499,7 @@ static bool servicecallback_updateLaunchPointIcon(LSHandle* lsHandle, LSMessage 
 
 	// parse the new image path
 	icon = json_object_object_get(root, "icon");
-	if (!icon || is_error(icon)) {
+	if (!icon) {
 		errMsg = "Must provide icon path";
 		goto Done;
 	}
@@ -3548,7 +3548,7 @@ static bool servicecallback_updateLaunchPointIcon(LSHandle* lsHandle, LSMessage 
 	if (!LSMessageReply(lsHandle, message, json_object_to_json_string(json), &lserror))
 		LSErrorFree(&lserror);
 
-	if (root && !is_error(root))
+	if (root)
 		json_object_put(root);
 	json_object_put(json);
 
@@ -3981,7 +3981,7 @@ static bool servicecallback_addResourceHandler(LSHandle* lsHandle, LSMessage *me
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_addResourceHandler;
@@ -4138,7 +4138,7 @@ static bool servicecallback_addRedirectHandler(LSHandle* lsHandle, LSMessage *me
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_addRedirectHandler;
@@ -4155,7 +4155,7 @@ static bool servicecallback_addRedirectHandler(LSHandle* lsHandle, LSMessage *me
 	}
 
 	label = json_object_object_get(root,"schemeForm");
-	if (!label || is_error(label)) {
+	if (!label) {
 		errorText = "Missing schemeForm parameter";
 		goto Done_servicecallback_addRedirectHandler;
 	}
@@ -4277,7 +4277,7 @@ static bool servicecallback_getMimeTypeForExtension(LSHandle* lsHandle, LSMessag
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_getMimeTypeForExtension;
@@ -4403,7 +4403,7 @@ static bool servicecallback_getHandlerForMimeType(LSHandle* lsHandle, LSMessage 
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_getHandlerForMimeType;
@@ -4533,7 +4533,7 @@ static bool servicecallback_getHandlerForExtension(LSHandle* lsHandle, LSMessage
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_getHandlerForExtension;
@@ -4680,7 +4680,7 @@ static bool servicecallback_getHandlerForUrl(LSHandle* lsHandle, LSMessage *mess
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_getHandlerForUrl;
@@ -4920,7 +4920,7 @@ static bool servicecallback_getHandlerByVerb(LSHandle* lsHandle, LSMessage *mess
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_getHandlerByVerb;
@@ -5224,7 +5224,7 @@ static bool servicecallback_listAllHandlers(LSHandle* lsHandle, LSMessage *messa
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_listAllHandlers;
@@ -5470,7 +5470,7 @@ static bool servicecallback_listAllHandlersMultipleMime(LSHandle* lsHandle, LSMe
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_listAllHandlersMultipleMime;
@@ -5485,7 +5485,7 @@ static bool servicecallback_listAllHandlersMultipleMime(LSHandle* lsHandle, LSMe
 	}
 
 	mimeArray = json_object_get_array(label);
-	if (!mimeArray || is_error(mimeArray)) {
+	if (!mimeArray) {
 		errorText = "Bad 'mimes' array parameter specified";
 		goto Done_servicecallback_listAllHandlersMultipleMime;
 	}
@@ -5685,7 +5685,7 @@ static bool servicecallback_listAllHandlersMultipleUrlPattern(LSHandle* lsHandle
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_listAllHandlersMultipleMime;
@@ -5700,7 +5700,7 @@ static bool servicecallback_listAllHandlersMultipleUrlPattern(LSHandle* lsHandle
 	}
 
 	urlArray = json_object_get_array(label);
-	if (!urlArray || is_error(urlArray)) {
+	if (!urlArray) {
 		errorText = "Bad 'urls' array parameter specified";
 		goto Done_servicecallback_listAllHandlersMultipleMime;
 	}
@@ -5878,7 +5878,7 @@ static bool servicecallback_listAllUrlHandlersByPattern(LSHandle* lsHandle, LSMe
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_listAllUrlHandlersByPattern;
@@ -6138,7 +6138,7 @@ static bool servicecallback_listAllHandlersByVerb(LSHandle* lsHandle, LSMessage 
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_listAllHandlersByVerb;
@@ -6390,7 +6390,7 @@ static bool servicecallback_swapResourceHandler(LSHandle* lsHandle, LSMessage *m
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_swapResourceHandler;
@@ -6518,7 +6518,7 @@ static bool servicecallback_swapRedirectHandler(LSHandle* lsHandle, LSMessage *m
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_swapRedirectHandler;
@@ -6714,7 +6714,7 @@ static bool servicecallback_registerVerbs(LSHandle* lsHandle, LSMessage *message
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_registerVerbs;
@@ -6853,7 +6853,7 @@ static bool servicecallback_removeHandlersForAppId(LSHandle* lsHandle, LSMessage
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_removeHandlersForAppId;
@@ -6971,7 +6971,7 @@ static bool servicecallback_saveMimeTable(LSHandle* lsHandle, LSMessage *message
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_saveMimeTable;
@@ -7085,7 +7085,7 @@ static bool servicecallback_restoreMimeTable(LSHandle* lsHandle, LSMessage *mess
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_restoreMimeTable;
@@ -7358,7 +7358,7 @@ static bool servicecallback_forceSingleAppScan(LSHandle* lsHandle, LSMessage *me
 		return false;
 	}
 	root = json_tokener_parse( str );
-	if (root && !is_error(root))
+	if (root)
 	{
 		if ( (label = JsonGetObject(root,"id")) )
 		{
@@ -7438,7 +7438,7 @@ void ApplicationManager::postLaunchPointChange(const LaunchPoint* lp, const std:
 			json_object_to_json_string(json), &lsError))
 		LSErrorFree (&lsError);
 
-	if (json && !is_error(json))
+	if (json)
 		json_object_put(json);
 }
 
@@ -7570,13 +7570,13 @@ static bool servicecallback_getappbasepath( LSHandle* lshandle, LSMessage *messa
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errMsg = "Malformed JSON detected in payload";
 		goto done;
 	}
 
 	label = json_object_object_get(root,"appId");
-	if (!label || is_error(label)) {
+	if (!label) {
 		errMsg = "Provide an appId";
 		goto done;
 	}
@@ -7611,7 +7611,7 @@ static bool servicecallback_getappbasepath( LSHandle* lshandle, LSMessage *messa
 	if (!LSMessageReply( lshandle, message, json_object_to_json_string(json), &lserror))
 		LSErrorFree (&lserror);
 
-	if (root && !is_error(root))
+	if (root)
 		json_object_put(root);
 	json_object_put(json);
 	return true;
@@ -7645,7 +7645,7 @@ static bool servicecallback_register_application(LSHandle *handle, LSMessage *me
 	}
 
 	root = json_tokener_parse(payload);
-	if (!root || is_error(root)) {
+	if (!root) {
 		errMsg = "Malformed JSON detected in payload";
 		root = 0;
 		goto done;
@@ -7669,7 +7669,7 @@ done:
 	if (!LSMessageReply(handle, message, json_object_to_json_string(reply), &lserror ))
 		LSErrorFree (&lserror);
 
-	if (root && !is_error(root))
+	if (root)
 		json_object_put(root);
 
 	json_object_put(reply);
@@ -7775,7 +7775,7 @@ static bool servicecallback_dbg_getAppEntryPoint(LSHandle* lsHandle, LSMessage *
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done_servicecallback_dbg_getAppEntryPoint;
@@ -7878,7 +7878,7 @@ static bool testcallback_switchAppIdToUpdateMode(LSHandle* lsHandle, LSMessage *
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done;
@@ -7952,7 +7952,7 @@ static bool testcallback_switchAppIdToReady(LSHandle* lsHandle, LSMessage *messa
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done;
@@ -8025,7 +8025,7 @@ static bool testcallback_switchAppIdToUpdateFailed(LSHandle* lsHandle, LSMessage
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done;
@@ -8099,7 +8099,7 @@ static bool testcallback_changeAppIdProgress(LSHandle* lsHandle, LSMessage *mess
 	}
 
 	root = json_tokener_parse( str );
-	if (!root || is_error(root)) {
+	if (!root) {
 		errorText = "Malformed JSON detected in payload";
 		root = 0;
 		goto Done;

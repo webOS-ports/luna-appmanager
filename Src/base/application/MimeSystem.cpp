@@ -264,7 +264,7 @@ struct json_object * MimeSystem::RedirectHandlerNode::toJson() 		//WARNING: memo
 MimeSystem::RedirectHandlerNode * MimeSystem::RedirectHandlerNode::fromJsonString(const std::string& jsonString)  //WARNING: memory allocated (RedirectHandlerNode object)
 {
 	struct json_object * root = json_tokener_parse( jsonString.c_str() );
-	if (!root || is_error(root)) {
+	if (!root) {
 		return NULL;
 	}
 	RedirectHandlerNode * ptr = fromJson(root);
@@ -288,7 +288,7 @@ MimeSystem::RedirectHandlerNode * MimeSystem::RedirectHandlerNode::fromJson(stru
 	 * 
 	 */
 	
-	if ((jobj == NULL) || (is_error(jobj)))
+	if (!jobj)
 		return NULL;
 
 	struct json_object * primary_jobj = JsonGetObject(jobj,"primary");
@@ -611,7 +611,7 @@ struct json_object * MimeSystem::ResourceHandlerNode::toJson() 		//WARNING: memo
 MimeSystem::ResourceHandlerNode * MimeSystem::ResourceHandlerNode::fromJsonString(const std::string& jsonString)	//WARNING: memory allocated (ResourceHandlerNode object)
 {
 	struct json_object * root = json_tokener_parse( jsonString.c_str() );
-	if (!root || is_error(root)) {
+	if (!root) {
 		return NULL;
 	}
 	ResourceHandlerNode * ptr = fromJson(root);
@@ -633,7 +633,7 @@ MimeSystem::ResourceHandlerNode * MimeSystem::ResourceHandlerNode::fromJson(stru
 	 * }
 	 */
 	
-	if ((jobj == NULL) || (is_error(jobj)))
+	if (!jobj)
 		return NULL;
 	
 	struct json_object * primary_jobj = JsonGetObject(jobj,"primary");
@@ -793,7 +793,7 @@ MimeSystem * MimeSystem::instance(const std::string& baseConfigFile)
 	MutexLocker lock(&(inst->m_mutex));
 	
 	struct json_object * file_root_jobj = json_object_from_file(const_cast<char *>(baseConfigFile.c_str()));
-	if ((file_root_jobj == NULL) || (is_error(file_root_jobj)))
+	if (!file_root_jobj)
 		return inst;
 	
 	inst->populateFromJson(file_root_jobj);
@@ -810,13 +810,13 @@ MimeSystem * MimeSystem::instance(const std::string& baseConfigFile,const std::s
 	//Since whatever comes first will not get overridden by what comes after, start with the customized file and then load the base file
 	
 	struct json_object * file_root_jobj = json_object_from_file(const_cast<char *>(customizedConfigFile.c_str()));
-	if ((file_root_jobj != NULL) && (!is_error(file_root_jobj))) {
+	if (file_root_jobj) {
 		inst->populateFromJson(file_root_jobj);
 		json_object_put(file_root_jobj);
 	}
 	
 	file_root_jobj = json_object_from_file(const_cast<char *>(baseConfigFile.c_str()));
-	if ((file_root_jobj != NULL) && (!is_error(file_root_jobj))) {
+	if (file_root_jobj) {
 		inst->populateFromJson(file_root_jobj);
 		json_object_put(file_root_jobj);
 	}
@@ -831,12 +831,12 @@ MimeSystem * MimeSystem::instance(const std::string& baseConfigFile,const std::s
 int MimeSystem::populateFromJson(struct json_object * root)
 {
 	MutexLocker lock(&m_mutex);
-	if ((root == NULL) || (is_error(root)))
+	if (!root)
 		return 0;
 
 	//figure out the schema version...
 	json_object * schemaVer = json_object_object_get(root,"schemaVersion");
-	if ((schemaVer) && !(is_error(schemaVer))) {
+	if (schemaVer) {
 		if (json_object_is_type(schemaVer,json_type_int)) {
 			if (json_object_get_int(schemaVer) == 2) {
 				//this is a new version, compatible with the save format...so read it through "restore"
@@ -851,7 +851,7 @@ int MimeSystem::populateFromJson(struct json_object * root)
 		}
 	}
 	json_object* commands = json_object_object_get(root, "commands");	
-	if (commands && !is_error(commands))
+	if (commands)
 	{
 		if (json_object_is_type(commands, json_type_array))
 		{
@@ -873,7 +873,7 @@ int MimeSystem::populateFromJson(struct json_object * root)
 	}
 
 	json_object* redirects = json_object_object_get(root, "redirects");
-	if (redirects && !is_error(redirects))
+	if (redirects)
 	{
 		if (json_object_is_type(redirects, json_type_array))
 		{
@@ -895,7 +895,7 @@ int MimeSystem::populateFromJson(struct json_object * root)
 	}
 
 	json_object* resources = json_object_object_get(root, "resources");
-	if (resources && !is_error(resources))
+	if (resources)
 	{
 		if (json_object_is_type(resources, json_type_array))
 		{
@@ -2057,7 +2057,7 @@ bool MimeSystem::restoreMimeTable(json_object * root,std::string& r_err)
 	std::string val_s;
 	json_object * topLevel_jobj;
 	
-	if (!root || is_error(root))
+	if (!root)
 	{
 		root = 0;
 		r_err = "Invalid json";
@@ -2093,7 +2093,7 @@ bool MimeSystem::restoreMimeTable(json_object * root,std::string& r_err)
 				json_object* e = json_object_array_get_idx(topLevel_jobj, i);
 				//get the handlers object from within
 				json_object* h = json_object_object_get(e,"handlers");
-				if (!h || (is_error(h)))
+				if (!h)
 					continue;		//skip...error.
 				
 				RedirectHandlerNode * p_rhn = RedirectHandlerNode::fromJson(h);
@@ -2114,7 +2114,7 @@ bool MimeSystem::restoreMimeTable(json_object * root,std::string& r_err)
 				json_object* e = json_object_array_get_idx(topLevel_jobj, i);
 				//get the handlers object from within
 				json_object* h = json_object_object_get(e,"handlers");
-				if (!h || (is_error(h)))
+				if (!h)
 					continue;		//skip...error.
 				ResourceHandlerNode * p_rhn = ResourceHandlerNode::fromJson(h);
 				if (p_rhn != NULL) {
@@ -2388,11 +2388,11 @@ int MimeSystem::extractVerbsFromHandlerEntryJson(struct json_object * jsonHandle
 	 * }
 	 */
 	
-	if ((jsonHandlerEntry == NULL) || (is_error(jsonHandlerEntry)))
+	if (!jsonHandlerEntry)
 		return 0;
 	
 	json_object * verbObj = json_object_object_get(jsonHandlerEntry,"verbs");
-	if ((!verbObj) || (is_error(verbObj)))
+	if (!verbObj)
 		return 0;
 	if (json_object_is_type(verbObj,json_type_object) == false)
 		return 0;
@@ -2430,12 +2430,12 @@ int MimeSystem::extractVerbsFromHandlerNodeEntryJson(struct json_object * jsonHa
 	 * }
 	 */
 
-	if ((jsonHandlerNodeEntry == NULL) || (is_error(jsonHandlerNodeEntry)))
+	if (!jsonHandlerNodeEntry)
 		return 0;
 
 	json_object * arrayLabel = json_object_object_get(jsonHandlerNodeEntry,"verbs");
 	array_list * srcJsonArray = json_object_get_array(arrayLabel);
-	if ((!srcJsonArray) || (is_error(srcJsonArray))) {
+	if (!srcJsonArray) {
 		return 0;
 	}
 	int rc=0;
@@ -2448,7 +2448,7 @@ int MimeSystem::extractVerbsFromHandlerNodeEntryJson(struct json_object * jsonHa
 		if (extractFromJson(obj,"verb",verb) == false)
 			continue;
 		json_object * label = json_object_object_get(obj,"index");
-		if ((!label) || (is_error(label)))
+		if (!label)
 			continue;
 		idx = json_object_get_int(label);
 		r_verbs[verb] = idx;

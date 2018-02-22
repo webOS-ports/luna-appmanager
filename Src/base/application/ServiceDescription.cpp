@@ -52,7 +52,7 @@ ServiceDescription* ServiceDescription::fromFile(const std::string& filePath)
 	struct json_object* label = NULL;
 
 	root = json_tokener_parse(jsonStr);
-	if (!root || is_error( root )) {
+	if (!root) {
 		g_warning("Failed to parse '%s' into a JSON string", filePath.c_str());
 		goto Done;
 	}
@@ -74,7 +74,7 @@ ServiceDescription* ServiceDescription::fromFile(const std::string& filePath)
 
 Done:
 
-	if (root && !is_error(root))
+	if (root)
 		json_object_put(root);
 
 	delete[] jsonStr;
@@ -90,7 +90,7 @@ Done:
 json_object* ServiceDescription::toJSON() const
 {
 	json_object* json = json_tokener_parse(m_jsonString.c_str());
-	if (!json || is_error(json)) {
+	if (!json) {
 		g_warning("%s: Failed to parse '%s' into a JSON string", __PRETTY_FUNCTION__, m_jsonString.c_str());
 		return NULL;
 	}

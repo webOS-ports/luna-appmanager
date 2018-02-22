@@ -98,7 +98,7 @@ bool WebAppMgrProxy::webAppManagerServiceStatusCb(LSHandle *handle, LSMessage *m
         return true;
 
     json_object* json = json_tokener_parse(payload);
-    if (!json || is_error(json))
+    if (!json)
         return true;
 
     json_object* value = json_object_object_get(json, "connected");
@@ -168,7 +168,7 @@ void WebAppMgrProxy::updateRunningApps(const char *payload)
     qDebug() << __PRETTY_FUNCTION__ << payload;
 
     json_object *json = json_tokener_parse(payload);
-    if (!json || is_error(json))
+    if (!json)
         return;
 
     json_object *appsValue = json_object_object_get(json, "apps");
@@ -205,7 +205,7 @@ void WebAppMgrProxy::handleAppEvent(const char *payload)
     qDebug() << __PRETTY_FUNCTION__ << payload;
 
     json_object *json = json_tokener_parse(payload);
-    if (!json || is_error(json))
+    if (!json)
         return;
 
     eventObj = json_object_object_get(json, "event");

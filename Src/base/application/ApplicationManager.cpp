@@ -238,7 +238,7 @@ void ApplicationManager::runAppInstallScripts()
 void ApplicationManager::loadHiddenApps()
 {
 	json_object* root = json_object_from_file(const_cast<char*>(s_hiddenAppsPath));
-	if (!root || is_error(root))
+	if (!root)
 		return;
 
 	if (json_object_is_type(root, json_type_array)) {
@@ -654,7 +654,7 @@ void ApplicationManager::createOrUpdatePackageManifest(PackageDescription* packa
 		// check to see if the manifest file exists
 		std::string manifestFilePath = Settings::LunaSettings()->packageManifestsPath + std::string("/") + packageDesc->id() + std::string(".pmmanifest");
 		json_object * manifestJobj = json_object_from_file((char *)manifestFilePath.c_str());
-		if ((manifestJobj == 0) || (is_error(manifestJobj))) {
+		if (!manifestJobj) {
 			// didn't find the manifest...generate it!
 			g_debug("%s: [MANIFESTS]: manifest for %s not found, generating",__PRETTY_FUNCTION__, packageDesc->id().c_str());
 			packageDesc->setPackageSize(ApplicationInstaller::getSizeOfPackageOnFsGenerateManifest("", packageDesc, NULL));
@@ -2091,7 +2091,7 @@ std::string ApplicationManager::addLaunchPoint(const std::string& id,
 	json_object* json = lp->toJSON();
 
 	bool success = json_object_to_file((char*)launchPointFolder.c_str(), json) != -1;
-	if (json && !is_error(json))
+	if (json)
 		json_object_put(json);
 
 	if (!success) {
@@ -2478,7 +2478,7 @@ bool ApplicationManager::cbAppInstallServiceConnection(LSHandle* lshandle, LSMes
 		return true;
 
 	payload = json_tokener_parse(str);
-	if (!payload || is_error(payload))
+	if (!payload)
 		return true;
 
 	if (json_object_get_boolean(json_object_object_get(payload, "connected"))) {
@@ -2518,7 +2518,7 @@ void ApplicationManager::handleApplicationStatusUpdates(LSMessage* msg)
 	}
 
 	payload = json_tokener_parse(str);
-	if (!payload || is_error(payload)) {
+	if (!payload) {
 		g_warning("%s: [INSTALLER] invalid payload", __FUNCTION__);
 		goto Done;
 	}
@@ -2617,7 +2617,7 @@ void ApplicationManager::handleApplicationStatusUpdates(LSMessage* msg)
 
 Done:
 
-	if (payload && !is_error(payload))
+	if (payload)
 		json_object_put(payload);
 }
 
@@ -2664,7 +2664,7 @@ bool ApplicationManager::cbDownloadManagerUpdate (LSHandle* lshandle, LSMessage*
 	g_debug ("%s:%d payloadStr = %s\n", __FILE__, __LINE__, payloadStr);
 
 	payload = json_tokener_parse (payloadStr);
-	if (!payload || is_error (payload)) {
+	if (!payload) {
 		g_warning ("%s: invalid message, could not convert this to json %s", __PRETTY_FUNCTION__, payloadStr);
 		return true;
 	}
@@ -2852,7 +2852,7 @@ bool ApplicationManager::getAppEntryPointFromAppinfoFile(const std::string& base
 	root = json_tokener_parse( str );
 	delete[] str;
 
-	if( !root || is_error( root ) )
+	if( !root )
 	{
 		g_warning("%s: couldn't parse [%s] contents into json",__FUNCTION__,filePath.c_str());
 		return false;
@@ -2860,7 +2860,7 @@ bool ApplicationManager::getAppEntryPointFromAppinfoFile(const std::string& base
 
 	// MAIN: mandatory
 	label = json_object_object_get(root, "main");
-	if( label && !is_error(label) )
+	if( label )
 	{
 		r_entryPointPath = json_object_get_string(label);
 	}

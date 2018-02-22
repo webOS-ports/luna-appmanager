@@ -1369,19 +1369,19 @@ int ApplicationInstaller::_getSizeOfAppCbFn(const char *fpath, const struct stat
 			s_sizeFnAccumulator += resizedBlocks;
 		}
 		
-		if ((s_manifestJobj) && (!is_error(s_manifestJobj)))
+		if (s_manifestJobj)
 		{
 			//pull out the two j-arrays
 			std::string bsizeStr = toSTLString<uint64_t>(s_targetFsBlockSize);
 			int addRc = 0;
 			json_object * jArray_real = json_object_object_get(s_manifestJobj,"real");
-			if ((jArray_real == 0) || (is_error(jArray_real)))
+			if (!jArray_real)
 			{
 				jArray_real = json_object_new_array();
 				addRc |= 1;
 			}
 			json_object * jArray_bsize = json_object_object_get(s_manifestJobj,bsizeStr.c_str());
-			if ((jArray_bsize == 0) || (is_error(jArray_bsize)))
+			if (!jArray_bsize)
 			{
 				jArray_bsize = json_object_new_array();
 				addRc |= 2;
@@ -1477,7 +1477,7 @@ uint64_t ApplicationInstaller::getSizeOfPackageOnFsGenerateManifest(const std::s
 	}
 
 	//if the manifest jobj is uncleared, clear it
-	if (s_manifestJobj && (!is_error(s_manifestJobj)))
+	if (s_manifestJobj)
 	{
 		json_object_put(s_manifestJobj);
 	}
@@ -1901,7 +1901,7 @@ bool ApplicationInstaller::cbInstall(LSHandle* lshandle, LSMessage *msg,void *us
 	}
 
 	label = json_object_object_get(root, "target");
-	if ((!label) || (is_error(label))) {
+	if (!label) {
 		luna_warn(s_logChannel, "Failed to find param target in message");
 		goto Done;
 	}
@@ -1915,7 +1915,7 @@ bool ApplicationInstaller::cbInstall(LSHandle* lshandle, LSMessage *msg,void *us
 	targetPackageFile = target_ccptr;
 
 	label = json_object_object_get(root, "id");
-	if (label && !is_error(label))
+	if (label)
 		id = json_object_get_string(label);
 	
 	if ((label = JsonGetObject(root,"uncompressedSize")) != NULL)
@@ -2102,7 +2102,7 @@ bool ApplicationInstaller::cbInstallNoVerify(LSHandle* lshandle, LSMessage *msg,
 	}
 
 	label = json_object_object_get(root, "target");
-	if ((!label) || (is_error(label))) {
+	if (!label) {
 		luna_warn(s_logChannel, "Failed to find param target in message");
 		errorCode = std::string("Failed to find param target in message");
 		goto Done;
@@ -2736,17 +2736,17 @@ bool ApplicationInstaller::cbQueryInstallCapacity(LSHandle* lshandle,LSMessage *
 	struct json_object* root = json_tokener_parse(str);
 	struct json_object* label = 0;
 
-	if ((root == NULL) || (is_error(root))) {
+	if (!root) {
 		root = 0;
 		goto Done;
 	}
 	
 	// to keep this method backwards-compatible we look for both appId and packageId
 	label = json_object_object_get(root,"appId");
-	if ((label == NULL) || (is_error(label))) 
+	if (!label) 
 	{
 		label = json_object_object_get(root,"packageId");
-		if ((label == NULL) || (is_error(label)))
+		if (!label)
 		{
 			packageId = "";
 		}
@@ -2837,7 +2837,7 @@ bool ApplicationInstaller::cbDbgGetPkgInfoFromStatusFile(LSHandle* lshandle,LSMe
 	//parse parameters
 	struct json_object* root = json_tokener_parse(str);
 	
-	if ((root == NULL) || (is_error(root))) {
+	if (!root) {
 		errorText = "json parse error";
 		root = 0;
 		goto Done_cbDbgGetPkgInfoFromStatusFile;
@@ -2903,7 +2903,7 @@ bool ApplicationInstaller::cbDbgFakeFsSize(LSHandle* lshandle,LSMessage *msg,voi
 	//parse parameters
 	struct json_object* root = json_tokener_parse(str);
 	
-	if ((root == NULL) || (is_error(root))) {
+	if (!root) {
 		errorText = "json parse error";
 		root = 0;
 		goto Done_cbDbgFakeFsSize;
@@ -2989,14 +2989,14 @@ bool ApplicationInstaller::cbDbgFakeFsSize(LSHandle* lshandle,LSMessage *msg,voi
 int ApplicationInstaller::dbg_restoreFakeFsEntriesAtStartup()
 {
 	
-	if ((dbg_statxfs_persistent) && (!is_error(dbg_statxfs_persistent)))
+	if (dbg_statxfs_persistent)
 	{
 		json_object_put(dbg_statxfs_persistent);
 		dbg_statxfs_persistent = NULL;
 	}
 	
 	dbg_statxfs_persistent = json_object_from_file((char *)"/tmp/DBGFakeFsSizes.json");
-	if ((dbg_statxfs_persistent == NULL) || (is_error(dbg_statxfs_persistent)))
+	if (!dbg_statxfs_persistent)
 	{
 		dbg_statxfs_persistent = NULL;
 		return 0;
@@ -3067,7 +3067,7 @@ bool ApplicationInstaller::cbDbgUnFakeFsSizes(LSHandle* lshandle,LSMessage *msg,
 	dbg_statvfs_map.clear();
 	
 	unlink("/tmp/DBGFakeFsSizes.json");
-	if ((dbg_statxfs_persistent) && (!is_error(dbg_statxfs_persistent)))
+	if (dbg_statxfs_persistent)
 		json_object_put(dbg_statxfs_persistent);
 	dbg_statxfs_persistent = NULL;
 	
@@ -3106,7 +3106,7 @@ bool ApplicationInstaller::cbGetFsSize(LSHandle* lshandle,LSMessage *msg,void *u
 	//parse parameters
 	struct json_object* root = json_tokener_parse(str);
 
-	if ((root == NULL) || (is_error(root))) {
+	if (!root) {
 		errorText = "json parse error";
 		root = 0;
 		goto Done_cbGetFsSize;
@@ -3177,7 +3177,7 @@ bool ApplicationInstaller::cbDbgFillSize(LSHandle* lshandle,LSMessage *msg,void 
 	//parse parameters
 	struct json_object* root = json_tokener_parse(str);
 
-	if ((root == NULL) || (is_error(root))) 
+	if (!root) 
 	{
 		errorText = "json parse error";
 		root = 0;
@@ -3263,7 +3263,7 @@ bool ApplicationInstaller::cbDbgGetAppSizeOnFs(LSHandle* lshandle,LSMessage *msg
 	//parse parameters
 	struct json_object* root = json_tokener_parse(str);
 
-	if ((root == NULL) || (is_error(root))) 
+	if (!root) 
 	{
 		errorText = "json parse error";
 		root = 0;
@@ -3405,7 +3405,7 @@ bool ApplicationInstaller::cbRevoke(LSHandle* lshandle,LSMessage *msg,void *user
 	struct json_object* item_root = 0;
 	struct json_object* payload_root = 0;
 
-	if ((root == NULL) || (is_error(root))) {
+	if (!root) {
 		errorText = "json parse error";
 		root = 0;
 		goto Done;
@@ -3417,7 +3417,7 @@ bool ApplicationInstaller::cbRevoke(LSHandle* lshandle,LSMessage *msg,void *user
 	}
 	
 	item_root = json_tokener_parse(innerPayload.c_str());
-	if ((item_root == NULL) || (is_error(item_root))) {
+	if (!item_root) {
 		errorText = "item payload parse error";
 		item_root = 0;
 		goto Done;
@@ -3523,7 +3523,7 @@ bool ApplicationInstaller::cbPubSubRegister(LSHandle* handle, LSMessage* msg, vo
 	const char* str = LSMessageGetPayload(msg);
 	if (str) {
 		json_object* root = json_tokener_parse(str);
-		if (!root || is_error(root)) {
+		if (!root) {
 			g_warning("%s: %s", __PRETTY_FUNCTION__, str);
 		}
 		else {
@@ -3560,7 +3560,7 @@ bool ApplicationInstaller::cbPubSubStatus(LSHandle* handle, LSMessage* msg, void
 	LSError lserror;
 	LSErrorInit(&lserror);
 		
-	if ((!root) || is_error(root)) {
+	if (!root) {
 		root = 0;
 		goto Done_cbPubSubStatus;
 	}
@@ -4211,26 +4211,26 @@ json_object * ApplicationInstaller::packageInfoFileToJson(const std::string& pac
 		root = json_object_from_file(const_cast<char *>(packageJsonPath.c_str()));
 	}
 
-	if ((!root) || is_error(root)) {
+	if (!root) {
 		// try the language-only one
 		packageJsonPath = packageFolderPath + "/resources/" + language + "/packageinfo.json";
 		root = json_object_from_file(const_cast<char *>(packageJsonPath.c_str()));
 	}
 
-	if ((!root) || is_error(root)) {
+	if (!root) {
 		//try the old version
 		packageJsonPath = packageFolderPath + "/resources/" + locale + "/packageinfo.json";
 		root = json_object_from_file(const_cast<char *>(packageJsonPath.c_str()));
 	}
 
-	if ((!root) || is_error(root)) {
+	if (!root) {
 		// FIXME: AppId needs to be based on folder name (and not specified in appinfo.json)
 		// try the default one
 		packageJsonPath = packageFolderPath + "/packageinfo.json";
 		root = json_object_from_file(const_cast<char *>(packageJsonPath.c_str()));
 	}
 
-	if ((!root) || is_error(root))
+	if (!root)
 		return 0;
 	return root;				//MUST BE DEALLOCATED ELSEWHERE
 }
