@@ -127,8 +127,8 @@ target_link_libraries(LunaAppManager
     ${SERVICEINSTALLER_LIBRARIES}
     ${PMLOGLIB_LIBRARIES}
     ${ROLEGEN_LIBRARIES}
+    Qt5::Core Qt5::Gui Qt5::Widgets
     pthread)
-qt5_use_modules(LunaAppManager Core Gui Widgets)
 
 webos_build_daemon()
 webos_build_system_bus_files()
