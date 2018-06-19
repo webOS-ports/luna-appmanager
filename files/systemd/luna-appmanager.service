@@ -5,6 +5,7 @@ Requires=luna-sysmgr.service
 
 [Service]
 Type=simple
+EnvironmentFile=-/etc/luna-next/qtwebengine.conf 
 Restart=on-failure
 ExecStart=/usr/sbin/LunaAppManager
 OOMScoreAdjust=-1000
