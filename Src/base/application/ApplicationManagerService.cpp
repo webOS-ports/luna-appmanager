@@ -3510,11 +3510,9 @@ static bool servicecallback_updateLaunchPointIcon(LSHandle* lsHandle, LSMessage 
 	if (cstr)
 		appId = cstr;
 	index = appId.find(' ');
-	if (index == std::string::npos) {
-		errMsg = "Unrecognized application sender";
-		goto Done;
+	if (index != std::string::npos) {
+	    appId = appId.substr(0, index);
 	}
-	appId = appId.substr(0, index);
 
 	// we only allow applications to change their own launch points icon (default or dynamic)
 	lp = ApplicationManager::instance()->getLaunchPointById(launchPointId);
