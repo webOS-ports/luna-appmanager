@@ -1,0 +1,19 @@
+{
+    "luna-appmanager": [ 
+        "all",
+        "appinstalld.internal",
+        "applications.internal",
+        "devices",
+        "database.internal",
+        "hub.configuration",
+        "launcher.control",
+        "launcher.status",
+        "networking.internal",
+        "notifications",
+        "security",
+        "settings",
+        "system",
+        "system.debug"
+    ]
+}
+

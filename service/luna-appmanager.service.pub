@@ -1,4 +1,0 @@
-[D-BUS Service]
-Name=com.palm.applicationManager
-Exec=/usr/sbin/LunaAppManager
-Type=static
