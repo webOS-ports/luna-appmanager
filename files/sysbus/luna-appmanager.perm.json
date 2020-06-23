@@ -3,6 +3,8 @@
         "all"
     ],
     "org.webosports.bootmgr": [ 
-        "applications.internal"
+        "applications",
+        "applications.internal",
+        "database.internal"
     ]
 }
