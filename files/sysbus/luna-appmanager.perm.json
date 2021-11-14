@@ -2,6 +2,9 @@
     "luna-appmanager": [ 
         "all"
     ],
+    "com.palm.applicationManager": [ 
+        "all"
+    ],
     "org.webosports.bootmgr": [ 
         "applications",
         "applications.internal",
