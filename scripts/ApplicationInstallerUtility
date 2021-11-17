@@ -50,7 +50,7 @@ fi
 
 echo "status: installing $package_id"
 
-opkg -o /media/cryptofs/apps -force-overwrite install $package
+opkg -o /media/cryptofs/apps --force-overwrite install $package
 
 /usr/bin/pmServicePostInstall.sh
 
