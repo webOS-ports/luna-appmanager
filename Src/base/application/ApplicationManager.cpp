@@ -2486,7 +2486,7 @@ bool ApplicationManager::cbAppInstallServiceConnection(LSHandle* lshandle, LSMes
 		LSErrorInit(&lserror);
 
 		if (!LSCall(ApplicationManager::instance()->m_serviceHandlePrivate,
-					"palm://com.palm.appInstallService/status", "{\"subscribe\":true}",
+					"palm://com.webos.appInstallService/status", "{\"subscribe\":true}",
 					ApplicationManager::cbApplicationStatusCallback, NULL, NULL, &lserror)) {
 			LSErrorFree(&lserror);
 		}
