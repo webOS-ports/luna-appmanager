@@ -373,7 +373,7 @@ std::string WebAppMgrProxy::launchApp(const std::string& appId,
     if ((desc->status() != ApplicationDescription::Status_Ready)
          && (Settings::LunaSettings()->sucApps.find(desc->id()) == Settings::LunaSettings()->sucApps.end()))
     {
-        desc = ApplicationManager::instance()->getAppById("com.palm.app.swmanager");
+        desc = ApplicationManager::instance()->getAppById(appIdToLaunch);
         if (desc) {
             appIdToLaunch = desc->id();
             paramsToLaunch = "{}";
