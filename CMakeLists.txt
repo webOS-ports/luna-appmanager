@@ -136,12 +136,9 @@ webos_build_system_bus_files()
 webos_config_build_doxygen(doc Doxyfile)
 
 set(HELPER_SCRIPTS
-    scripts/app-install
-    scripts/ApplicationInstallerUtility
-    scripts/pmServicePostInstall.sh
-    scripts/pmServicePostRemove.sh)
+    scripts/app-install)
 
 install(FILES ${HELPER_SCRIPTS}
-     DESTINATION ${WEBOS_INSTALL_BINDIR}
+     DESTINATION ${WEBOS_INSTALL_SBINDIR}
      PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
                  GROUP_READ WORLD_READ)

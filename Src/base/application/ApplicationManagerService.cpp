@@ -8280,7 +8280,7 @@ bool ApplicationManager::startService()
 	if (Settings::LunaSettings()->uiType != Settings::UI_MINIMAL) {
 
 		result = LSCall(m_serviceHandlePrivate, "palm://com.palm.bus/signal/registerServerStatus",
-						"{\"serviceName\":\"com.palm.appInstallService\"}", 
+						"{\"serviceName\":\"com.webos.appInstallService\"}", 
 						ApplicationManager::cbAppInstallServiceConnection, NULL, NULL, &lserror);
 		if (!result)
 		{
