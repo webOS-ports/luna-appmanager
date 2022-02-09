@@ -316,7 +316,7 @@ void WebAppMgrProxy::launchUrl(const char* url, WindowType::Type winType,
     if (appDesc)
         json_object_object_add(obj, "appDesc", appDesc->toJSON());
 
-    json_object_object_add(obj, "params", json_object_new_string(params));
+    json_object_object_add(obj, "parameters", json_object_new_string(params));
     json_object_object_add(obj, "processId", json_object_new_int(processId));
     json_object_object_add(obj, "launchingAppId", json_object_new_string(launchingAppId));
     json_object_object_add(obj, "launchingProcId", json_object_new_string(launchingProcId));
@@ -340,6 +340,7 @@ std::string WebAppMgrProxy::launchApp(const std::string& appId,
 {
     std::string appIdToLaunch = appId;
     std::string paramsToLaunch = params;
+    if(paramsToLaunch.empty()) paramsToLaunch = "{}";
     errMsg.erase();
 
     if (!connected()) {
@@ -397,7 +398,7 @@ std::string WebAppMgrProxy::launchApp(const std::string& appId,
 
         json_object *obj = json_object_new_object();
         json_object_object_add(obj, "appDesc", desc->toJSON());
-        json_object_object_add(obj, "params", json_object_new_string(paramsToLaunch.c_str()));
+        json_object_object_add(obj, "parameters", json_tokener_parse(paramsToLaunch.c_str()));
         json_object_object_add(obj, "processId", json_object_new_int(processId));
         json_object_object_add(obj, "launchingAppId", json_object_new_string(launchingAppId.c_str()));
         json_object_object_add(obj, "launchingProcId", json_object_new_string(launchingProcId.c_str()));
@@ -438,7 +439,7 @@ void WebAppMgrProxy::relaunch(const std::string &appId, const std::string &param
 
     json_object *obj = json_object_new_object();
     json_object_object_add(obj, "appId", json_object_new_string(appId.c_str()));
-    json_object_object_add(obj, "params", json_object_new_string(params.c_str()));
+    json_object_object_add(obj, "parameters", json_object_new_string(params.c_str()));
 
     if (!LSCallOneReply(mService, "luna://com.palm.webappmanager/relaunch",
                         json_object_to_json_string(obj), NULL, NULL, NULL, &lserror)) {
