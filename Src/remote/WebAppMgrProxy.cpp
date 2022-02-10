@@ -69,7 +69,7 @@ void WebAppMgrProxy::connectWebAppMgr()
     // Initialize the LunaService connection for sending app-run information
     LSError err;
     LSErrorInit(&err);
-    if(!LSRegister(NULL, &mService, &err)) {
+    if(!LSRegister("com.palm.applicationManager-webappmgr", &mService, &err)) {
         g_warning("Could not register service client: %s", err.message);
         g_warning("Will retry after some time ...");
         g_timeout_add_full(G_PRIORITY_DEFAULT, 2000, &WebAppMgrProxy::retryConnectWebAppMgr, NULL, NULL);
@@ -402,6 +402,7 @@ std::string WebAppMgrProxy::launchApp(const std::string& appId,
         json_object_object_add(obj, "processId", json_object_new_int(processId));
         json_object_object_add(obj, "launchingAppId", json_object_new_string(launchingAppId.c_str()));
         json_object_object_add(obj, "launchingProcId", json_object_new_string(launchingProcId.c_str()));
+        json_object_object_add(obj, "instanceId", json_object_new_string(appId.c_str()));
 
         if (!LSCall(mService, "palm://com.palm.webappmanager/launchApp",
                     json_object_to_json_string(obj),

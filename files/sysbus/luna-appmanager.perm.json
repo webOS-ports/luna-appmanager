@@ -5,6 +5,9 @@
     "com.palm.applicationManager": [ 
         "all"
     ],
+    "com.palm.applicationManager-webappmgr": [ 
+        "all"
+    ],
     "org.webosports.bootmgr": [ 
         "applications",
         "applications.internal",
