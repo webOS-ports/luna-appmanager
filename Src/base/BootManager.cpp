@@ -392,7 +392,7 @@ void BootManager::startService()
 		return;
 	}
 
-	if (!LSRegisterServerStatus(m_service, "org.webosports.luna",
+	if (!LSRegisterServerStatus(m_service, "com.webos.surfacemanager-cardshell",
 				cbCompositorAvailable, NULL, &error)) {
 		g_warning("Failed to register for compositor status");
 		LSErrorFree(&error);
