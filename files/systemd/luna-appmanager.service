@@ -5,7 +5,9 @@ Requires=luna-sysmgr.service
 
 [Service]
 Type=simple
-EnvironmentFile=-/etc/luna-next/qtwebengine.conf 
+Environment=QT_WAYLAND_SHELL_INTEGRATION=webos
+Environment=QT_QPA_PLATFORM=wayland-egl
+Environment=XDG_RUNTIME_DIR=/tmp/luna-session
 Restart=on-failure
 ExecStart=/usr/sbin/LunaAppManager
 OOMScoreAdjust=-1000
