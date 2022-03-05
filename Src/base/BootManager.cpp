@@ -292,8 +292,23 @@ void BootStateNormal::activateSuspend(bool enable)
 
 void BootStateNormal::launchBootTimeApps()
 {
-	ApplicationProcessManager::instance()->launch("com.palm.launcher", "{\"launchedAtBoot\":true}");
-	ApplicationProcessManager::instance()->launch("com.palm.systemui", "{\"launchedAtBoot\":true}");
+	char *parameters_launcher = "{ \"id\": \"com.palm.launcher\", \"params\": {\"launchedAtBoot\":true} }";
+	char *parameters_systemui = "{ \"id\": \"com.palm.systemui\", \"params\": {\"launchedAtBoot\":true} }";
+
+	LSError lserror;
+	LSErrorInit(&lserror);
+
+	if(!LSCall(BootManager::instance()->service(), "luna://com.webos.applicationManager/launch", parameters_launcher, NULL, NULL, NULL, &lserror))
+	{
+		LSErrorPrint(&lserror, stderr);
+		LSErrorFree(&lserror);
+	}
+	if(!LSCall(BootManager::instance()->service(), "luna://com.webos.applicationManager/launch", parameters_systemui, NULL, NULL, NULL, &lserror))
+	{
+		LSErrorPrint(&lserror, stderr);
+		LSErrorFree(&lserror);
+	}
+		
 	ApplicationManager::instance()->launchBootTimeApps();
 }
 
