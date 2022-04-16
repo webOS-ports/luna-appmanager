@@ -174,7 +174,7 @@ void BootStateStartup::advanceState()
 
 void BootStateFirstUse::enter()
 {
-	launchFirstUseApp();
+	// launchFirstUseApp(); // now done by bootd 
 	m_displayBlocker.acquire("org.webosports.bootmgr");
 }
 
