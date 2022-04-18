@@ -2041,6 +2041,21 @@ std::string ApplicationManager::launch(std::string appId, std::string params)
 
 	g_message("Application %s isn't already running", appId.c_str());
 
+	LSError lserror;
+	LSErrorInit(&lserror);
+
+	if (LSCall(ApplicationManager::instance()->m_serviceHandlePrivate,
+				"luna://com.webos.service.applicationManager/launch", params.c_str(),
+				NULL, NULL, NULL, &lserror))
+	{
+		return "";
+	}
+	else
+	{
+		// calling SAM failed: continue with the old ways
+		LSErrorFree(&lserror);
+	}
+
 	return ApplicationProcessManager::instance()->launch(appId, params);
 }
 
