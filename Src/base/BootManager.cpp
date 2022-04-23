@@ -292,6 +292,8 @@ void BootStateNormal::activateSuspend(bool enable)
 
 void BootStateNormal::launchBootTimeApps()
 {
+	ApplicationProcessManager::instance()->launch("com.palm.launcher", "{\"launchedAtBoot\":true}");
+	ApplicationProcessManager::instance()->launch("com.palm.systemui", "{\"launchedAtBoot\":true}");
 	ApplicationManager::instance()->launchBootTimeApps();
 }
 
