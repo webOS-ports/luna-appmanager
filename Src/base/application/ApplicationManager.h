@@ -209,6 +209,7 @@ public:
 
 	void postApplicationHasBeenTerminated(const std::string& title, const std::string& menuname, const std::string& id);
 
+	LSHandle* getPrivateHandle() { return m_serviceHandlePrivate; }
 Q_SIGNALS:
 
 	//LAUNCHER3-ADD: (modified)
