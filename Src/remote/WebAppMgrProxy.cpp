@@ -138,11 +138,11 @@ void WebAppMgrProxy::onWebAppManagerConnected()
         LSErrorFree(&err);
     }
 
-    if (!LSCall(mService, "luna://com.palm.webappmanager/registerForAppEvents","{\"subscribe\":true}",
+    /*if (!LSCall(mService, "luna://com.palm.webappmanager/registerForAppEvents","{\"subscribe\":true}",
                         appEventCb, this, NULL, &err)) {
         g_warning("Failed to list all running apps: %s", err.message);
         LSErrorFree(&err);
-    }
+    }*/
 }
 
 void WebAppMgrProxy::onWebAppManagerDisconnected()
@@ -189,14 +189,14 @@ cleanup:
     json_object_put(json);
 }
 
-bool WebAppMgrProxy::appEventCb(LSHandle *handle, LSMessage *message, void *user_data)
+/*bool WebAppMgrProxy::appEventCb(LSHandle *handle, LSMessage *message, void *user_data)
 {
     WebAppMgrProxy *proxy = static_cast<WebAppMgrProxy*>(user_data);
     proxy->handleAppEvent(LSMessageGetPayload(message));
     return true;
-}
+}*/
 
-void WebAppMgrProxy::handleAppEvent(const char *payload)
+/*void WebAppMgrProxy::handleAppEvent(const char *payload)
 {
     json_object *appIdObj, *eventObj, *processIdObj;
     std::string event, appId;
@@ -233,7 +233,7 @@ void WebAppMgrProxy::handleAppEvent(const char *payload)
 
 cleanup:
     json_object_put(json);
-}
+}*/
 
 bool WebAppMgrProxy::connected()
 {
