@@ -65,7 +65,7 @@ public:
     static gboolean retryConnectWebAppMgr(gpointer user_data);
     static bool webAppManagerServiceStatusCb(LSHandle *handle, LSMessage *message, void *user_data);
     static bool listRunningAppsCb(LSHandle *handle, LSMessage *message, void *user_data);
-    static bool appEventCb(LSHandle *handle, LSMessage *message, void *user_data);
+//    static bool appEventCb(LSHandle *handle, LSMessage *message, void *user_data);
 
 
 Q_SIGNALS:
@@ -84,7 +84,7 @@ private:
     void onWebAppManagerDisconnected();
 
     void updateRunningApps(const char *payload);
-    void handleAppEvent(const char *payload);
+//    void handleAppEvent(const char *payload);
 
     bool mConnected;
     LSHandle *mService;

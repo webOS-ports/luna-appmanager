@@ -16,6 +16,7 @@
         "com.palm.applicationManager/listExtensionMap",
         "com.palm.applicationManager/mimeTypeForExtension",
         "com.palm.applicationManager/open",
+        "com.palm.applicationManager/updateLaunchPointIcon",
         "com.palm.applicationManager/addDockModeLaunchPoint",
         "com.palm.applicationManager/addRedirectHandler",
         "com.palm.applicationManager/addResourceHandler",
