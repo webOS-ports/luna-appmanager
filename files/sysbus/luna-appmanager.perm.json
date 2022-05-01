@@ -12,5 +12,21 @@
         "applications",
         "applications.internal",
         "database.internal"
+    ],
+    "com.palm.systemmanager-prefs*": [
+        "applications",
+        "devices",
+        "networking.internal",
+        "services",
+        "settings",
+        "system"
+    ],
+    "com.palm.systemmanager-localeprefs*": [
+        "applications",
+        "devices",
+        "networking.internal",
+        "services",
+        "settings",
+        "system"
     ]
 }
