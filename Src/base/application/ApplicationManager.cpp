@@ -193,7 +193,7 @@ void ApplicationManager::runAppInstallScripts()
 
 	if (ret == 0) {
 		g_warning("Running app install script");
-		cmd = "/usr/bin/app-install -install-only";
+		cmd = "/usr/sbin/app-install -install-only";
 		ret = ::system(cmd.c_str());
 
 		if (ret == 0 && Settings::LunaSettings()->uiType != Settings::UI_MINIMAL) {
@@ -203,7 +203,7 @@ void ApplicationManager::runAppInstallScripts()
 			GError *gerr = NULL;
 			const char *argv[4] = {0};
 			argv[0] = "/usr/bin/nohup";
-			argv[1] = "/usr/bin/app-install";
+			argv[1] = "/usr/sbin/app-install";
 			argv[2] = "-notify-only";
 			argv[3] = NULL;
 			gboolean spawnRet = g_spawn_async(NULL,
