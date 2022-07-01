@@ -392,8 +392,8 @@ void BootManager::startService()
 		return;
 	}
 
-	if (!LSRegisterServerStatus(m_service, "com.webos.surfacemanager-cardshell",
-				cbCompositorAvailable, NULL, &error)) {
+	if (!LSRegisterServerStatusEx(m_service, "com.webos.surfacemanager-cardshell",
+				cbCompositorAvailable, NULL, NULL, &error)) {
 		g_warning("Failed to register for compositor status");
 		LSErrorFree(&error);
 	}
