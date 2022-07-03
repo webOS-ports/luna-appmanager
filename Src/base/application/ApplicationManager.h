@@ -209,7 +209,7 @@ public:
 
 	void postApplicationHasBeenTerminated(const std::string& title, const std::string& menuname, const std::string& id);
 
-	LSHandle* getPrivateHandle() { return m_serviceHandlePrivate; }
+	LSHandle* getServiceHandle() { return m_service; }
 Q_SIGNALS:
 
 	//LAUNCHER3-ADD: (modified)
@@ -302,9 +302,7 @@ private:
 	bool	startService();
 	void	stopService();
 	void    postLaunchPointChange(const LaunchPoint* lp, const std::string& change);
-	LSPalmService*	m_service;
-	LSHandle* m_serviceHandlePublic;
-	LSHandle* m_serviceHandlePrivate;
+	LSHandle*	m_service;
 	static long s_ticketId;
 	bool m_initialScan;
 

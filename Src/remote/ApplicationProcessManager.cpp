@@ -181,7 +181,7 @@ std::string ApplicationProcessManager::launch(std::string appId, std::string par
 	if(params.empty()) params = "{}";
 	std::string SAM_params = "{ \"id\": \"" + appId + "\", \"params\": " + params + " }";
 	g_warning("Delegating launch call to SAM...");
-	if (LSCall(ApplicationManager::instance()->getPrivateHandle(),
+	if (LSCall(ApplicationManager::instance()->getServiceHandle(),
 				"luna://com.webos.service.applicationManager/launch", SAM_params.c_str(),
 				NULL, NULL, NULL, &lserror))
 	{

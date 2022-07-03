@@ -7091,7 +7091,7 @@ void ApplicationManager::stopService()
 	LSErrorInit(&lserror);
 	bool result;
 
-	result = LSUnregisterPalmService(m_service, &lserror);
+	result = LSUnregister(m_service, &lserror);
 	if (!result)
 		LSErrorFree(&lserror);
 }
@@ -7125,7 +7125,7 @@ void ApplicationManager::postLaunchPointChange(const LaunchPoint* lp, const std:
 	json = lp->toJSON();
 	json_object_object_add(json, "change", json_object_new_string(change.c_str()));
 	g_message("%s: Posting LaunchPoint change %s", __PRETTY_FUNCTION__, json_object_to_json_string(json));
-	if (!LSSubscriptionPost(m_serviceHandlePrivate, "/", "launchPointChanges", 
+	if (!LSSubscriptionPost(m_service, "/", "launchPointChanges", 
 			json_object_to_json_string(json), &lsError))
 		LSErrorFree (&lsError);
 
@@ -7169,7 +7169,7 @@ void ApplicationManager::relayStatus (const std::string& jsonPayload,const unsig
 	//create the key for the subscription reply (this has to be in agreement with the key created in applicationManager/open )
 	std::string ls_sub_key = toSTLString<unsigned long>(ticketId);
 
-	bool retVal = LSSubscriptionRespond (m_service, ls_sub_key.c_str(), jsonPayload.c_str(), &lserror);
+	bool retVal = LSSubscriptionReply (m_service, ls_sub_key.c_str(), jsonPayload.c_str(), &lserror);
 	if (!retVal) {
 		LSErrorPrint (&lserror, stderr);
 		LSErrorFree(&lserror);
@@ -7847,7 +7847,7 @@ Done:
 
 ////////////////////////////// ----- SERVICE INIT  ----- ///////////////////////////////////////////////////////////////
 
-static LSMethod appMgrMethodsPublic[]  = {
+static LSMethod appMgrMethods[]  = {
 		{ "open", servicecallback_open },
 		{ "launch" , servicecallback_launch },
 		{ "addLaunchPoint", servicecallback_addLaunchPoint },
@@ -7868,10 +7868,6 @@ static LSMethod appMgrMethodsPublic[]  = {
 		{ "listAllHandlersForUrlByVerb" , servicecallback_listAllHandlersByVerb },
 		{ "listExtensionMap"			, servicecallback_listExtensionMap },
 		{ "getAppBasePath", servicecallback_getappbasepath},
-		{ 0, 0 }
-};
-
-static LSMethod appMgrMethodsPrivate[] = {
 		{ "install", servicecallback_install },
 		{ "running", servicecallback_listRunningApps },
 		{ "close", servicecallback_close },
@@ -7907,7 +7903,6 @@ static LSMethod appMgrMethodsPrivate[] = {
 		{ "forceSingleAppScan",		servicecallback_forceSingleAppScan},
 		{ "registerApplication", servicecallback_register_application },
 		{ "applicationHasBeenTerminated", servicecallback_applicationHasBeenTerminated },
-
 #ifdef AMS_TEST_MIME
 		{ "TESTMIME_interleaveAddRemove" , testcallback_mimeAddRemoveInterleave },
 		{ "TESTMIME_addEntries" , testcallback_mimeAddEntries },
@@ -7922,7 +7917,6 @@ static LSMethod appMgrMethodsPrivate[] = {
 		{ "TESTINSTALL_switchAppIdToUpdateFailed", testcallback_switchAppIdToUpdateFailed },
 		{ "TESTINSTALL_changeAppIdProgress", testcallback_changeAppIdProgress },
 #endif
-
 		{ 0, 0 }
 };
 
@@ -7937,7 +7931,7 @@ bool ApplicationManager::startService()
 
 	g_debug ("ApplicationManager started");
 
-	result = LSRegisterPalmService("com.palm.applicationManager", &m_service, &lserror);
+	result = LSRegister("com.palm.applicationManager", &m_service, &lserror);
 	if (!result)
 	{
 		g_message( "ApplicationManager::startService failed" );
@@ -7946,7 +7940,7 @@ bool ApplicationManager::startService()
 		return false;
 	}
 
-	result = LSPalmServiceRegisterCategory( m_service, "/", appMgrMethodsPublic, appMgrMethodsPrivate,
+	result = LSRegisterCategory(m_service, "/", appMgrMethods,
 			NULL, NULL, &lserror);
 	if (!result)
 	{
@@ -7956,10 +7950,7 @@ bool ApplicationManager::startService()
 		return false;
 	}
 
-	m_serviceHandlePublic = LSPalmServiceGetPrivateConnection(m_service);
-	m_serviceHandlePrivate = LSPalmServiceGetPrivateConnection(m_service);
-
-	result = LSGmainAttachPalmService(m_service, mainLoop, &lserror);
+	result = LSGmainAttach(m_service, mainLoop, &lserror);
 	if (!result)
 	{
 		g_message( "ApplicationManager::startService failed" );
@@ -7970,7 +7961,7 @@ bool ApplicationManager::startService()
 
 	if (Settings::LunaSettings()->uiType != Settings::UI_MINIMAL) {
 
-		result = LSCall(m_serviceHandlePrivate, "palm://com.palm.bus/signal/registerServerStatus",
+		result = LSCall(m_service, "palm://com.palm.bus/signal/registerServerStatus",
 						"{\"serviceName\":\"com.webos.appInstallService\"}", 
 						ApplicationManager::cbAppInstallServiceConnection, NULL, NULL, &lserror);
 		if (!result)

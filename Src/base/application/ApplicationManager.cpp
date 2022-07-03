@@ -109,8 +109,6 @@ ApplicationManager* ApplicationManager::instance()
 ApplicationManager::ApplicationManager()
 {
 	m_service = 0;
-	m_serviceHandlePublic = 0;
-	m_serviceHandlePrivate = 0;
 	m_initialScan = true;
 
 	////hmmm, maybe better to load these in init()? need to consider race based on request-before-init...
@@ -1982,7 +1980,7 @@ void ApplicationManager::focusApplication(std::string appId)
 
 	// This will let the compositor maximize the existing card for the app. For
 	// the case of an headless app this will do nothing so is safe to call.
-	if (!LSCallOneReply(m_serviceHandlePrivate,
+	if (!LSCallOneReply(m_service,
 					"palm://com.webos.surfacemanager-cardshell/focusApplication", params,
 					NULL, NULL, NULL, &error))
 	{
@@ -2000,7 +1998,7 @@ std::string ApplicationManager::launch(std::string appId, std::string params)
 
     // Check if we have a native application registered through libwebos-application and
     // send it the relaunch signal
-	LSSubscriptionAcquire(m_serviceHandlePrivate, appId.c_str(), &iter, NULL);
+	LSSubscriptionAcquire(m_service, appId.c_str(), &iter, NULL);
 	if (iter && LSSubscriptionHasNext(iter))
 	{
 		g_message("Application %s is already running and registered through libwebos-application",
@@ -2012,7 +2010,7 @@ std::string ApplicationManager::launch(std::string appId, std::string params)
 		json_object_object_add(reply, "event", json_object_new_string("relaunched"));
 		json_object_object_add(reply, "parameters", json_object_new_string(params.c_str()));
 
-		LSSubscriptionReply(m_serviceHandlePrivate, appId.c_str(),
+		LSSubscriptionReply(m_service, appId.c_str(),
 			json_object_to_json_string(reply), NULL);
 
 		json_object_put(reply);
@@ -2048,11 +2046,11 @@ bool ApplicationManager::registerApplication(std::string appId, LSMessage *messa
 {
 	LSSubscriptionIter *iter = NULL;
 
-	LSSubscriptionAcquire(m_serviceHandlePrivate, appId.c_str(), &iter, NULL);
+	LSSubscriptionAcquire(m_service, appId.c_str(), &iter, NULL);
 	if (iter != NULL && LSSubscriptionHasNext(iter))
 		return false;
 
-	LSSubscriptionAdd(m_serviceHandlePrivate, appId.c_str(), message, NULL);
+	LSSubscriptionAdd(m_service, appId.c_str(), message, NULL);
 
 	return true;
 }
@@ -2485,7 +2483,7 @@ bool ApplicationManager::cbAppInstallServiceConnection(LSHandle* lshandle, LSMes
 		LSError lserror;
 		LSErrorInit(&lserror);
 
-		if (!LSCall(ApplicationManager::instance()->m_serviceHandlePrivate,
+		if (!LSCall(ApplicationManager::instance()->m_service,
 					"palm://com.webos.appInstallService/status", "{\"subscribe\":true}",
 					ApplicationManager::cbApplicationStatusCallback, NULL, NULL, &lserror)) {
 			LSErrorFree(&lserror);
@@ -3028,7 +3026,7 @@ void ApplicationManager::slotBuiltInAppEntryPoint_VoiceDial(const std::string& a
 	LSError lserror;
 	LSErrorInit(&lserror);
 
-	if (!LSCall(ApplicationManager::instance()->m_serviceHandlePrivate,
+	if (!LSCall(ApplicationManager::instance()->m_service,
 			"palm://com.palm.pmvoicecommand/startVoiceCommand", "{\"source\":\"appicon\"}",
 			NULL, NULL, NULL, &lserror))
 	{
@@ -3131,7 +3129,7 @@ void ApplicationManager::postApplicationHasBeenTerminated(const std::string& tit
 	if (!id.empty())
 		json_object_object_add(json, "id", json_object_new_string(id.c_str()));
 
-	retVal = LSSubscriptionReply(m_serviceHandlePrivate, "/applicationHasBeenTerminated",
+	retVal = LSSubscriptionReply(m_service, "/applicationHasBeenTerminated",
 						json_object_to_json_string(json), &lsError);
 	if (!retVal)
 		LSErrorFree (&lsError);
