@@ -1,32 +1,41 @@
 {
-    "luna-appmanager": [ 
+    "luna-appmanager": [
         "all"
     ],
-    "com.palm.applicationManager": [ 
-        "all"
+    "com.palm.applicationManager": [
+        "all",
+        "application.launcher",
+        "systemsettings.query"
     ],
-    "com.palm.applicationManager-webappmgr": [ 
-        "all"
+    "com.palm.applicationManager-webappmgr": [
+        "all",
+        "application.launcher",
+        "systemsettings.query"
     ],
-    "org.webosports.bootmgr": [ 
-        "applications",
-        "applications.internal",
-        "database.internal"
+    "org.webosports.bootmgr": [
+        "application.launcher",
+        "configurator.management",
+        "database.operation",
+        "systemsettings.query"
     ],
     "com.palm.systemmanager-prefs*": [
-        "applications",
-        "devices",
-        "networking.internal",
-        "services",
-        "settings",
-        "system"
+        "application.launcher",
+        "networkconnection.query",
+        "networkconnection.management",
+        "settings.query",
+        "systemconfig.query",
+        "systemsettings.query",
+        "wifi.query",
+        "wifi.management"
     ],
     "com.palm.systemmanager-localeprefs*": [
-        "applications",
-        "devices",
-        "networking.internal",
-        "services",
-        "settings",
-        "system"
+        "application.launcher",
+        "networkconnection.query",
+        "networkconnection.management",
+        "settings.query",
+        "systemconfig.query",
+        "systemsettings.query",
+        "wifi.query",
+        "wifi.management"
     ]
 }

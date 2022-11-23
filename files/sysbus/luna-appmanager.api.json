@@ -1,5 +1,5 @@
 {
-    "system": [
+    "appmanager.management": [
         "com.palm.applicationManager/getHandlerForExtension",
         "com.palm.applicationManager/getHandlerForMimeType",
         "com.palm.applicationManager/getHandlerForMimeTypeByVerb",
