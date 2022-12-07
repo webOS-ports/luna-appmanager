@@ -13,6 +13,7 @@
         "systemsettings.query"
     ],
     "org.webosports.bootmgr": [
+        "accountsservice.management",
         "application.launcher",
         "configurator.management",
         "database.operation",
