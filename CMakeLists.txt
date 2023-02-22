@@ -18,19 +18,9 @@ webos_add_compiler_flags(ALL -DHAS_LUNA_PREF)
 webos_add_compiler_flags(ALL -DHAS_DISPLAY_TIMEOUT)
 webos_add_compiler_flags(ALL -DSECURITY_COMPATIBILITY)
 
-find_package(Qt5Core REQUIRED)
-if(NOT Qt5Core_FOUND)
-    message(FATAL_ERROR "Qt5Core module is required!")
-endif()
-
-find_package(Qt5Gui REQUIRED)
-if(NOT Qt5Gui_FOUND)
-    message(FATAL_ERROR "Qt5Gui module is required!")
-endif()
-
-find_package(Qt5Widgets REQUIRED)
-if(NOT Qt5Widgets_FOUND)
-    message(FATAL_ERROR "Qt5Widgets module is required!")
+find_package(Qt6 COMPONENTS Core Gui Widgets)
+if (NOT Qt6_FOUND)
+    find_package(Qt5 5.15 REQUIRED COMPONENTS Core Gui Widgets)
 endif()
 
 find_package(PkgConfig "0.22" REQUIRED)
@@ -128,7 +118,7 @@ target_link_libraries(LunaAppManager
     ${SERVICEINSTALLER_LIBRARIES}
     ${PMLOGLIB_LIBRARIES}
     ${ROLEGEN_LIBRARIES}
-    Qt5::Core Qt5::Gui Qt5::Widgets
+    Qt::Core Qt::Gui Qt::Widgets
     pthread)
 
 webos_build_daemon()

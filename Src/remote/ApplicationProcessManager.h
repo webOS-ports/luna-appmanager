@@ -76,7 +76,7 @@ public:
     NativeApplication(const QString& appId, qint64 processId, QObject *parent = 0);
     ~NativeApplication();
 
-    qint64 nativePid() { return mProcess->pid(); }
+    qint64 nativePid() { return mProcess->processId(); }
     QProcess* process() { return mProcess; }
 
     virtual void kill();

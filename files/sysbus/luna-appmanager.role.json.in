@@ -1,7 +1,8 @@
 {
     "exeName":"@WEBOS_INSTALL_SBINDIR@/LunaAppManager",
+    "trustLevel" : "oem",
     "type": "privileged",
-    "allowedNames": ["", "com.palm.appinstaller", "com.palm.applicationManager", "com.palm.eventreporter.LunaAppManager", "org.webosports.bootmgr"],
+    "allowedNames": ["", "com.palm.appinstaller", "com.palm.applicationManager", "com.palm.eventreporter.LunaAppManager", "org.webosports.bootmgr", "com.palm.applicationManager-webappmgr", "com.palm.systemmanager-prefs-*", "com.palm.systemmanager-localeprefs-*"],
     "permissions": [
         {
             "service":"",
@@ -19,12 +20,27 @@
             "outbound":["*"]
         },
         {
+            "service":"com.palm.applicationManager-webappmgr",
+            "inbound":["*"],
+            "outbound":["*"]
+        },
+        {
             "service":"com.palm.eventreporter.LunaAppManager",
             "inbound":["*"],
             "outbound":["*"]
         },
         {
             "service":"org.webosports.bootmgr",
+            "inbound":["*"],
+            "outbound":["*"]
+        },
+        {
+            "service":"com.palm.systemmanager-prefs-*",
+            "inbound":["*"],
+            "outbound":["*"]
+        },
+        {
+            "service":"com.palm.systemmanager-localeprefs-*",
             "inbound":["*"],
             "outbound":["*"]
         }

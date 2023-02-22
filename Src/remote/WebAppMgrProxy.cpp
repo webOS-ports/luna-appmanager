@@ -69,7 +69,7 @@ void WebAppMgrProxy::connectWebAppMgr()
     // Initialize the LunaService connection for sending app-run information
     LSError err;
     LSErrorInit(&err);
-    if(!LSRegister(NULL, &mService, &err)) {
+    if(!LSRegister("com.palm.applicationManager-webappmgr", &mService, &err)) {
         g_warning("Could not register service client: %s", err.message);
         g_warning("Will retry after some time ...");
         g_timeout_add_full(G_PRIORITY_DEFAULT, 2000, &WebAppMgrProxy::retryConnectWebAppMgr, NULL, NULL);
@@ -83,7 +83,7 @@ void WebAppMgrProxy::connectWebAppMgr()
     g_message("Waiting for WebAppMgr to become available ...");
 
     if (!LSCall(mService, "palm://com.palm.bus/signal/registerServerStatus",
-                "{\"serviceName\":\"org.webosports.webappmanager\"}",
+                "{\"serviceName\":\"com.palm.webappmanager\"}",
                 webAppManagerServiceStatusCb, this, NULL, &err)) {
         g_warning("Failed to listen for WebAppMgr service status: %s", err.message);
         LSErrorFree(&err);
@@ -132,17 +132,17 @@ void WebAppMgrProxy::onWebAppManagerConnected()
     LSErrorInit(&err);
 
     // Initial sync of all running web applications
-    if (!LSCallOneReply(mService, "luna://org.webosports.webappmanager/listRunningApps","{}",
+    if (!LSCallOneReply(mService, "luna://com.palm.webappmanager/listRunningApps","{}",
                         listRunningAppsCb, this, NULL, &err)) {
         g_warning("Failed to list all running apps: %s", err.message);
         LSErrorFree(&err);
     }
 
-    if (!LSCall(mService, "luna://org.webosports.webappmanager/registerForAppEvents","{\"subscribe\":true}",
+    /*if (!LSCall(mService, "luna://com.palm.webappmanager/registerForAppEvents","{\"subscribe\":true}",
                         appEventCb, this, NULL, &err)) {
         g_warning("Failed to list all running apps: %s", err.message);
         LSErrorFree(&err);
-    }
+    }*/
 }
 
 void WebAppMgrProxy::onWebAppManagerDisconnected()
@@ -189,14 +189,14 @@ cleanup:
     json_object_put(json);
 }
 
-bool WebAppMgrProxy::appEventCb(LSHandle *handle, LSMessage *message, void *user_data)
+/*bool WebAppMgrProxy::appEventCb(LSHandle *handle, LSMessage *message, void *user_data)
 {
     WebAppMgrProxy *proxy = static_cast<WebAppMgrProxy*>(user_data);
     proxy->handleAppEvent(LSMessageGetPayload(message));
     return true;
-}
+}*/
 
-void WebAppMgrProxy::handleAppEvent(const char *payload)
+/*void WebAppMgrProxy::handleAppEvent(const char *payload)
 {
     json_object *appIdObj, *eventObj, *processIdObj;
     std::string event, appId;
@@ -233,7 +233,7 @@ void WebAppMgrProxy::handleAppEvent(const char *payload)
 
 cleanup:
     json_object_put(json);
-}
+}*/
 
 bool WebAppMgrProxy::connected()
 {
@@ -267,7 +267,7 @@ void WebAppMgrProxy::killApp(qint64 processId)
 
     char *payload = g_strdup_printf("{\"processId\":%llu}", processId);
 
-    if (!LSCallOneReply(mService, "luna://org.webosports.webappmanager/killApp", payload,
+    if (!LSCallOneReply(mService, "luna://com.palm.webappmanager/killApp", payload,
                         NULL, NULL, NULL, &err)) {
         g_warning("Failed to kill app with process id %i: %s", processId, err.message);
         LSErrorFree(&err);
@@ -316,12 +316,12 @@ void WebAppMgrProxy::launchUrl(const char* url, WindowType::Type winType,
     if (appDesc)
         json_object_object_add(obj, "appDesc", appDesc->toJSON());
 
-    json_object_object_add(obj, "params", json_object_new_string(params));
+    json_object_object_add(obj, "parameters", json_object_new_string(params));
     json_object_object_add(obj, "processId", json_object_new_int(processId));
     json_object_object_add(obj, "launchingAppId", json_object_new_string(launchingAppId));
     json_object_object_add(obj, "launchingProcId", json_object_new_string(launchingProcId));
 
-    if (!LSCall(mService, "palm://org.webosports.webappmanager/launchUrl",
+    if (!LSCall(mService, "palm://com.palm.webappmanager/launchUrl",
                 json_object_to_json_string(obj),
                 NULL, NULL, NULL, &err)) {
         LSErrorPrint(&err, stderr);
@@ -340,6 +340,7 @@ std::string WebAppMgrProxy::launchApp(const std::string& appId,
 {
     std::string appIdToLaunch = appId;
     std::string paramsToLaunch = params;
+    if(paramsToLaunch.empty()) paramsToLaunch = "{}";
     errMsg.erase();
 
     if (!connected()) {
@@ -397,12 +398,13 @@ std::string WebAppMgrProxy::launchApp(const std::string& appId,
 
         json_object *obj = json_object_new_object();
         json_object_object_add(obj, "appDesc", desc->toJSON());
-        json_object_object_add(obj, "params", json_object_new_string(paramsToLaunch.c_str()));
+        json_object_object_add(obj, "parameters", json_tokener_parse(paramsToLaunch.c_str()));
         json_object_object_add(obj, "processId", json_object_new_int(processId));
         json_object_object_add(obj, "launchingAppId", json_object_new_string(launchingAppId.c_str()));
         json_object_object_add(obj, "launchingProcId", json_object_new_string(launchingProcId.c_str()));
+        json_object_object_add(obj, "instanceId", json_object_new_string(appId.c_str()));
 
-        if (!LSCall(mService, "palm://org.webosports.webappmanager/launchApp",
+        if (!LSCall(mService, "palm://com.palm.webappmanager/launchApp",
                     json_object_to_json_string(obj),
                     NULL, NULL, NULL, &err)) {
             LSErrorPrint(&err, stderr);
@@ -438,9 +440,9 @@ void WebAppMgrProxy::relaunch(const std::string &appId, const std::string &param
 
     json_object *obj = json_object_new_object();
     json_object_object_add(obj, "appId", json_object_new_string(appId.c_str()));
-    json_object_object_add(obj, "params", json_object_new_string(params.c_str()));
+    json_object_object_add(obj, "parameters", json_object_new_string(params.c_str()));
 
-    if (!LSCallOneReply(mService, "luna://org.webosports.webappmanager/relaunch",
+    if (!LSCallOneReply(mService, "luna://com.palm.webappmanager/relaunch",
                         json_object_to_json_string(obj), NULL, NULL, NULL, &lserror)) {
         g_warning("Failed to send relaunch signa to WebAppMgr: %s", lserror.message);
         LSErrorFree(&lserror);
@@ -459,7 +461,7 @@ void WebAppMgrProxy::clearMemoryCaches()
         return;
     }
 
-    if (!LSCallOneReply(mService, "luna://org.webosports.webappmanager/clearMemoryCaches",
+    if (!LSCallOneReply(mService, "luna://com.palm.webappmanager/clearMemoryCaches",
                         "{}", NULL, NULL, NULL, &lserror)) {
         g_warning("Failed to clear memory caches: %s", lserror.message);
         LSErrorFree(&lserror);
@@ -480,7 +482,7 @@ void WebAppMgrProxy::clearMemoryCaches(qint64 processId)
     json_object *obj = json_object_new_object();
     json_object_object_add(obj, "processId", json_object_new_int(processId));
 
-    if (!LSCallOneReply(mService, "luna://org.webosports.webappmanager/clearMemoryCaches",
+    if (!LSCallOneReply(mService, "luna://com.palm.webappmanager/clearMemoryCaches",
                         json_object_to_json_string(obj), NULL, NULL, NULL, &lserror)) {
         g_warning("Failed to clear memory caches for process %d: %s", processId, lserror.message);
         LSErrorFree(&lserror);
@@ -503,7 +505,7 @@ void WebAppMgrProxy::clearMemoryCaches(const std::string &appId)
     json_object *obj = json_object_new_object();
     json_object_object_add(obj, "appId", json_object_new_string(appId.c_str()));
 
-    if (!LSCallOneReply(mService, "luna://org.webosports.webappmanager/clearMemoryCaches",
+    if (!LSCallOneReply(mService, "luna://com.palm.webappmanager/clearMemoryCaches",
                         json_object_to_json_string(obj), NULL, NULL, NULL, &lserror)) {
         g_warning("Failed to clear memory caches for app %s: %s", appId.c_str(), lserror.message);
         LSErrorFree(&lserror);

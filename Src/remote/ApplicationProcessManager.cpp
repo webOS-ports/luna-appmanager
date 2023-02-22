@@ -175,6 +175,24 @@ std::string ApplicationProcessManager::launch(std::string appId, std::string par
 {
     qDebug() << "Launching application" << QString::fromStdString(appId);
 
+	LSError lserror;
+	LSErrorInit(&lserror);
+	
+	if(params.empty()) params = "{}";
+	std::string SAM_params = "{ \"id\": \"" + appId + "\", \"params\": " + params + " }";
+	g_warning("Delegating launch call to SAM...");
+	if (LSCall(ApplicationManager::instance()->getServiceHandle(),
+				"luna://com.webos.service.applicationManager/launch", SAM_params.c_str(),
+				NULL, NULL, NULL, &lserror))
+	{
+		return std::string("");
+	}
+	else
+	{
+		// calling SAM failed: continue with the old ways
+		LSErrorFree(&lserror);
+	}
+
     ApplicationDescription* desc = ApplicationManager::instance()->getPendingAppById(appId);
     if (!desc) {
         desc = ApplicationManager::instance()->getAppById(appId);

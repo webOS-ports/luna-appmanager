@@ -1,26 +1,5 @@
 {
-    "applications": [
-        "com.palm.applicationManager/getAppBasePath",
-        "com.palm.applicationManager/launch"
-    ],
-    "applications.internal": [
-        "com.palm.applicationManager/addLaunchPoint",
-        "com.palm.applicationManager/getAppBasePath",
-        "com.palm.applicationManager/launch",
-        "com.palm.applicationManager/removeLaunchPoint",
-        "com.palm.applicationManager/close",
-        "com.palm.applicationManager/getAppInfo",
-        "com.palm.applicationManager/listApps",
-        "com.palm.applicationManager/listLaunchPoints",
-        "com.palm.applicationManager/running"
-    ],
-    "applications.launch": [
-        "com.palm.applicationManager/launch"
-    ],
-    "applications.query": [
-        "com.palm.applicationManager/getAppBasePath"
-    ],
-    "system": [
+    "appmanager.management": [
         "com.palm.applicationManager/getHandlerForExtension",
         "com.palm.applicationManager/getHandlerForMimeType",
         "com.palm.applicationManager/getHandlerForMimeTypeByVerb",
@@ -53,7 +32,6 @@
         "com.palm.applicationManager/listDockPoints",
         "com.palm.applicationManager/listPackages",
         "com.palm.applicationManager/listPendingLaunchPoints",
-        "com.palm.applicationManager/registerApplication",
         "com.palm.applicationManager/registerVerbsForRedirect",
         "com.palm.applicationManager/registerVerbsForResource",
         "com.palm.applicationManager/removeDockModeLaunchPoint",

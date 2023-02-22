@@ -1633,146 +1633,6 @@ static bool servicecallback_launch( LSHandle* lshandle, LSMessage *message,
 /*!
 \page com_palm_application_manager
 \n
-\section com_palm_application_manager_list_apps listApps
-
-\e Private.
-
-com.palm.applicationManager/listApps
-
-List all registered applications.
-
-\subsection com_palm_application_manager_list_apps_syntax Syntax:
-\code
-{
-}
-\endcode
-
-\subsection com_palm_application_manager_list_apps_returns Returns:
-\code
-{
-    "returnValue": boolean,
-    "apps": [ object array ]
-}
-\endcode
-
-\param returnValue Indicates if the call was succesful.
-\param apps Array that contains objects for the applications.
-
-\subsection com_palm_application_manager_list_apps_examples Examples:
-\code
-luna-send -n 1 -f luna://com.palm.applicationManager/listApps '{}'
-\endcode
-
-Example response for a succesful call:
-\code
-    "returnValue": true,
-    "apps": [
-        {
-            "id": "com.palm.app.backup",
-            "main": "file:\/\/\/usr\/palm\/applications\/com.palm.app.backup\/index.html",
-            "version": "3.0.1",
-            "category": "",
-            "title": "Backup",
-            "appmenu": "Backup",
-            "vendor": "Palm, Inc.",
-            "vendorUrl": "",
-            "size": 0,
-            "icon": "\/usr\/palm\/applications\/com.palm.app.backup\/icon.png",
-            "removable": false,
-            "userInstalled": false,
-            "hasAccounts": false,
-            "uiRevision": 2,
-            "tapToShareSupported": false
-        },
-        ...
-        {
-            "id": "com.palm.app.enyo-findapps",
-            "main": "file:\/\/\/media\/cryptofs\/apps\/usr\/palm\/applications\/com.palm.app.enyo-findapps\/index.html",
-            "version": "3.0.4100",
-            "category": "",
-            "title": "HP App Catalog",
-            "appmenu": "HP App Catalog",
-            "vendor": "Palm",
-            "vendorUrl": "",
-            "size": 0,
-            "icon": "\/media\/cryptofs\/apps\/usr\/palm\/applications\/com.palm.app.enyo-findapps\/icon.png",
-            "removable": false,
-            "userInstalled": false,
-            "hasAccounts": false,
-            "universalSearch": {
-                "search": {
-                    "displayName": "HP App Catalog",
-                    "url": "com.palm.app.findapps",
-                    "launchParam": {
-                        "common": {
-                            "sceneType": "search",
-                            "params": {
-                                "type": "query",
-                                "search": "#{searchTerms}"
-                            }
-                        }
-                    }
-                }
-            },
-            "uiRevision": 2,
-            "tapToShareSupported": false
-        },
-        ...
-    ]
-}
-\endcode
-
-Example response for a failed call:
-\code
-{
-    "returnValue": false
-    }
-\endcode
-*/
-static bool servicecallback_listApps(LSHandle* lshandle, LSMessage *message,
-		void *user_data)
-{
-	LSError lserror;
-	LSErrorInit(&lserror);
-	json_object* json = 0;
-	json_object* array = 0;
-
-    // {}
-
-    VALIDATE_SCHEMA_AND_RETURN(lshandle,
-                               message,
-                               SCHEMA_ANY);
-
-	ApplicationManager* appMgr  = ApplicationManager::instance();
-	std::vector<ApplicationDescription*> apps = appMgr->allApps();
-
-	json = json_object_new_object();
-	if (json == NULL)
-		return false;
-
-	array = json_object_new_array();
-	if (array) {
-		json_object_object_add(json, "returnValue", json_object_new_boolean(true));
-		for (std::vector<ApplicationDescription*>::iterator it = apps.begin(); it != apps.end(); ++it) {
-
-			json_object_array_add(array, (*it)->toJSON());
-		}
-		json_object_object_add(json, "apps", array);
-	}
-	else {
-		json_object_object_add(json, "returnValue", json_object_new_boolean(false));
-	}
-
-	if (!LSMessageReply( lshandle, message, json_object_to_json_string(json), &lserror ))
-		LSErrorFree (&lserror); 
-
-	json_object_put(json);
-	return true;
-}
-
-/*!
-\page com_palm_application_manager
-\n
 \section com_palm_application_manager_list_packages listPackages
 
 \e Private.
@@ -2318,173 +2178,6 @@ static bool servicecallback_searchForApps(LSHandle* lshandle, LSMessage *message
 	return true;
 }
 
-
-/**
-	ListLaunchPoints: This returns all the launchPoints
- */
-
-/*!
-\page com_palm_application_manager
-\n
-\section com_palm_application_manager_list_launch_points listLaunchPoints
-
-\e Private.
-
-com.palm.applicationManager/listLaunchPoints
-
-Get all launch points.
-
-\subsection com_palm_application_manager_list_launch_points_syntax Syntax:
-\code
-{
-}
-\endcode
-
-\subsection com_palm_application_manager_list_launch_points_returns Returns:
-\code
-{
-    "returnValue": boolean,
-    "launchPoints": [
-        {
-            "id": string,
-            "version": string,
-            "appId": string,
-            "vendor": string,
-            "vendorUrl": string,
-            "size": int,
-            "packageId": string,
-            "removable": boolean,
-            "launchPointId": string,
-            "title": string,
-            "appmenu": string,
-            "icon": string
-        }
-    ]
-}
-\endcode
-
-\param returnValue Indicates if the call was succesful.
-\param launchPoints Object array of launch points, see fields below.
-\param id ID.
-\param version Version information.
-\param appId Application ID.
-\param vendor Name of the vendor.
-\param vendorUrl Vendor URL.
-\param size Size.
-\param packageId Package ID.
-\param removable Is package removable.
-\param launchPointId Launch point ID.
-\param title Title of the application
-\param appmenu Menu title
-\param icon Path to application icon.
-
-\subsection com_palm_application_manager_list_launch_points_examples Examples:
-\code
-luna-send -n 1 -f luna://com.palm.applicationManager/listLaunchPoints '{}'
-\endcode
-
-Example response for a succesful call:
-\code
-{
-    "returnValue": true,
-    "launchPoints": [
-        {
-            "id": "com.palm.app.backup",
-            "version": "3.0.1",
-            "appId": "com.palm.app.backup",
-            "vendor": "Palm, Inc.",
-            "vendorUrl": "",
-            "size": 0,
-            "packageId": "com.palm.app.backup",
-            "removable": false,
-            "launchPointId": "com.palm.app.backup_default",
-            "title": "Backup",
-            "appmenu": "Backup",
-            "icon": "\/usr\/palm\/applications\/com.palm.app.backup\/icon.png"
-        },
-        {
-            "id": "com.palm.app.location",
-            "version": "3.0.1",
-            "appId": "com.palm.app.location",
-            "vendor": "Palm, Inc.",
-            "vendorUrl": "",
-            "size": 0,
-            "packageId": "com.palm.app.location",
-            "removable": false,
-            "launchPointId": "com.palm.app.location_default",
-            "title": "Location Services",
-            "appmenu": "Location Services",
-            "icon": "\/usr\/palm\/applications\/com.palm.app.location\/icon.png"
-        },
-        ...
-        {
-            "id": "com.palm.app.youtube",
-            "version": "1.0.0",
-            "appId": "com.palm.app.youtube",
-            "vendor": "HP",
-            "vendorUrl": "",
-            "size": 524288,
-            "packageId": "com.palm.app.youtube",
-            "removable": false,
-            "launchPointId": "com.palm.app.youtube_default",
-            "title": "YouTube",
-            "appmenu": "YouTube",
-            "icon": "\/media\/cryptofs\/apps\/usr\/palm\/applications\/com.palm.app.youtube\/images\/youtube-icon64.png"
-        }
-    ]
-}
-\endcode
-
-Example response for a failed call:
-\code
-{
-    "returnValue": boolean,
-}
-\endcode
-*/
-static bool servicecallback_listLaunchPoints(LSHandle* lshandle, LSMessage *message,
-		void *user_data)
-{
-	LSError lserror;
-	LSErrorInit(&lserror);
-	json_object* json = 0;
-	json_object* array = 0;
-
-    // {}
-
-    VALIDATE_SCHEMA_AND_RETURN(lshandle,
-                               message,
-                               SCHEMA_ANY);
-
-	ApplicationManager* appMgr  = ApplicationManager::instance();
-	std::vector<const LaunchPoint*> launchPoints = appMgr->allLaunchPoints();
-
-	json = json_object_new_object();
-	if (json == NULL)
-		return false;
-
-	array = json_object_new_array();
-	if (array) {
-
-		json_object_object_add(json, "returnValue", json_object_new_boolean(true));
-		for (std::vector<const LaunchPoint*>::iterator it = launchPoints.begin();
-			it != launchPoints.end(); ++it) {
-
-			json_object_array_add(array, (*it)->toJSON());
-		}
-		json_object_object_add(json, "launchPoints", array);
-	}
-	else {
-		json_object_object_add(json, "returnValue", json_object_new_boolean(false));
-	}
-
-	if (!LSMessageReply( lshandle, message, json_object_to_json_string(json), &lserror )) {
-		LSErrorFree (&lserror);
-	}
-
-	json_object_put(json);
-	return true;
-}
 
 /*!
 \page com_palm_application_manager
@@ -7398,7 +7091,7 @@ void ApplicationManager::stopService()
 	LSErrorInit(&lserror);
 	bool result;
 
-	result = LSUnregisterPalmService(m_service, &lserror);
+	result = LSUnregister(m_service, &lserror);
 	if (!result)
 		LSErrorFree(&lserror);
 }
@@ -7432,7 +7125,7 @@ void ApplicationManager::postLaunchPointChange(const LaunchPoint* lp, const std:
 	json = lp->toJSON();
 	json_object_object_add(json, "change", json_object_new_string(change.c_str()));
 	g_message("%s: Posting LaunchPoint change %s", __PRETTY_FUNCTION__, json_object_to_json_string(json));
-	if (!LSSubscriptionPost(m_serviceHandlePrivate, "/", "launchPointChanges", 
+	if (!LSSubscriptionPost(m_service, "/", "launchPointChanges", 
 			json_object_to_json_string(json), &lsError))
 		LSErrorFree (&lsError);
 
@@ -7476,7 +7169,7 @@ void ApplicationManager::relayStatus (const std::string& jsonPayload,const unsig
 	//create the key for the subscription reply (this has to be in agreement with the key created in applicationManager/open )
 	std::string ls_sub_key = toSTLString<unsigned long>(ticketId);
 
-	bool retVal = LSSubscriptionRespond (m_service, ls_sub_key.c_str(), jsonPayload.c_str(), &lserror);
+	bool retVal = LSSubscriptionReply (m_service, ls_sub_key.c_str(), jsonPayload.c_str(), &lserror);
 	if (!retVal) {
 		LSErrorPrint (&lserror, stderr);
 		LSErrorFree(&lserror);
@@ -8154,7 +7847,7 @@ Done:
 
 ////////////////////////////// ----- SERVICE INIT  ----- ///////////////////////////////////////////////////////////////
 
-static LSMethod appMgrMethodsPublic[]  = {
+static LSMethod appMgrMethods[]  = {
 		{ "open", servicecallback_open },
 		{ "launch" , servicecallback_launch },
 		{ "addLaunchPoint", servicecallback_addLaunchPoint },
@@ -8175,18 +7868,12 @@ static LSMethod appMgrMethodsPublic[]  = {
 		{ "listAllHandlersForUrlByVerb" , servicecallback_listAllHandlersByVerb },
 		{ "listExtensionMap"			, servicecallback_listExtensionMap },
 		{ "getAppBasePath", servicecallback_getappbasepath},
-		{ 0, 0 }
-};
-
-static LSMethod appMgrMethodsPrivate[] = {
 		{ "install", servicecallback_install },
 		{ "running", servicecallback_listRunningApps },
 		{ "close", servicecallback_close },
-		{ "listApps", servicecallback_listApps },
 		{ "listPackages", servicecallback_listPackages },
 		{ "getSizeOfApps" , servicecallback_getSizeOf },
 		{ "searchApps" , servicecallback_searchForApps },
-		{ "listLaunchPoints", servicecallback_listLaunchPoints },
 		{ "listDockModeLaunchPoints", servicecallback_listDockModeLaunchPoints },
 		{ "listPendingLaunchPoints", servicecallback_listPendingLaunchPoints },
 		{ "listDockPoints", servicecallback_listDockPoints },
@@ -8216,7 +7903,6 @@ static LSMethod appMgrMethodsPrivate[] = {
 		{ "forceSingleAppScan",		servicecallback_forceSingleAppScan},
 		{ "registerApplication", servicecallback_register_application },
 		{ "applicationHasBeenTerminated", servicecallback_applicationHasBeenTerminated },
-
 #ifdef AMS_TEST_MIME
 		{ "TESTMIME_interleaveAddRemove" , testcallback_mimeAddRemoveInterleave },
 		{ "TESTMIME_addEntries" , testcallback_mimeAddEntries },
@@ -8231,7 +7917,6 @@ static LSMethod appMgrMethodsPrivate[] = {
 		{ "TESTINSTALL_switchAppIdToUpdateFailed", testcallback_switchAppIdToUpdateFailed },
 		{ "TESTINSTALL_changeAppIdProgress", testcallback_changeAppIdProgress },
 #endif
-
 		{ 0, 0 }
 };
 
@@ -8246,7 +7931,7 @@ bool ApplicationManager::startService()
 
 	g_debug ("ApplicationManager started");
 
-	result = LSRegisterPalmService("com.palm.applicationManager", &m_service, &lserror);
+	result = LSRegister("com.palm.applicationManager", &m_service, &lserror);
 	if (!result)
 	{
 		g_message( "ApplicationManager::startService failed" );
@@ -8255,7 +7940,7 @@ bool ApplicationManager::startService()
 		return false;
 	}
 
-	result = LSPalmServiceRegisterCategory( m_service, "/", appMgrMethodsPublic, appMgrMethodsPrivate,
+	result = LSRegisterCategory(m_service, "/", appMgrMethods,
 			NULL, NULL, &lserror);
 	if (!result)
 	{
@@ -8265,10 +7950,7 @@ bool ApplicationManager::startService()
 		return false;
 	}
 
-	m_serviceHandlePublic = LSPalmServiceGetPrivateConnection(m_service);
-	m_serviceHandlePrivate = LSPalmServiceGetPrivateConnection(m_service);
-
-	result = LSGmainAttachPalmService(m_service, mainLoop, &lserror);
+	result = LSGmainAttach(m_service, mainLoop, &lserror);
 	if (!result)
 	{
 		g_message( "ApplicationManager::startService failed" );
@@ -8279,7 +7961,7 @@ bool ApplicationManager::startService()
 
 	if (Settings::LunaSettings()->uiType != Settings::UI_MINIMAL) {
 
-		result = LSCall(m_serviceHandlePrivate, "palm://com.palm.bus/signal/registerServerStatus",
+		result = LSCall(m_service, "palm://com.palm.bus/signal/registerServerStatus",
 						"{\"serviceName\":\"com.webos.appInstallService\"}", 
 						ApplicationManager::cbAppInstallServiceConnection, NULL, NULL, &lserror);
 		if (!result)
