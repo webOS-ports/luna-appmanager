@@ -424,7 +424,7 @@ qint64 ApplicationProcessManager::launchQMLApp(ApplicationDescription *desc, std
     if (appParams.length() > 0)
 		parameters << appParams;
 
-	qmlGenerateRole(desc->id());
+	//qmlGenerateRole(desc->id());
 
     return launchProcess(QString::fromStdString(desc->id()), QMLAPP_LAUNCHER_PATH, parameters, desc->runtimeMemoryRequired());
 }
