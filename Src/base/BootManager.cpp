@@ -85,7 +85,7 @@ DisplayBlocker::DisplayBlocker() :
 
 	GMainLoop *mainLoop = HostBase::instance()->mainLoop();
 
-	if (!LSRegister(NULL, &m_service, &lserror)) {
+	if (!LSRegister("org.webosports.bootmgr-displayblocker", &m_service, &lserror)) {
 		LSErrorPrint(&lserror, stderr);
 		LSErrorFree(&lserror);
 		return;
