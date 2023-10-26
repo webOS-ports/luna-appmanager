@@ -123,75 +123,75 @@ QList<ApplicationInfo*> ApplicationProcessManager::runningApplications() const
 
 void ApplicationProcessManager::killByAppId(std::string appId, bool notifyUser)
 {
-	ApplicationInfo *targetApp = 0;
+    ApplicationInfo *targetApp = 0;
 
     Q_FOREACH(ApplicationInfo *app, mApplications) {
         if (app->appId() == QString::fromStdString(appId)) {
-			targetApp = app;
+            targetApp = app;
             break;
         }
     }
 
-	killApp(targetApp);
+    killApp(targetApp);
 }
 
 void ApplicationProcessManager::killByProcessId(qint64 processId, bool notifyUser)
 {
-	ApplicationInfo *targetApp = 0;
+    ApplicationInfo *targetApp = 0;
 
     Q_FOREACH(ApplicationInfo *app, mApplications) {
         if (app->processId() == processId) {
-			targetApp = app;
+            targetApp = app;
             break;
         }
     }
 
-	killApp(targetApp);
+    killApp(targetApp);
 }
 
 void ApplicationProcessManager::killApp(ApplicationInfo *app)
 {
-	if (!app)
-		return;
+    if (!app)
+        return;
 
-	app->kill();
+    app->kill();
 
-	ApplicationDescription *desc = ApplicationManager::instance()->getAppById(app->appId().toStdString());
+    ApplicationDescription *desc = ApplicationManager::instance()->getAppById(app->appId().toStdString());
 
-	std::string appName = "Application";
-	std::string appTitle = "";
+    std::string appName = "Application";
+    std::string appTitle = "";
 
-	if (desc) {
-		appName = desc->menuName();
-		const LaunchPoint *lp = desc->getDefaultLaunchPoint();
-		if (lp)
-			appTitle = lp->title();
-	}
+    if (desc) {
+        appName = desc->menuName();
+        const LaunchPoint *lp = desc->getDefaultLaunchPoint();
+        if (lp)
+            appTitle = lp->title();
+    }
 
-	ApplicationManager::instance()->postApplicationHasBeenTerminated(appTitle, appName, app->appId().toStdString());
+    ApplicationManager::instance()->postApplicationHasBeenTerminated(appTitle, appName, app->appId().toStdString());
 }
 
 std::string ApplicationProcessManager::launch(std::string appId, std::string params)
 {
     qDebug() << "Launching application" << QString::fromStdString(appId);
 
-	LSError lserror;
-	LSErrorInit(&lserror);
-	
-	if(params.empty()) params = "{}";
-	std::string SAM_params = "{ \"id\": \"" + appId + "\", \"params\": " + params + " }";
-	g_warning("Delegating launch call to SAM...");
-	if (LSCall(ApplicationManager::instance()->getServiceHandle(),
-				"luna://com.webos.service.applicationManager/launch", SAM_params.c_str(),
-				NULL, NULL, NULL, &lserror))
-	{
-		return std::string("");
-	}
-	else
-	{
-		// calling SAM failed: continue with the old ways
-		LSErrorFree(&lserror);
-	}
+    LSError lserror;
+    LSErrorInit(&lserror);
+    
+    if(params.empty()) params = "{}";
+    std::string SAM_params = "{ \"id\": \"" + appId + "\", \"params\": " + params + " }";
+    g_warning("Delegating launch call to SAM...");
+    if (LSCall(ApplicationManager::instance()->getServiceHandle(),
+                "luna://com.webos.service.applicationManager/launch", SAM_params.c_str(),
+                NULL, NULL, NULL, &lserror))
+    {
+        return std::string("");
+    }
+    else
+    {
+        // calling SAM failed: continue with the old ways
+        LSErrorFree(&lserror);
+    }
 
     ApplicationDescription* desc = ApplicationManager::instance()->getPendingAppById(appId);
     if (!desc) {
@@ -293,7 +293,7 @@ qint64 ApplicationProcessManager::launchProcess(const QString& id, const QString
         qWarning("Not enough memory to launch native app %s", id.toUtf8().constData());
         // FIXME try to free some memory (tell webappmanager about this!)
         // FIXME send out notification to the user to free memory
-		return 0;
+        return 0;
     }
 
     qDebug() << "Starting process" << id << path << parameters;
@@ -411,7 +411,7 @@ qint64 ApplicationProcessManager::launchNativeApp(ApplicationDescription *desc, 
     if (entryPoint.startsWith("file://"))
         entryPoint = entryPoint.right(entryPoint.length() - 7);
 
-	ndkGenerateRole(desc->id(), entryPoint.toStdString());
+    ndkGenerateRole(desc->id(), entryPoint.toStdString());
 
     return launchProcess(QString::fromStdString(desc->id()), entryPoint, parameters, desc->runtimeMemoryRequired());
 }
@@ -422,9 +422,9 @@ qint64 ApplicationProcessManager::launchQMLApp(ApplicationDescription *desc, std
     QString appParams = QString::fromStdString(params);
     parameters << getAppInfoPathFromDesc(desc);
     if (appParams.length() > 0)
-		parameters << appParams;
+        parameters << appParams;
 
-	//qmlGenerateRole(desc->id());
+    //qmlGenerateRole(desc->id());
 
     return launchProcess(QString::fromStdString(desc->id()), QMLAPP_LAUNCHER_PATH, parameters, desc->runtimeMemoryRequired());
 }

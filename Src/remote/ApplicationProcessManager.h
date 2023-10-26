@@ -100,8 +100,8 @@ public:
 
     std::string getPid(std::string appId);
     bool isRunning(std::string appId);
-	void killByAppId(std::string appId, bool notifyUser = false);
-	void killByProcessId(qint64 processId, bool notifyUser = false);
+    void killByAppId(std::string appId, bool notifyUser = false);
+    void killByProcessId(qint64 processId, bool notifyUser = false);
 
     QList<ApplicationInfo*> runningApplications() const;
 
@@ -126,7 +126,7 @@ private:
 
     qint64 newProcessId();
 
-	void killApp(ApplicationInfo *app);
+    void killApp(ApplicationInfo *app);
 
     QList<ApplicationInfo*> mApplications;
     qint64 mNextProcessId;
