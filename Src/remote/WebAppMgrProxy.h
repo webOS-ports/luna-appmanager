@@ -58,10 +58,6 @@ public:
 
     void killApp(qint64 processId);
 
-    void clearMemoryCaches();
-    void clearMemoryCaches(qint64 processId);
-    void clearMemoryCaches(const std::string &appId);
-
     static gboolean retryConnectWebAppMgr(gpointer user_data);
     static bool webAppManagerServiceStatusCb(LSHandle *handle, LSMessage *message, void *user_data);
     static bool listRunningAppsCb(LSHandle *handle, LSMessage *message, void *user_data);

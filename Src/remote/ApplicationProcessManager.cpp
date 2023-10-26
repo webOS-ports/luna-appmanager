@@ -28,40 +28,6 @@
 #include "LaunchPoint.h"
 
 #include "WebAppMgrProxy.h"
-#include "MemoryMonitor.h"
-
-#define QMLAPP_LAUNCHER_PATH    "/usr/sbin/luna-qml-launcher"
-
-NativeApplication::NativeApplication(const QString &appId, qint64 processId, QObject *parent) :
-    ApplicationInfo(appId, processId, APPLICATION_TYPE_NATIVE),
-    mProcess(new QProcess)
-{
-    connect(mProcess, SIGNAL(finished(int,QProcess::ExitStatus)), this, SLOT(onProcessFinished(int,QProcess::ExitStatus)));
-}
-
-NativeApplication::~NativeApplication()
-{
-    mProcess->deleteLater();
-}
-
-void NativeApplication::kill()
-{
-    mProcess->terminate();
-    QTimer::singleShot(500, this, SLOT(onTerminationTimeoutReached()));
-}
-
-void NativeApplication::onTerminationTimeoutReached()
-{
-    if (mProcess->state() == QProcess::Running)
-        mProcess->kill();
-}
-
-void NativeApplication::onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus)
-{
-    mProcess->close();
-
-    Q_EMIT finished();
-}
 
 WebApplication::WebApplication(const QString &appId, qint64 processId, QObject *parent) :
     ApplicationInfo(appId, processId, APPLICATION_TYPE_WEB)
@@ -187,12 +153,7 @@ std::string ApplicationProcessManager::launch(std::string appId, std::string par
     {
         return std::string("");
     }
-    else
-    {
-        // calling SAM failed: continue with the old ways
-        LSErrorFree(&lserror);
-    }
-
+    
     ApplicationDescription* desc = ApplicationManager::instance()->getPendingAppById(appId);
     if (!desc) {
         desc = ApplicationManager::instance()->getAppById(appId);
@@ -214,25 +175,7 @@ std::string ApplicationProcessManager::launch(std::string appId, std::string par
         }
     }
 
-    if (!running) {
-        processId = 0;
-        switch (desc->type()) {
-        case ApplicationDescription::Type_Web:
-            processId = launchWebApp(appId, params);
-            break;
-        case ApplicationDescription::Type_Native:
-        case ApplicationDescription::Type_PDK:
-        case ApplicationDescription::Type_Qt:
-            processId = launchNativeApp(desc, params);
-            break;
-        case ApplicationDescription::Type_QML:
-            processId = launchQMLApp(desc, params);
-            break;
-        default:
-            break;
-        }
-    }
-    else {
+    if (running) {
         qWarning("Application %s is already running. Sending relaunch signal ...",
                  appId.c_str());
         // FIXME send relaunch signal
@@ -270,61 +213,6 @@ void ApplicationProcessManager::relaunch(std::string appId, std::string params)
 qint64 ApplicationProcessManager::newProcessId()
 {
     return mNextProcessId++;
-}
-
-qint64 ApplicationProcessManager::launchWebApp(const std::string& id, const std::string& params)
-{
-    int64_t processId = newProcessId();
-
-    std::string launchingAppId = "";
-    std::string launchingProcId = "";
-    std::string errMsg = "";
-
-    WebAppMgrProxy::instance()->launchApp(id, params, processId, launchingAppId, launchingProcId, errMsg);
-
-    return processId;
-}
-
-qint64 ApplicationProcessManager::launchProcess(const QString& id, const QString &path, const QStringList &parameters, unsigned int requiredRuntimeMemory)
-{
-    qDebug() << "Check if we have enough memory left for another native application ...";
-
-    if (!MemoryMonitor::instance()->allowNewNativeAppLaunch(requiredRuntimeMemory)) {
-        qWarning("Not enough memory to launch native app %s", id.toUtf8().constData());
-        // FIXME try to free some memory (tell webappmanager about this!)
-        // FIXME send out notification to the user to free memory
-        return 0;
-    }
-
-    qDebug() << "Starting process" << id << path << parameters;
-
-    int64_t processId = newProcessId();
-    NativeApplication *application = new NativeApplication(id, processId);
-    QProcess *process = application->process();
-
-    QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
-    environment.insert("XDG_RUNTIME_DIR","/tmp/luna-session");
-    environment.insert("QT_QPA_PLATFORM", "wayland");
-    environment.insert("QT_IM_MODULE", "Maliit");
-    environment.insert("SDL_VIDEODRIVER", "wayland");
-
-    process->setProcessEnvironment(environment);
-    process->setProcessChannelMode(QProcess::ForwardedChannels);
-
-    // NOTE: Currently we're just forking once so the new process will be a child of ours and
-    // will exit once we exit.
-    process->start(path, parameters);
-    process->waitForStarted();
-
-    if (process->state() != QProcess::Running) {
-        qDebug() << "Failed to start process";
-        application->deleteLater();
-        return -1;
-    }
-
-    notifyApplicationHasStarted(application);
-
-    return processId;
 }
 
 void ApplicationProcessManager::notifyApplicationHasFinished(qint64 processId)
@@ -400,31 +288,4 @@ QString ApplicationProcessManager::getAppInfoPathFromDesc(ApplicationDescription
     }
 
     return appInfoFilePath;
-}
-
-qint64 ApplicationProcessManager::launchNativeApp(ApplicationDescription *desc, std::string &params)
-{
-    QStringList parameters;
-    parameters << QString("'%1'").arg(params.c_str());
-
-    QString entryPoint = QString::fromStdString(desc->entryPoint());
-    if (entryPoint.startsWith("file://"))
-        entryPoint = entryPoint.right(entryPoint.length() - 7);
-
-    ndkGenerateRole(desc->id(), entryPoint.toStdString());
-
-    return launchProcess(QString::fromStdString(desc->id()), entryPoint, parameters, desc->runtimeMemoryRequired());
-}
-
-qint64 ApplicationProcessManager::launchQMLApp(ApplicationDescription *desc, std::string &params)
-{
-    QStringList parameters;
-    QString appParams = QString::fromStdString(params);
-    parameters << getAppInfoPathFromDesc(desc);
-    if (appParams.length() > 0)
-        parameters << appParams;
-
-    //qmlGenerateRole(desc->id());
-
-    return launchProcess(QString::fromStdString(desc->id()), QMLAPP_LAUNCHER_PATH, parameters, desc->runtimeMemoryRequired());
 }

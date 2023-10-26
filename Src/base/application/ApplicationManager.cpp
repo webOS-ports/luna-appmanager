@@ -75,7 +75,6 @@
 
 #include "MimeSystem.h"
 #include "Logging.h"
-#include "WebAppMgrProxy.h"
 
 #include <QProcess>
 
@@ -455,9 +454,6 @@ void ApplicationManager::scan()
         ApplicationInstaller::instance()->notifyAppInstalled(pAppDesc->id(),pAppDesc->version());
         it++;
     }
-
-    //force caches to clear
-    WebAppMgrProxy::instance()->clearMemoryCaches();
 }
 
 void ApplicationManager::postInstallScan(const std::string& appId) {
@@ -474,9 +470,6 @@ void ApplicationManager::postInstallScan(const std::string& appId) {
     createOrUpdatePackageManifest(packageDesc);
 
     serviceInstallerInstallApp(appId, sServiceInstallerTypeApplication, Settings::LunaSettings()->appInstallBase);
-
-    //force caches to clear
-    WebAppMgrProxy::instance()->clearMemoryCaches();
 }
 
 void ApplicationManager::postInstallScan(json_object * pPackageInfoJson, const std::string& packageFolder)
@@ -513,9 +506,6 @@ void ApplicationManager::postInstallScan(json_object * pPackageInfoJson, const s
     }
 
     createOrUpdatePackageManifest(packageDesc);
-
-    //force caches to clear
-    WebAppMgrProxy::instance()->clearMemoryCaches();
 }
 
 ApplicationDescription* ApplicationManager::installSysApp(const std::string& appId)
