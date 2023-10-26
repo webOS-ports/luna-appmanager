@@ -17,7 +17,8 @@
         "application.launcher",
         "configurator.management",
         "database.operation",
-        "systemsettings.query"
+        "systemsettings.query",
+        "luna-sysmgr.operation"
     ],
     "com.palm.systemmanager-prefs*": [
         "application.launcher",
@@ -38,5 +39,8 @@
         "systemsettings.query",
         "wifi.query",
         "wifi.management"
+    ],
+    "org.webosports.bootmgr-displayblocker": [
+        "luna-sysmgr.operation"
     ]
 }

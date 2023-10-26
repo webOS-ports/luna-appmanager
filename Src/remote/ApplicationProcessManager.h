@@ -69,26 +69,6 @@ public:
     virtual void kill();
 };
 
-class NativeApplication : public ApplicationInfo
-{
-    Q_OBJECT
-public:
-    NativeApplication(const QString& appId, qint64 processId, QObject *parent = 0);
-    ~NativeApplication();
-
-    qint64 nativePid() { return mProcess->processId(); }
-    QProcess* process() { return mProcess; }
-
-    virtual void kill();
-
-private Q_SLOTS:
-    void onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
-    void onTerminationTimeoutReached();
-
-private:
-    QProcess *mProcess;
-};
-
 class ApplicationProcessManager : public QObject
 {
     Q_OBJECT
@@ -100,8 +80,8 @@ public:
 
     std::string getPid(std::string appId);
     bool isRunning(std::string appId);
-	void killByAppId(std::string appId, bool notifyUser = false);
-	void killByProcessId(qint64 processId, bool notifyUser = false);
+    void killByAppId(std::string appId, bool notifyUser = false);
+    void killByProcessId(qint64 processId, bool notifyUser = false);
 
     QList<ApplicationInfo*> runningApplications() const;
 
@@ -117,16 +97,11 @@ private Q_SLOTS:
 private:
     ApplicationProcessManager();
 
-    qint64 launchWebApp(const std::string& id, const std::string& params);
-    qint64 launchNativeApp(ApplicationDescription *desc, std::string& params);
-    qint64 launchQMLApp(ApplicationDescription *desc, std::string& params);
-    qint64 launchProcess(const QString& id, const QString& path, const QStringList& parameters, unsigned int requiredRuntimeMemory);
-
     QString getAppInfoPathFromDesc(ApplicationDescription *desc);
 
     qint64 newProcessId();
 
-	void killApp(ApplicationInfo *app);
+    void killApp(ApplicationInfo *app);
 
     QList<ApplicationInfo*> mApplications;
     qint64 mNextProcessId;

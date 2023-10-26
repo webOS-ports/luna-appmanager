@@ -2796,7 +2796,6 @@ static bool servicecallback_inspect( LSHandle* lshandle, LSMessage* message, voi
 	processid = json_object_object_get(root,"processId");
 	if( processid )
 	{
-        // WebAppMgrProxy::instance()->inspect( json_object_get_string(processid) );
         json_object_put( processid );
 	}
 

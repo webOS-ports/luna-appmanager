@@ -666,9 +666,6 @@ int ApplicationInstaller::lunasvcRemove(RemoveParams *removeParams)
 
 		// REMOVE THE APP'S JAIL
 		util_deleteJail(packageName.c_str());
-
-		// REMOVE THE APP'S DATABASES
-        // WebAppMgrProxy::instance()->sendAsyncMessage(new View_Mgr_DeleteHTML5Database(appDesc->entryPoint()));
 	}
 	
 	std::string packageFolderPath = packageBasePath+std::string("/")+Settings::LunaSettings()->packageInstallRelative+std::string("/")+packageName;
@@ -4293,11 +4290,5 @@ void ApplicationInstaller::closeApp(const std::string& appId)
 	if (appId.empty())
 		return;
 
-//	if (WebAppMgrProxy::instance()->connected() == false)
-//		return;			//WebKit not initialized yet
-
 	bool ret = false;
-	
-//	WebAppMgrProxy::instance()->getIpcChannel()->sendSyncMessage(
-//		new View_Mgr_SyncKillApp(appId, &ret));
 }
