@@ -147,44 +147,14 @@ std::string ApplicationProcessManager::launch(std::string appId, std::string par
     if(params.empty()) params = "{}";
     std::string SAM_params = "{ \"id\": \"" + appId + "\", \"params\": " + params + " }";
     g_warning("Delegating launch call to SAM...");
-    if (LSCall(ApplicationManager::instance()->getServiceHandle(),
+    if (!LSCall(ApplicationManager::instance()->getServiceHandle(),
                 "luna://com.webos.service.applicationManager/launch", SAM_params.c_str(),
                 NULL, NULL, NULL, &lserror))
     {
-        return std::string("");
+        LSErrorPrint(&lserror, stderr);
+        LSErrorFree(&lserror);
     }
-    
-    ApplicationDescription* desc = ApplicationManager::instance()->getPendingAppById(appId);
-    if (!desc) {
-        desc = ApplicationManager::instance()->getAppById(appId);
-        if (!desc) {
-            g_warning("Failed to find application description for app %s",
-                      appId.c_str());
-            return std::string("");
-        }
-    }
-
-    bool running = false;
-    qint64 processId = 0;
-
-    Q_FOREACH(ApplicationInfo *app, mApplications) {
-        if (app->appId() == QString::fromStdString(appId)) {
-            running = true;
-            processId = app->processId();
-            break;
-        }
-    }
-
-    if (running) {
-        qWarning("Application %s is already running. Sending relaunch signal ...",
-                 appId.c_str());
-        // FIXME send relaunch signal
-    }
-
-    if (processId <= 0)
-        return std::string("");
-
-    return QString::number(processId).toStdString();
+    return std::string("");
 }
 
 void ApplicationProcessManager::relaunch(std::string appId, std::string params)
