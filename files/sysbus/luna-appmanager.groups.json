@@ -1,0 +1,4 @@
+{
+ "allowedNames": ["com.palm.appinstaller", "com.palm.applicationManager", "com.palm.eventreporter.LunaAppManager", "org.webosports.bootmgr", "com.palm.applicationManager-webappmgr", "com.palm.systemmanager-prefs-*", "com.palm.systemmanager-localeprefs-*", "org.webosports.bootmgr-displayblocker"],
+ "appmanager.management": ["dev"]
+}
