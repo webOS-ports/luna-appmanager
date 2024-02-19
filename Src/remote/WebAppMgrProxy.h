@@ -20,7 +20,7 @@
 #define WEBAPPMGRPROXY_H
 
 #include <glib.h>
-#include <lunaservice.h>
+#include <luna-service2/lunaservice.h>
 
 #include <QMap>
 

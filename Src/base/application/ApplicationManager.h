@@ -30,7 +30,7 @@
 #include <map>
 #include <set>
 
-#include "lunaservice.h"
+#include <luna-service2/lunaservice.h>
 #include "Mutex.h"
 #include "MimeSystem.h"
 

@@ -32,7 +32,7 @@
 #include <json.h>
 #include <json_util.h>
 
-#include <lunaservice.h>
+#include <luna-service2/lunaservice.h>
 
 #include "MutexLocker.h"
 
