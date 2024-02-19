@@ -33,7 +33,7 @@
 #include "ApplicationProcessManager.h"
 
 #include <json_object.h>
-#include "lunaservice.h"
+#include <luna-service2/lunaservice.h>
 
 #include <QBitArray>
 #include <QList>

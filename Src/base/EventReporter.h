@@ -24,7 +24,7 @@
 
 #include "Common.h"
 
-#include "lunaservice.h"
+#include <luna-service2/lunaservice.h>
 #include "Mutex.h"
 
 class EventReporter

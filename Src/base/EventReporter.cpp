@@ -30,7 +30,7 @@
 #include "HostBase.h"
 #include "MutexLocker.h"
 
-#include "lunaservice.h"
+#include <luna-service2/lunaservice.h>
 
 
 EventReporter::EventReporter(GMainLoop* loop)
