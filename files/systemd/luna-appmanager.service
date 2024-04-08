@@ -5,10 +5,6 @@ Requires=luna-sysmgr.service
 
 [Service]
 Type=simple
-Environment=QT_WAYLAND_SHELL_INTEGRATION=webos
-Environment=QT_QPA_PLATFORM=wayland-egl
-Environment=XDG_RUNTIME_DIR=/tmp/luna-session
-Environment=QT_WAYLAND_DISABLE_WINDOWDECORATION=1
 Restart=on-failure
 ExecStart=/usr/sbin/LunaAppManager
 OOMScoreAdjust=-1000
