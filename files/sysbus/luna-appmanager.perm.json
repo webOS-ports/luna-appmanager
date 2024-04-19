@@ -42,7 +42,7 @@
     ],
     "com.palm.eventreporter.LunaAppManager": [
         "database.operation"
-    ]
+    ],
     "org.webosports.bootmgr-displayblocker": [
         "luna-sysmgr.operation"
     ]
