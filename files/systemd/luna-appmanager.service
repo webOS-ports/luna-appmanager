@@ -1,7 +1,7 @@
 [Unit]
 Description=Luna Application Manager
-After=luna-sysmgr.service
-Requires=luna-sysmgr.service
+Requires=ls-hubd.service
+After=ls-hubd.service luna-displaymanager.service
 
 [Service]
 Type=simple
