@@ -101,7 +101,7 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 	struct json_object* root=0;
 	struct json_object* label=0;
 
-	std::string title, icon, dirPath;
+	std::string icon, dirPath;
     gchar* dirPathCStr;
 
 	dirPathCStr = g_path_get_dirname(filePath.c_str());
@@ -529,7 +529,7 @@ ApplicationDescription* ApplicationDescription::fromJsonString(const char* jsonS
     struct json_object* root = json_tokener_parse( jsonStr );
     if( !root )
     {
-        fprintf( stderr, "ApplicationDescriptionBase::fromJsonString: Failed to parse string into a JSON string.\n" );
+        (void)fprintf( stderr, "ApplicationDescriptionBase::fromJsonString: Failed to parse string into a JSON string.\n" );
         return 0;
     }
     ApplicationDescription* appDesc = new ApplicationDescription();
@@ -962,7 +962,7 @@ void ApplicationDescription::getAppDescriptionString(std::string &descString) co
 	json_object_object_add(json, (char*) "removable",   json_object_new_boolean(m_isRemovable));
 	json_object_object_add(json, (char*) "userHideable",   json_object_new_boolean(m_isUserHideable));
 	json_object_object_add(json, (char*) "visible",   json_object_new_boolean(m_isVisible));
-	json_object_object_add(json, (char*) "hardwareFeaturesNeeded",   json_object_new_int(m_hardwareFeaturesNeeded));
+	json_object_object_add(json, (char*) "hardwareFeaturesNeeded",   json_object_new_int(static_cast<int32_t>(m_hardwareFeaturesNeeded)));
 	json_object_object_add(json, (char*) "type",   json_object_new_int(m_type));
 	json_object_object_add(json, (char*) "attributes", json_object_new_string((char*) m_attributes.c_str()));
 	json_object_object_add(json, (char*) "vendor", json_object_new_string((char*) m_vendorName.c_str()));
@@ -986,7 +986,7 @@ void ApplicationDescription::getAppDescriptionString(std::string &descString) co
 
 void desaturate(QImage &img)
 {
-	int length = img.sizeInBytes();
+	int length = static_cast<int>(img.sizeInBytes());
 	uchar* data = img.bits();
 
 	int avg;

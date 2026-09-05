@@ -62,20 +62,20 @@
 
 #include "PackageDescription.h"
 
-#define REMOVER_RETURNC__FAILEDIPKGREMOVE			1
-#define REMOVER_RETURNC__SUCCESS					0
+#define REMOVER_RETURNC_FAILEDIPKGREMOVE			1
+#define REMOVER_RETURNC_SUCCESS					0
 
 // estimated size of uncompressed app is this value * x (where x is size of a compressed file/package, etc)
-#define INSTALLER_DEFV__MIN_FREE_MULT		2				
+#define INSTALLER_DEFV_MIN_FREE_MULT		2				
 
 // amount to reserve for the app database, for each app, in bytes
-#define	INSTALLER_DEFV__APPDB_RESERVE_SPACE_BYTES			(1*1024*1024)
+#define	INSTALLER_DEFV_APPDB_RESERVE_SPACE_BYTES			(1*1024*1024)
 
 // default amount total reserved for app installation, in bytes	
-#define INSTALLER_DEFV__DEFAULT_TOTAL_APP_RESERVE_BYTES		((uint64_t)(100*1024*1024))
+#define INSTALLER_DEFV_DEFAULT_TOTAL_APP_RESERVE_BYTES		((uint64_t)(100*1024*1024))
 
 // default for allowing downloads of packages to the media partition
-#define INSTALLER_DEFV__MIN_FREE_TO_DL_ON_MEDIA_BYTES		((uint64_t)(5*1024*1024))
+#define INSTALLER_DEFV_MIN_FREE_TO_DL_ON_MEDIA_BYTES		((uint64_t)(5*1024*1024))
 
 static void util_LSSubReplyWithRelay_IgnoreError(LSHandle* lshandle,const std::string& subscriptionKey,const unsigned long ticket,const std::string& payload); //fwd decl...this is defined at the end of the src file
 static void util_cleanup_tempDir(const std::string& tmpDirPath); //fwd decl...this is defined at the end of the src file
@@ -274,7 +274,7 @@ static void util_ipkgInstallDone (GPid pid, gint status, gpointer data)
     InstallParams* installParams = (InstallParams*)data;
     bool success = true;
     std::string message;
-	std::string ls_sub_key = toSTLString<long>(installParams->ticketId);
+	std::string ls_sub_key = toSTLString<long>(static_cast<long>(installParams->ticketId));
 	std::string ls_payload;
 
     g_warning ("%s: Step 4: child pid %d done with status %d",__PRETTY_FUNCTION__,  pid, status);
@@ -392,7 +392,7 @@ static void util_ipkgRemoveDone (GPid pid, gint status, gpointer data)
 		}
     	g_warning ("%s: successful ipkg remove", __PRETTY_FUNCTION__);
     }
-    std::string ls_sub_key = toSTLString<long>(removeParams->ticketId);
+    std::string ls_sub_key = toSTLString<long>(static_cast<long>(removeParams->ticketId));
     std::string ls_payload = std::string("{ \"ticket\":") +ls_sub_key
 	+std::string(" , \"status\":\"")+message+std::string("\"")
 	+std::string(" }");
@@ -440,7 +440,7 @@ static gboolean util_ipkgInstallIoChannelCallback(GIOChannel* channel, GIOCondit
 				if (count > 1) {
 					std::string status = g_strstrip(strArray[1]);
 					std::string payload;
-					std::string ls_sub_key = toSTLString<long>(params->ticketId);
+					std::string ls_sub_key = toSTLString<long>(static_cast<long>(params->ticketId));
 
 					if (status == "starting") {
 						payload = std::string("{ \"ticket\":")
@@ -631,14 +631,12 @@ int ApplicationInstaller::lunasvcRemove(RemoveParams *removeParams)
 	LSHandle * lshandle = (LSHandle * )removeParams->_lshandle;
 	unsigned long ticket = removeParams->ticketId;
 	int cause = removeParams->_cause;
-	std::string baseDir = Settings::LunaSettings()->appInstallBase;
 	bool suppressIpkgRemove=false;
 	gchar * g_stdoutBuffer = NULL; g_stdoutBuffer = 0;		//suppress warnings
 	gchar * g_stderrBuffer = NULL; g_stderrBuffer = 0;
 
-	std::string ls_sub_key = toSTLString<long>(ticket);
+	std::string ls_sub_key = toSTLString<long>(static_cast<long>(ticket));
 	std::string ls_payload;
-	std::string appBasePath = Settings::LunaSettings()->appInstallBase;
 	std::string packageBasePath = Settings::LunaSettings()->packageInstallBase;
 
 	ls_payload = std::string("{ \"ticket\":")
@@ -649,7 +647,7 @@ int ApplicationInstaller::lunasvcRemove(RemoveParams *removeParams)
 	util_LSSubReplyWithRelay_IgnoreError(lshandle,ls_sub_key,ticket,ls_payload);
 
 	if (packageName.size() == 0) {
-		return REMOVER_RETURNC__FAILEDIPKGREMOVE;
+		return REMOVER_RETURNC_FAILEDIPKGREMOVE;
 	}
 
 	//get the list of all apps and services for this package
@@ -658,7 +656,7 @@ int ApplicationInstaller::lunasvcRemove(RemoveParams *removeParams)
 	PackageDescription * pPkgDesc = ApplicationManager::instance()->getPackageInfoByPackageId(packageName);
 	if (pPkgDesc == NULL) {
 		g_warning("%s: no package descriptor found for [%s] - aborting remove",__FUNCTION__,packageName.c_str());
-		return REMOVER_RETURNC__FAILEDIPKGREMOVE;
+		return REMOVER_RETURNC_FAILEDIPKGREMOVE;
 	}
 
 	//FOR EASE OF DEBUG - no copy needed otherwise, so remove the locals and use directly. This will have to change if the assumptions on the lifetime of the package desc. pointer ever change
@@ -681,7 +679,7 @@ int ApplicationInstaller::lunasvcRemove(RemoveParams *removeParams)
 				// It will only still work if it's the only app in the package
 				g_warning("%s: failing the remove [%s] because the package has more than 1 app and/or service and one of them is marked user hideable (appid = [%s] is user hideable)",
 						__FUNCTION__,packageName.c_str(),appDesc->id().c_str());
-				return REMOVER_RETURNC__FAILEDIPKGREMOVE;
+				return REMOVER_RETURNC_FAILEDIPKGREMOVE;
 			}
 			else
 				suppressIpkgRemove=true;
@@ -729,7 +727,7 @@ int ApplicationInstaller::lunasvcRemove(RemoveParams *removeParams)
 		// attempting an ipkg remove would fail + we don't really want to remove these from the system
 		m_cmdState.processing = true;
 		m_cmdState.sourceId = g_idle_add_full(G_PRIORITY_HIGH_IDLE, cbShallowRemove, (gpointer)removeParams, NULL);
-		return REMOVER_RETURNC__SUCCESS;
+		return REMOVER_RETURNC_SUCCESS;
 	}
 
 	//e.g. ipkg -o <installbasepath> remove <ipk pathandfilename>
@@ -758,10 +756,10 @@ int ApplicationInstaller::lunasvcRemove(RemoveParams *removeParams)
 
 	g_warning("ApplicationInstaller::lunasvcRemove(): Step 1: ipkg resultStatus = %d ",(int)resultStatus);
 	if (resultStatus == false && gerr) {
-		g_warning("ApplicationInstaller::lunasvcRemove(): Step 1: error: resultStatus was 0, error was %s, returning REMOVER_RETURNC__FAILEDIPKGREMOVE", gerr->message);
+		g_warning("ApplicationInstaller::lunasvcRemove(): Step 1: error: resultStatus was 0, error was %s, returning REMOVER_RETURNC_FAILEDIPKGREMOVE", gerr->message);
 		g_error_free(gerr);
 		//failed to exec ipk package remove command
-		return REMOVER_RETURNC__FAILEDIPKGREMOVE;
+		return REMOVER_RETURNC_FAILEDIPKGREMOVE;
 	}
 	else {
 		setpriority(PRIO_PROCESS, childPid, IPKG_PROCESS_PRIORITY);
@@ -789,13 +787,13 @@ int ApplicationInstaller::lunasvcRemove(RemoveParams *removeParams)
 	std::string appManifestPath = Settings::LunaSettings()->packageManifestsPath + std::string("/")+packageName+std::string(".pmmanifest");
 	unlink(appManifestPath.c_str());			//even if packageName is somehow == "", this will be harmless as it will try to unlink a <whatever>/.pmmanifest file (non existent)
 
-	return REMOVER_RETURNC__SUCCESS;
+	return REMOVER_RETURNC_SUCCESS;
 }
 
 gboolean ApplicationInstaller::cbShallowRemove(gpointer param)
 {
 	RemoveParams* removeParams = (RemoveParams*)param;
-	std::string ls_sub_key = toSTLString<long>(removeParams->ticketId);
+	std::string ls_sub_key = toSTLString<long>(static_cast<long>(removeParams->ticketId));
 	std::string ls_payload = "{\"ticket\":"+ls_sub_key+", \"status\":\"SUCCESS\"}";
 
 	EventReporter::instance()->report("uninstall", removeParams->_packageName.c_str());
@@ -806,7 +804,7 @@ gboolean ApplicationInstaller::cbShallowRemove(gpointer param)
 	return FALSE;
 }
 
-#define LINEBUFFERSIZE		4*1024
+#define LINEBUFFERSIZE		(4*1024)
 
 bool ApplicationInstaller::lunasvcIsInstalled(LSHandle* lshandle, LSMessage *msg,void *user_data) 
 {
@@ -856,8 +854,8 @@ bool ApplicationInstaller::lunasvcGetInstalledSizes(LSHandle * lshandle,LSMessag
 }
 
 /// WARNING! these are tied to the app catalog's notion of what the various codes mean. Don't change arbitrarily
-#define INSTALLER_DEFV__RC_QUERYINSTALLCAP_DOWNLOADSPACEINSUFFICIENT	1
-#define INSTALLER_DEFV__RC_QUERYINSTALLCAP_INSTALLSPACEINSUFFICIENT		2
+#define INSTALLER_DEFV_RC_QUERYINSTALLCAP_DOWNLOADSPACEINSUFFICIENT	1
+#define INSTALLER_DEFV_RC_QUERYINSTALLCAP_INSTALLSPACEINSUFFICIENT		2
 
 int ApplicationInstaller::lunasvcQueryInstallCapacity(const std::string& packageId,uint64_t packageSizeInKB,uint64_t uncompressedPackageSizeInKB,uint64_t& r_spaceNeededInKB)
 {
@@ -865,7 +863,7 @@ int ApplicationInstaller::lunasvcQueryInstallCapacity(const std::string& package
 	g_warning("%s: called with packageId = [%s] , packageSizeInKB = %llu , uncompressedPackageSizeInKB = %llu",__FUNCTION__,packageId.c_str(),packageSizeInKB,uncompressedPackageSizeInKB);
 	
 	if (uncompressedPackageSizeInKB == 0)
-		uncompressedPackageSizeInKB = packageSizeInKB * INSTALLER_DEFV__MIN_FREE_MULT;   //guess at it
+		uncompressedPackageSizeInKB = packageSizeInKB * INSTALLER_DEFV_MIN_FREE_MULT;   //guess at it
 	
 	g_mkdir_with_parents (Settings::LunaSettings()->downloadPathMedia.c_str(), 755);
 
@@ -892,7 +890,7 @@ int ApplicationInstaller::lunasvcQueryInstallCapacity(const std::string& package
 	uint64_t uncompressedSizeInFsBlocks = (uncompressedSizeInBytes) / (installFsBlockSize) + 1;	//   ""
 
 	if (packageSizeInFsBlocks > downloadFsFreeSpaceInBlocks)
-		rc |= INSTALLER_DEFV__RC_QUERYINSTALLCAP_DOWNLOADSPACEINSUFFICIENT;
+		rc |= INSTALLER_DEFV_RC_QUERYINSTALLCAP_DOWNLOADSPACEINSUFFICIENT;
 	
 	uint64_t totalSizeNeededForPackageInInstallFsBlocks = 0;
 	
@@ -937,7 +935,7 @@ int ApplicationInstaller::lunasvcQueryInstallCapacity(const std::string& package
 				,__FUNCTION__,
 				installFsFreeSpaceInBlocks,
 				totalSizeNeededForPackageInInstallFsBlocks);
-		rc |= INSTALLER_DEFV__RC_QUERYINSTALLCAP_INSTALLSPACEINSUFFICIENT;
+		rc |= INSTALLER_DEFV_RC_QUERYINSTALLCAP_INSTALLSPACEINSUFFICIENT;
 	}
 	
 	uint64_t totalSizeForPackageInBytes = ((uint64_t)totalSizeNeededForPackageInInstallFsBlocks * (uint64_t)installFsBlockSize);
@@ -1074,7 +1072,7 @@ bool ApplicationInstaller::packageNameFromControl(const std::string& controlTarG
 Cleanup:
 
 	if (fp)
-		fclose(fp);
+		(void)fclose(fp);
 	//remove the temp directory
 	util_cleanup_tempDir(innerTmpDir);
 	return success;
@@ -1086,7 +1084,7 @@ Cleanup:
  * 
  */
 //static
-int ApplicationInstaller::getAllUserInstalledAppNames(std::vector<std::string>& appList,std::string basePkgDirName) 
+int ApplicationInstaller::getAllUserInstalledAppNames(std::vector<std::string>& appList,const std::string& basePkgDirName) 
 {
 	gchar * g_stdoutBuffer = NULL;
 	gchar * g_stderrBuffer = NULL;
@@ -1229,7 +1227,7 @@ bool ApplicationInstaller::findUserInstalledAppName(const std::string& packageNa
  */
 
 //static
-int ApplicationInstaller::getAllUserInstalledAppSizes(std::vector<std::pair<std::string,uint64_t> >& appList,std::string basePkgDirName)
+int ApplicationInstaller::getAllUserInstalledAppSizes(std::vector<std::pair<std::string,uint64_t> >& appList,const std::string& basePkgDirName)
 {
 	std::vector<std::string> appNames;
 	int r = ApplicationInstaller::getAllUserInstalledAppNames(appNames,basePkgDirName);
@@ -1344,7 +1342,7 @@ uint64_t ApplicationInstaller::getSizeOfAppDir(const std::string& dirName)
 		return 0;
 	}
 
-	long sz = atol(tokens[0]);
+	long sz = strtol(tokens[0], NULL, 10);
 	g_strfreev(tokens);
 	if (sz == 0) {
 		//nothing
@@ -1526,7 +1524,7 @@ uint64_t ApplicationInstaller::getSizeOfPackageOnFsGenerateManifest(const std::s
 	}
 
 	// finally add the size of the package folder itself
-	std::string packageFolder = packageDesc->folderPath();
+	const std::string& packageFolder = packageDesc->folderPath();
 	s_sizeFnBaseDir = packageFolder;
 	nftw(packageFolder.c_str(), ApplicationInstaller::_getSizeOfAppCbFn, 20, FTW_PHYS | FTW_DEPTH);
 
@@ -1667,7 +1665,6 @@ int ApplicationInstaller::runOpenSSL(std::vector<std::string>& params,const std:
 	
 	gchar * g_stdoutBuffer = NULL;
 	gchar * g_stderrBuffer = NULL;
-	std::string re;
 	int rc=0;
 	
 	gchar ** argv = new gchar *[params.size()+2];
@@ -1973,7 +1970,7 @@ bool ApplicationInstaller::cbInstall(LSHandle* lshandle, LSMessage *msg,void *us
 	}
 	
 	success=true;
-	key = toSTLString<long>(ticket_id);
+	key = toSTLString<long>(static_cast<long>(ticket_id));
 
 	if (LSMessageIsSubscription(msg)) {
 
@@ -2176,7 +2173,7 @@ bool ApplicationInstaller::cbInstallNoVerify(LSHandle* lshandle, LSMessage *msg,
 	}
 
 	success=true;
-	key = toSTLString<long>(ticket_id);
+	key = toSTLString<long>(static_cast<long>(ticket_id));
 
 	if (LSMessageIsSubscription(msg)) {
 
@@ -2313,7 +2310,6 @@ Example response for a failed call:
 bool ApplicationInstaller::cbRemove(LSHandle* lshandle, LSMessage *msg,void *user_data) {
 	
 	LSError lserror;
-	std::string result;
 
     // {"packageName": string, "subscribe": boolean}
     VALIDATE_SCHEMA_AND_RETURN(lshandle,
@@ -2395,7 +2391,7 @@ bool ApplicationInstaller::cbRemove(LSHandle* lshandle, LSMessage *msg,void *use
 	}
 
 	success=true;
-	key = toSTLString<long>(ticket_id);
+	key = toSTLString<long>(static_cast<long>(ticket_id));
 
 	if (LSMessageIsSubscription(msg)) {
 
@@ -2417,7 +2413,7 @@ Done:
 
 	json_object* response = json_object_new_object();
 	if (success) {
-		json_object_object_add (response, "ticket", json_object_new_int (ticket_id));
+		json_object_object_add (response, "ticket", json_object_new_int (static_cast<int32_t>(ticket_id)));
 		json_object_object_add (response, "returnValue", json_object_new_boolean (true));
 		if (!version.empty())
 			json_object_object_add (response, "version", json_object_new_string (version.c_str()));
@@ -2547,7 +2543,6 @@ bool ApplicationInstaller::cbNotifyOnChange(LSHandle* lshandle, LSMessage *msg,v
 	struct json_object* j_appid = NULL;
 
 	std::string subscribe_answer = "";
-	std::string key = "0";
 	std::string appId ="";
 
 	LSErrorInit(&lserror);
@@ -2765,7 +2760,6 @@ Example response for a failed call:
 bool ApplicationInstaller::cbQueryInstallCapacity(LSHandle* lshandle,LSMessage *msg,void *user_data) {
 	
 	LSError lserror;
-	std::string result;
 	int queryCapacityResult=0;
 	uint64_t spaceNeeded = 0;
 	std::string packageId;
@@ -2876,7 +2870,6 @@ bool ApplicationInstaller::cbDbgGetPkgInfoFromStatusFile(LSHandle* lshandle,LSMe
 	std::string errorText;
 	std::string packageName;
 	std::string statusFile;
-	std::string info;
 
     // {"package": string, "statusfile": string}
     VALIDATE_SCHEMA_AND_RETURN(lshandle,
@@ -3021,7 +3014,7 @@ bool ApplicationInstaller::cbDbgFakeFsSize(LSHandle* lshandle,LSMessage *msg,voi
 	{
 		json_object_object_add(replyJson,"returnValue",json_object_new_boolean(true));
 		json_object_object_add(replyJson,"fs_directory",json_object_new_string(dir.c_str()));
-		json_object_object_add(replyJson,"size_in_KB_forced_to",json_object_new_int(sizeInKB));
+		json_object_object_add(replyJson,"size_in_KB_forced_to",json_object_new_int(static_cast<int32_t>(sizeInKB)));
 	}
 	else 
 	{
@@ -3925,7 +3918,7 @@ int ApplicationInstaller::dbg_fill(std::string& path,uint32_t& bsize,uint32_t& n
 	for (uint32_t i=0;i<nblocks;++i)
 	{
 		int n;
-		if ( (n = write(fd,fillbuff,bsize)) <= 0)
+		if ( (n = static_cast<int>(write(fd,fillbuff,bsize))) <= 0)
 		{
 			rc = -2;
 			goto Done_dbg_fill;
@@ -4119,7 +4112,7 @@ bool ApplicationInstaller::processInstallCommand(InstallParams* params)
 
 		
 	char tmpBuf[64];
-	sprintf(tmpBuf, "%d", params->_uncompressedSizeInKB);
+	(void)sprintf(tmpBuf, "%d", params->_uncompressedSizeInKB);
 
 	argv[index++] = (gchar *) "/usr/sbin/setcpushares-task";
 	argv[index++] = (gchar *) "/usr/bin/ApplicationInstallerUtility";
@@ -4171,7 +4164,7 @@ bool ApplicationInstaller::processInstallCommand(InstallParams* params)
 
 	
 	std::string message = "FAILED_IPKG_INSTALL";
-	std::string ls_sub_key = toSTLString<long>(params->ticketId);
+	std::string ls_sub_key = toSTLString<long>(static_cast<long>(params->ticketId));
 	std::string ls_payload = std::string("{ \"ticket\":") + ls_sub_key
 							 +std::string(" , \"status\":\"") + message+std::string("\"")
 							 +std::string(" }");
@@ -4188,18 +4181,18 @@ bool ApplicationInstaller::processRemoveCommand(RemoveParams* removeParams)
 
 	int rc = ApplicationInstaller::instance()->lunasvcRemove(removeParams);
 
-	if (rc != REMOVER_RETURNC__SUCCESS) {
+	if (rc != REMOVER_RETURNC_SUCCESS) {
 
 		std::string message;
 
-		if (rc == REMOVER_RETURNC__FAILEDIPKGREMOVE)
+		if (rc == REMOVER_RETURNC_FAILEDIPKGREMOVE)
 			message = "FAILED_IPKG_REMOVE";
 		else {
 			message = "FAILED_INTERNAL";
 			g_debug("processRemoveCommand: unknown return code from lunasvcremove(): %d\n",rc);
 		}
 		
-		std::string ls_sub_key = toSTLString<long>(removeParams->ticketId);
+		std::string ls_sub_key = toSTLString<long>(static_cast<long>(removeParams->ticketId));
 		std::string ls_payload = std::string("{ \"ticket\":")
 		+ls_sub_key
 		+std::string(" , \"status\":\"")+message+std::string("\"")
@@ -4208,7 +4201,7 @@ bool ApplicationInstaller::processRemoveCommand(RemoveParams* removeParams)
 		util_LSSubReplyWithRelay_IgnoreError((LSHandle*) removeParams->_lshandle,ls_sub_key,removeParams->ticketId,ls_payload);
 	}
 
-	return rc == REMOVER_RETURNC__SUCCESS;
+	return rc == REMOVER_RETURNC_SUCCESS;
 }
 
 void ApplicationInstaller::oneCommandProcessed()
@@ -4308,7 +4301,7 @@ json_object * ApplicationInstaller::packageInfoFileToJson(const std::string& pac
 	// Look for the language/region specific packageinfo.json
 
 	std::string language, region;
-	std::size_t underscorePos = locale.find("_");
+	std::size_t underscorePos = locale.find('_');
 	if (underscorePos != std::string::npos) {
 		language = locale.substr(0, underscorePos);
 		region = locale.substr(underscorePos+1);

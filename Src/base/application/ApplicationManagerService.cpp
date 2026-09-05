@@ -350,7 +350,7 @@ static bool servicecallback_close( LSHandle* lshandle, LSMessage *message,
 
 	processid = json_object_object_get(root,"processId");
 	if(processid) {
-		qint64 processId = (qint64) atol(json_object_get_string(processid));
+		qint64 processId = (qint64) strtol(json_object_get_string(processid), NULL, 10);
 		if (processId > 0) {
 			ApplicationProcessManager::instance()->killByProcessId(processId);
 			// FIXME: $$$ this was now made asynchronous, so we can't find out if the call succeeded or failed.
@@ -881,7 +881,6 @@ static bool servicecallback_install( LSHandle* lshandle, LSMessage *message,
 {
 	LSError lserror;
 	LSErrorInit(&lserror);
-	std::string processId = "";
 	std::string errMsg;
 	struct json_object* root=0;
 	struct json_object* label=0;
@@ -889,8 +888,6 @@ static bool servicecallback_install( LSHandle* lshandle, LSMessage *message,
 	struct json_object* auth=0;
 	struct json_object* devid=0;
 	struct json_object* json=0;
-	std::string params;
-	std::string targetAppId;
 	std::string callerAppId;
 	std::string callerProcessId;
 	std::string pszTarget;
@@ -964,7 +961,7 @@ static bool servicecallback_install( LSHandle* lshandle, LSMessage *message,
 
 	ticket = ApplicationManager::generateNewTicket();
 	g_warning( "ApplicationManager: attempting to install [%s] (ticket = %lu)",pszTarget.c_str(), ticket);
-	ticketStr = toSTLString<int>(ticket);
+	ticketStr = toSTLString<int>(static_cast<int>(ticket));
 
 	if (ApplicationManager::isRemoteFile (pszTarget.c_str())) {
 		g_debug ("Remote file detected, download and install");
@@ -1322,7 +1319,7 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 	if (redirectHandler.valid()) {
 		// A redirected URL implies streaming.
         g_message( "LAUNCH APP ID %s with %s", redirectHandler.appId().c_str(), targetUri.c_str() );
-        std::string appid = redirectHandler.appId();
+        const std::string& appid = redirectHandler.appId();
         processId = ApplicationManager::instance()->launch(appid, appArgUrl);
 		if (!processId.empty()) {
 			success = true;
@@ -2011,7 +2008,7 @@ static bool servicecallback_getSizeOf(LSHandle* lshandle, LSMessage *message,
 		json_object_object_add(reply, "returnValue", json_object_new_boolean(true));
 		for (std::vector<std::pair<std::string,uint32_t> >::iterator it = sizes.begin();it != sizes.end();++it) 
 		{
-			json_object_object_add(reply,(char*)(*it).first.c_str(),json_object_new_int((*it).second));
+			json_object_object_add(reply,(char*)(*it).first.c_str(),json_object_new_int(static_cast<int32_t>((*it).second)));
 		}
 	}
 
@@ -2776,7 +2773,6 @@ luna-send -n 1 -f luna://com.palm.applicationManager/inspect '{ "processId": "10
 */
 static bool servicecallback_inspect( LSHandle* lshandle, LSMessage* message, void* user_data )
 {
-	std::string result;
 	struct json_object* root=0;
 	struct json_object* processid=0;
 
@@ -3367,7 +3363,7 @@ static bool servicecallback_launchPointChanges(LSHandle* lsHandle, LSMessage *me
 static std::string getAbsolutePath(const std::string& inStr,
 		const std::string& parentDirectory)
 {
-	int pos = inStr.find("://");
+	int pos = static_cast<int>(inStr.find("://"));
 	if (pos != -1) {
 		// absolute path with url protocol. strip off the protocol part
 		return inStr.substr(pos + 3);
@@ -4594,7 +4590,6 @@ static bool servicecallback_getHandlerByVerb(LSHandle* lsHandle, LSMessage *mess
 	std::string url;
 	std::string mime;
 	std::string verb;
-	std::string handlerParams;	
 	ResourceHandler rsrcHandler;
 	RedirectHandler redirHandler;	
 
@@ -4670,12 +4665,12 @@ static bool servicecallback_getHandlerByVerb(LSHandle* lsHandle, LSMessage *mess
 			json_object_object_add(reply, "mimeType", json_object_new_string(mime.c_str()));
 			json_object_object_add(reply, "appId",json_object_new_string(rsrcHandler.appId().c_str()));
 			json_object_object_add(reply, "download", json_object_new_boolean(!(rsrcHandler.stream())));
-			json_object_object_add(reply, "index", json_object_new_int(rsrcHandler.index()));
+			json_object_object_add(reply, "index", json_object_new_int(static_cast<int32_t>(rsrcHandler.index())));
 		}
 		else {
 			json_object_object_add(reply, "appId",json_object_new_string(redirHandler.appId().c_str()));
 			json_object_object_add(reply, "download", json_object_new_boolean(false));
-			json_object_object_add(reply, "index", json_object_new_int(redirHandler.index()));
+			json_object_object_add(reply, "index", json_object_new_int(static_cast<int32_t>(redirHandler.index())));
 		}
 	}
 
@@ -6947,7 +6942,6 @@ static bool servicecallback_deleteSavedTable(LSHandle* lsHandle, LSMessage *mess
 {
 	LSError lserror;
 	LSErrorInit(&lserror);
-	std::string errorText;
 
     // {}
 

@@ -88,7 +88,7 @@ LaunchPoint* LaunchPoint::fromJSON(ApplicationDescription* appDesc,
 
 	root = json_tokener_parse(jsonStr);
 	if (!root) {
-		fprintf(stderr, "Failed to parse '%s' into a JSON string.\n", launchPointId.c_str());
+		(void)fprintf(stderr, "Failed to parse '%s' into a JSON string.\n", launchPointId.c_str());
 		goto Done;
 	}
 
@@ -275,7 +275,7 @@ json_object* LaunchPoint::toJSON() const
 		if (this->isDefault()) {
 			PackageDescription* packageDesc = ApplicationManager::instance()->getPackageInfoByAppId(m_appDesc->id());
 			if (packageDesc) {
-				appSize = packageDesc->packageSize();
+				appSize = static_cast<int>(packageDesc->packageSize());
 				packageId = packageDesc->id();
 			}
 

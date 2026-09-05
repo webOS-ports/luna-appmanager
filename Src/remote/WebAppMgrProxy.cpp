@@ -109,8 +109,8 @@ bool WebAppMgrProxy::webAppManagerServiceStatusCb(LSHandle *handle, LSMessage *m
 
     WebAppMgrProxy *proxy = static_cast<WebAppMgrProxy*>(user_data);
 
-    bool connected = json_object_get_boolean(value);
-    if (connected)
+    bool isConnected = json_object_get_boolean(value);
+    if (isConnected)
         proxy->onWebAppManagerConnected();
     else
         proxy->onWebAppManagerDisconnected();
@@ -238,7 +238,7 @@ cleanup:
     json_object_put(json);
 }*/
 
-bool WebAppMgrProxy::connected()
+bool WebAppMgrProxy::connected() const
 {
     return mConnected;
 }
@@ -320,7 +320,7 @@ void WebAppMgrProxy::launchUrl(const char* url, WindowType::Type winType,
         json_object_object_add(obj, "appDesc", appDesc->toJSON());
 
     json_object_object_add(obj, "parameters", json_object_new_string(params));
-    json_object_object_add(obj, "processId", json_object_new_int(processId));
+    json_object_object_add(obj, "processId", json_object_new_int(static_cast<int32_t>(processId)));
     json_object_object_add(obj, "launchingAppId", json_object_new_string(launchingAppId));
     json_object_object_add(obj, "launchingProcId", json_object_new_string(launchingProcId));
 
@@ -341,7 +341,7 @@ std::string WebAppMgrProxy::launchApp(const std::string& appId,
                                       const std::string& launchingProcId,
                                       std::string& errMsg)
 {
-    std::string appIdToLaunch = appId;
+    const std::string& appIdToLaunch = appId;
     std::string paramsToLaunch = params;
     if(paramsToLaunch.empty()) paramsToLaunch = "{}";
     errMsg.erase();
@@ -379,7 +379,6 @@ std::string WebAppMgrProxy::launchApp(const std::string& appId,
     {
         desc = ApplicationManager::instance()->getAppById(appIdToLaunch);
         if (desc) {
-            appIdToLaunch = desc->id();
             paramsToLaunch = "{}";
         }
         else {
@@ -402,7 +401,7 @@ std::string WebAppMgrProxy::launchApp(const std::string& appId,
         json_object *obj = json_object_new_object();
         json_object_object_add(obj, "appDesc", desc->toJSON());
         json_object_object_add(obj, "parameters", json_tokener_parse(paramsToLaunch.c_str()));
-        json_object_object_add(obj, "processId", json_object_new_int(processId));
+        json_object_object_add(obj, "processId", json_object_new_int(static_cast<int32_t>(processId)));
         json_object_object_add(obj, "launchingAppId", json_object_new_string(launchingAppId.c_str()));
         json_object_object_add(obj, "launchingProcId", json_object_new_string(launchingProcId.c_str()));
         json_object_object_add(obj, "instanceId", json_object_new_string(appId.c_str()));

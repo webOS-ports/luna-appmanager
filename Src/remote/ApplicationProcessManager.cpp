@@ -54,9 +54,9 @@ ApplicationProcessManager::ApplicationProcessManager() :
 {
 }
 
-bool ApplicationProcessManager::isRunning(std::string appId)
+bool ApplicationProcessManager::isRunning(const std::string& appId)
 {
-    Q_FOREACH(ApplicationInfo *app, mApplications) {
+    Q_FOREACH(const ApplicationInfo *app, mApplications) {
         if (app->appId() == QString::fromStdString(appId))
             return true;
     }
@@ -64,11 +64,11 @@ bool ApplicationProcessManager::isRunning(std::string appId)
     return false;
 }
 
-std::string ApplicationProcessManager::getPid(std::string appId)
+std::string ApplicationProcessManager::getPid(const std::string& appId)
 {
-    ApplicationInfo *selectedApp = 0;
+    const ApplicationInfo *selectedApp = 0;
 
-    Q_FOREACH(ApplicationInfo *app, mApplications) {
+    Q_FOREACH(const ApplicationInfo *app, mApplications) {
         if (app->appId() == QString::fromStdString(appId)) {
             selectedApp = app;
             break;
@@ -82,12 +82,12 @@ std::string ApplicationProcessManager::getPid(std::string appId)
     return processId.toStdString();
 }
 
-QList<ApplicationInfo*> ApplicationProcessManager::runningApplications() const
+const QList<ApplicationInfo*>& ApplicationProcessManager::runningApplications() const
 {
     return mApplications;
 }
 
-void ApplicationProcessManager::killByAppId(std::string appId, bool notifyUser)
+void ApplicationProcessManager::killByAppId(const std::string& appId, bool notifyUser)
 {
     ApplicationInfo *targetApp = 0;
 
@@ -122,7 +122,7 @@ void ApplicationProcessManager::killApp(ApplicationInfo *app)
 
     app->kill();
 
-    ApplicationDescription *desc = ApplicationManager::instance()->getAppById(app->appId().toStdString());
+    const ApplicationDescription *desc = ApplicationManager::instance()->getAppById(app->appId().toStdString());
 
     std::string appName = "Application";
     std::string appTitle = "";
@@ -140,7 +140,7 @@ void ApplicationProcessManager::killApp(ApplicationInfo *app)
     app->deleteLater();
 }
 
-std::string ApplicationProcessManager::launch(std::string appId, std::string params)
+std::string ApplicationProcessManager::launch(const std::string& appId, std::string params)
 {
     qDebug() << "Launching application" << QString::fromStdString(appId);
 
@@ -160,11 +160,11 @@ std::string ApplicationProcessManager::launch(std::string appId, std::string par
     return std::string("");
 }
 
-void ApplicationProcessManager::relaunch(std::string appId, std::string params)
+void ApplicationProcessManager::relaunch(const std::string& appId, const std::string& params)
 {
-    ApplicationInfo *targetApp = 0;
+    const ApplicationInfo *targetApp = 0;
 
-    Q_FOREACH(ApplicationInfo *app, mApplications) {
+    Q_FOREACH(const ApplicationInfo *app, mApplications) {
         if (app->appId() == QString::fromStdString(appId)) {
             targetApp = app;
             break;

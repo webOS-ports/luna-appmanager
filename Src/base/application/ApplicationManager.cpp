@@ -257,7 +257,7 @@ void ApplicationManager::loadHiddenApps()
         return;
 
     if (json_object_is_type(root, json_type_array)) {
-        int numApps = json_object_array_length(root);
+        int numApps = static_cast<int>(json_object_array_length(root));
         for (int i=0; i<numApps; i++) {
             json_object* app = json_object_array_get_idx(root, i);
             if (app && json_object_is_type(app, json_type_string)) {
@@ -1217,7 +1217,7 @@ void ApplicationManager::scanForPackages()
     }
 
     if (list)
-        free(list);
+        free(static_cast<void*>(list));
 }
 
 void ApplicationManager::createPackageDescriptionForOldApps()
@@ -1279,7 +1279,7 @@ void ApplicationManager::scanForServices()
     }
 
     if (list)
-        free(list);
+        free(static_cast<void*>(list));
 }
 
 void ApplicationManager::scanForSystemApplications()
@@ -1419,12 +1419,12 @@ void ApplicationManager::scanForLaunchPoints(std::string launchPointFolder)
         free(list[i]);
     }
 
-    free(list);
+    free(static_cast<void*>(list));
 }
 
 void ApplicationManager::scanApplicationsFolders(const std::string& appFoldersPath)
 {
-    std::string folderPath(appFoldersPath);
+    const std::string& folderPath(appFoldersPath);
     //folderPath += "/";                                    // HV    -  this was causing e.g.  '/var/luna/applications//phone' instead of '/var/luna/applications/phone'
     //            I changed the local mod here rather than appFoldersPath in the caller, as I don't know what else in the sys relies on
     //            it having a trailing slash  (/var/luna/applications/)
@@ -1515,12 +1515,12 @@ void ApplicationManager::scanApplicationsFolders(const std::string& appFoldersPa
     }
 
     if (list)
-        free(list);
+        free(static_cast<void*>(list));
 }
 
 void ApplicationManager::scanApplicationsFolders(const std::string& appFoldersPath,std::map<std::string,ApplicationDescription *>& foundApps)
 {
-    std::string folderPath(appFoldersPath);
+    const std::string& folderPath(appFoldersPath);
 
 //    g_message("\tappFoldersPath = %s",appFoldersPath.c_str());
     struct dirent** list=NULL;
@@ -1563,7 +1563,7 @@ void ApplicationManager::scanApplicationsFolders(const std::string& appFoldersPa
     }
 
     if (list)
-        free(list);
+        free(static_cast<void*>(list));
 }
 
 ApplicationDescription* ApplicationManager::scanOneApplicationFolder(const std::string& appFolderPath)
@@ -1574,7 +1574,7 @@ ApplicationDescription* ApplicationManager::scanOneApplicationFolder(const std::
     // Look for the language/region specific appinfo.json
 
     std::string language, region;
-    std::size_t underscorePos = locale.find("_");
+    std::size_t underscorePos = locale.find('_');
     if (underscorePos != std::string::npos) {
         language = locale.substr(0, underscorePos);
         region = locale.substr(underscorePos+1);
@@ -1670,7 +1670,7 @@ PackageDescription* ApplicationManager::scanOnePackageFolder(const std::string& 
     // Look for the language/region specific appinfo.json
 
     std::string language, region;
-    std::size_t underscorePos = locale.find("_");
+    std::size_t underscorePos = locale.find('_');
     if (underscorePos != std::string::npos) {
         language = locale.substr(0, underscorePos);
         region = locale.substr(underscorePos+1);
@@ -1997,7 +1997,7 @@ bool ApplicationManager::isLaunchAtBootApp(const std::string& appId)
 
 }
 
-void ApplicationManager::focusApplication(std::string appId)
+void ApplicationManager::focusApplication(const std::string& appId)
 {
     char *params = g_strdup_printf("{\"appId\":\"%s\"}", appId.c_str());
 
@@ -2019,7 +2019,7 @@ void ApplicationManager::focusApplication(std::string appId)
     g_free(params);
 }
 
-std::string ApplicationManager::launch(std::string appId, std::string params)
+std::string ApplicationManager::launch(const std::string& appId, const std::string& params)
 {
     LSSubscriptionIter *iter = NULL;
     json_object *reply;
@@ -2075,7 +2075,7 @@ std::string ApplicationManager::launch(std::string appId, std::string params)
     return ApplicationProcessManager::instance()->launch(appId, params);
 }
 
-bool ApplicationManager::registerApplication(std::string appId, LSMessage *message)
+bool ApplicationManager::registerApplication(const std::string& appId, LSMessage *message)
 {
     LSSubscriptionIter *iter = NULL;
 
@@ -2226,7 +2226,7 @@ std::string ApplicationManager::findUniqueFileName(const std::string& folder)
         // Random number between 1 and 1000000
         num = 1 + (int) (1000000.0 * (rand() / (RAND_MAX + 1.0)));
 
-        snprintf(numStr, len, "%08d", num);
+        (void) snprintf(numStr, len, "%08d", num);
 
         g_message("Checking file: %s", numStr);
 
@@ -2316,7 +2316,7 @@ std::string ApplicationManager::getContentType(const std::string& mime)
 
     if (!mime.empty()) {
         for (const char* delim = delims; *delim != '\0'; delim++) {
-            int pos = mime.find(*delim);
+            int pos = static_cast<int>(mime.find(*delim));
             if (pos > 0) {
                 content = mime.substr(0, pos);
                 break;
@@ -2563,7 +2563,7 @@ void ApplicationManager::handleApplicationStatusUpdates(LSMessage* msg)
         key = json_object_object_get(key, "apps");
         if (key && json_object_is_type(key, json_type_array) && !initialStatus) {
             // this is the first status response
-            int length = json_object_array_length(key);
+            int length = static_cast<int>(json_object_array_length(key));
             for (int i=0; i<length; i++) {
                 json_object* item = json_object_array_get_idx(key, i);
                 if (item) {

@@ -19,8 +19,8 @@
 
 
 
-#ifndef __ApplicationStatus_h__
-#define __ApplicationStatus_h__
+#ifndef ApplicationStatus_h_
+#define ApplicationStatus_h_
 
 #include "Common.h"
 
@@ -30,7 +30,7 @@ struct json_object;
 
 struct ApplicationStatus
 {
-	ApplicationStatus(json_object* item);
+	explicit ApplicationStatus(json_object* item);
 
 	enum State {
 		State_IconDownload,
@@ -57,7 +57,7 @@ struct ApplicationStatus
 
 private:
 
-	std::string getJsonString(json_object* prop);
+	static std::string getJsonString(json_object* prop);
 };
 
-#endif // __ApplicationStatus_h__
+#endif // ApplicationStatus_h_

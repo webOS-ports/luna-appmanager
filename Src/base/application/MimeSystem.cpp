@@ -252,7 +252,7 @@ struct json_object * MimeSystem::RedirectHandlerNode::toJson() 		//WARNING: memo
 		for (std::map<std::string,VerbCacheEntry>::iterator it = m_verbCache.begin();it != m_verbCache.end();++it) {
 			struct json_object * innerVerbObject = json_object_new_object();
 			json_object_object_add(innerVerbObject,(char *)"verb",json_object_new_string(it->first.c_str()));
-			json_object_object_add(innerVerbObject,(char *)"index",json_object_new_int(it->second.activeIndex));
+			json_object_object_add(innerVerbObject,(char *)"index",json_object_new_int(static_cast<int32_t>(it->second.activeIndex)));
 			json_object_array_add(jarray,innerVerbObject);
 		}
 		json_object_object_add(jobj,(char *)"verbs",jarray);
@@ -601,7 +601,7 @@ struct json_object * MimeSystem::ResourceHandlerNode::toJson() 		//WARNING: memo
 		for (std::map<std::string,VerbCacheEntry>::iterator it = m_verbCache.begin();it != m_verbCache.end();++it) {
 			json_object * innerVerbObject = json_object_new_object();
 			json_object_object_add(innerVerbObject,(char *)"verb",json_object_new_string(it->first.c_str()));
-			json_object_object_add(innerVerbObject,(char *)"index",json_object_new_int(it->second.activeIndex));
+			json_object_object_add(innerVerbObject,(char *)"index",json_object_new_int(static_cast<int32_t>(it->second.activeIndex)));
 			json_object_array_add(jarray,innerVerbObject);
 		}
 		json_object_object_add(jobj,(char *)"verbs",jarray);
@@ -952,7 +952,7 @@ int	MimeSystem::getAllAppIdForResource(std::string mimeType,std::string& r_activ
 		r_alternatives.push_back((*rit)->appId());
 	}
 
-	return (p_rhn->m_alternates.size() +1);
+	return static_cast<int>(p_rhn->m_alternates.size() +1);
 }
 
 ResourceHandler	MimeSystem::getActiveHandlerForResource(std::string mimeType)
@@ -986,7 +986,7 @@ int	MimeSystem::getAllHandlersForResource(std::string mimeType,ResourceHandler& 
 		r_alternatives.push_back(*(*rit));
 	}
 	
-	return (p_rhn->m_alternates.size() +1);
+	return static_cast<int>(p_rhn->m_alternates.size() +1);
 }
 	
 std::string	MimeSystem::getActiveAppIdForRedirect(const std::string& url,bool doNotUseRegexpMatch,bool disallowSchemeForms)
@@ -1550,7 +1550,7 @@ int	MimeSystem::removeAllForUrl(const std::string& url)
 /*
  * returns >0 on success, 0 on error
  */
-int	MimeSystem::addResourceHandler(std::string& extension,std::string mimeType,bool shouldDownload,const std::string appId,const std::map<std::string,std::string> * pVerbs,bool sysDefault)
+int	MimeSystem::addResourceHandler(std::string& extension,std::string mimeType,bool shouldDownload,const std::string& appId,const std::map<std::string,std::string> * pVerbs,bool sysDefault)
 {
 	MutexLocker lock(&m_mutex);
 	
@@ -1607,7 +1607,7 @@ int	MimeSystem::addResourceHandler(std::string& extension,std::string mimeType,b
 	return 2;
 }
 
-int	MimeSystem::addResourceHandler(std::string extension,bool shouldDownload,const std::string appId,const std::map<std::string,std::string> * pVerbs,bool sysDefault)
+int	MimeSystem::addResourceHandler(std::string extension,bool shouldDownload,const std::string& appId,const std::map<std::string,std::string> * pVerbs,bool sysDefault)
 {
 	MutexLocker lock(&m_mutex);
 	//find the mime type for this extension
@@ -1644,7 +1644,7 @@ int	MimeSystem::addResourceHandler(std::string extension,bool shouldDownload,con
 	return 2;
 }
 
-int	MimeSystem::addRedirectHandler(const std::string& url,const std::string appId,const std::map<std::string,std::string> * pVerbs,bool isSchemeForm,bool sysDefault)
+int	MimeSystem::addRedirectHandler(const std::string& url,const std::string& appId,const std::map<std::string,std::string> * pVerbs,bool isSchemeForm,bool sysDefault)
 {
 	MutexLocker lock(&m_mutex);
 	//see if there is a primary entry already
@@ -1958,7 +1958,6 @@ json_object * MimeSystem::extensionMapAsJsonArray() //WARNING: memory allocated;
 bool MimeSystem::saveMimeTable(const std::string& file,std::string& r_err)
 {
 	MutexLocker locker(&m_mutex);
-	std::string mimeTablesJsonStr;
 	r_err.clear();
 	//try and open the file
 	FILE * fp = fopen(file.c_str(),"w");
@@ -1985,7 +1984,7 @@ bool MimeSystem::saveMimeTable(const std::string& file,std::string& r_err)
 		goto Done_saveMimeTable;
 	}
 	
-	fprintf(fp,"\n\n");
+	(void)fprintf(fp,"\n\n");
 	
 Done_saveMimeTable:
 
@@ -1998,7 +1997,6 @@ Done_saveMimeTable:
 bool MimeSystem::saveMimeTableToActiveFile(std::string& r_err)
 {
 	MutexLocker locker(&m_mutex);
-	std::string mimeTablesJsonStr;
 	r_err.clear();
 	//try and open the file
 	FILE * fp = fopen(Settings::LunaSettings()->lunaCmdHandlerSavedPath.c_str(),"w");
@@ -2025,7 +2023,7 @@ bool MimeSystem::saveMimeTableToActiveFile(std::string& r_err)
 		goto Done_saveMimeTableToActiveFile;
 	}
 	
-	fprintf(fp,"\n\n");
+	(void)fprintf(fp,"\n\n");
 	
 Done_saveMimeTableToActiveFile:
 

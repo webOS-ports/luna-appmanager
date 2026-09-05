@@ -19,8 +19,8 @@
 
 
 
-#ifndef __CmdResourceHandlers_h__
-#define __CmdResourceHandlers_h__
+#ifndef CmdResourceHandlers_h_
+#define CmdResourceHandlers_h_
 
 
 #include "Common.h"
@@ -63,7 +63,7 @@ class RedirectHandler
 		{
 			return ((m_urlRe != c.m_urlRe) || (m_appId != c.m_appId));
 		}
-		bool equals(const std::string& url,const std::string& appId)
+		bool equals(const std::string& url,const std::string& appId) const
 		{
 			return ((m_urlRe == url) && (m_appId == appId));
 		}
@@ -79,13 +79,13 @@ class RedirectHandler
 		
 		const std::string& tag() const { return m_tag; }
 		void setTag(const std::string& newtag) { m_tag = newtag;}
-		uint32_t index() { return m_index; }
+		uint32_t index() const { return m_index; }
 		uint32_t setIndex(uint32_t newindex) { uint32_t t = m_index; m_index = newindex; return t;}
 
 		std::string		toJsonString();
 		struct json_object * toJson();			//WARNING: memory allocated; caller must clean
 		
-		const std::map<std::string,std::string>& verbs() { return m_verbs;}
+		const std::map<std::string,std::string>& verbs() const { return m_verbs;}
 		
 	private:
 		
@@ -151,13 +151,13 @@ class ResourceHandler
 		const std::string& contentType() const { return m_contentType; }
 		const std::string& tag() const { return m_tag; }
 		void setTag(const std::string& newtag) { m_tag = newtag;}
-		uint32_t index() { return m_index; }
+		uint32_t index() const { return m_index; }
 		uint32_t setIndex(uint32_t newindex) { uint32_t t = m_index; m_index = newindex; return t;}
 		bool stream() const { return m_stream; }
 
 		friend class ResourceHandlerNode;
 		
-		bool valid()	{ return m_valid;}
+		bool valid() const	{ return m_valid;}
 		void markInvalid() { m_valid = false; }
 		bool addVerb(const std::string& verb,const std::string& jsonizedParams);
 		void removeVerb(const std::string& verb);
@@ -165,7 +165,7 @@ class ResourceHandler
 		std::string		toJsonString();
 		struct json_object * toJson();			//WARNING: memory allocated; caller must clean
 		
-		const std::map<std::string,std::string>& verbs() { return m_verbs;}
+		const std::map<std::string,std::string>& verbs() const { return m_verbs;}
 		
 	private:
 		std::string m_fileExt;

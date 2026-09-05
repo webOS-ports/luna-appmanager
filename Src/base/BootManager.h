@@ -73,8 +73,8 @@ public:
 class BootStateStartup : public BootStateBase
 {
 public:
-    virtual void enter();
-	virtual void handleEvent(BootEvent event);
+    virtual void enter() override;
+	virtual void handleEvent(BootEvent event) override;
 
 private:
 	void advanceState();
@@ -84,9 +84,9 @@ private:
 class BootStateFirstUse : public BootStateBase
 {
 public:
-	virtual void enter();
-	virtual void leave();
-	virtual void handleEvent(BootEvent event);
+	virtual void enter() override;
+	virtual void leave() override;
+	virtual void handleEvent(BootEvent event) override;
 
 private:
 	DisplayBlocker m_displayBlocker;
@@ -103,9 +103,9 @@ private:
 class BootStateNormal : public BootStateBase
 {
 public:
-	virtual void enter();
-	virtual void leave();
-	virtual void handleEvent(BootEvent event);
+	virtual void enter() override;
+	virtual void leave() override;
+	virtual void handleEvent(BootEvent event) override;
 
 private:
 	void activateSuspend(bool enable);

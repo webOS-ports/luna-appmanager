@@ -39,7 +39,7 @@ class SysmgrBuiltinLaunchHelper : public QObject
 	Q_OBJECT
 public:
 
-	SysmgrBuiltinLaunchHelper(const std::string& args)
+	explicit SysmgrBuiltinLaunchHelper(const std::string& args)
 	: m_builtIn_argsAsStringEncodedJson(args) {}
 
 	void launch()
@@ -79,11 +79,11 @@ public:
 		HardwareFeaturesNeeded_Bluetooth     = 1 << 1,
 		HardwareFeaturesNeeded_Compass       = 1 << 2,
 		HardwareFeaturesNeeded_Accelerometer = 1 << 3,
-		HardwareFeaturesNeeded_Last          = 1 << 31
+		HardwareFeaturesNeeded_Last          = 1u << 31
 	};
 
 	ApplicationDescription();
-	~ApplicationDescription();
+	~ApplicationDescription() override;
 
 	static ApplicationDescription* fromFile(const std::string& filePath, const std::string& folderPath);
     static ApplicationDescription* fromJsonString(const char* jsonStr);
@@ -186,7 +186,7 @@ public:
 	bool	doesMatchKeywordExact(const gchar* keyword) const;
 	bool	doesMatchKeywordPartial(const gchar* keyword) const;
 	
-	void getAppDescriptionString(std::string &descString) const;
+	void getAppDescriptionString(std::string &descString) const override;
 
 	void startSysmgrBuiltIn(const std::string& jsonArgsString) const;
 	void startSysmgrBuiltIn() const;
@@ -204,13 +204,8 @@ private:
 	public:
 		MimeRegInfo() : stream(false) {}
 		//FIXME: don't need this anymore; originally intended to have it handle deep copies from pointers but now it's just the same as the default copy constr.
-		MimeRegInfo(const MimeRegInfo& c) {
-			mimeType = c.mimeType;
-			extension = c.extension;
-			urlPattern = c.urlPattern;
-			scheme = c.scheme;
-			stream = c.stream;
-		}
+		MimeRegInfo(const MimeRegInfo& c) :
+			mimeType(c.mimeType), extension(c.extension), urlPattern(c.urlPattern), scheme(c.scheme), stream(c.stream) {}
 		MimeRegInfo& operator=(const MimeRegInfo& c) {
 			if (this == &c)
 				return *this;

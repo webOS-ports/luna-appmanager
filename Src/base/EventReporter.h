@@ -19,8 +19,8 @@
 
 
 
-#ifndef __EventReporter_h__
-#define __EventReporter_h__
+#ifndef EventReporter_h_
+#define EventReporter_h_
 
 #include "Common.h"
 
@@ -36,7 +36,7 @@ public:
 	bool report( const char* eventString, const char* eventData );
  
 private:
-	EventReporter(GMainLoop* loop);
+	explicit EventReporter(GMainLoop* loop);
 	~EventReporter();
 	
 	LSHandle* m_service;
@@ -44,6 +44,6 @@ private:
 };
 
  
- #endif // __EventReporter_h__
+ #endif // EventReporter_h_
  
 
