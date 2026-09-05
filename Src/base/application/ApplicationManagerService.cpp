@@ -2774,7 +2774,6 @@ luna-send -n 1 -f luna://com.palm.applicationManager/inspect '{ "processId": "10
 static bool servicecallback_inspect( LSHandle* lshandle, LSMessage* message, void* user_data )
 {
 	struct json_object* root=0;
-	struct json_object* processid=0;
 
     // {"processId": string }
 
@@ -2792,9 +2791,6 @@ static bool servicecallback_inspect( LSHandle* lshandle, LSMessage* message, voi
 		g_message("servicecallback_inspect: malformed json\n");
 		return true;
 	}
-
-	processid = json_object_object_get(root,"processId");
-	(void) processid;
 
 	if( root ) json_object_put( root );
 	return true;
