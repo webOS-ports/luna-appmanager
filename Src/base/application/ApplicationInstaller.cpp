@@ -860,7 +860,7 @@ bool ApplicationInstaller::lunasvcGetInstalledSizes(LSHandle * lshandle,LSMessag
 int ApplicationInstaller::lunasvcQueryInstallCapacity(const std::string& packageId,uint64_t packageSizeInKB,uint64_t uncompressedPackageSizeInKB,uint64_t& r_spaceNeededInKB)
 {
 	int rc = 0;
-	g_warning("%s: called with packageId = [%s] , packageSizeInKB = %llu , uncompressedPackageSizeInKB = %llu",__FUNCTION__,packageId.c_str(),packageSizeInKB,uncompressedPackageSizeInKB);
+	g_warning("%s: called with packageId = [%s] , packageSizeInKB = %llu , uncompressedPackageSizeInKB = %llu",__FUNCTION__,packageId.c_str(),(unsigned long long)packageSizeInKB,(unsigned long long)uncompressedPackageSizeInKB);
 	
 	if (uncompressedPackageSizeInKB == 0)
 		uncompressedPackageSizeInKB = packageSizeInKB * INSTALLER_DEFV_MIN_FREE_MULT;   //guess at it
@@ -907,7 +907,7 @@ int ApplicationInstaller::lunasvcQueryInstallCapacity(const std::string& package
 		{
 			alreadyInstalledPackageSizeInFsBlocks = uncompressedSizeInFsBlocks;
 			g_warning("%s: [WEIRD-NESS]: Apparently, the already installed package is smaller in size (%llu blocks) vs the new package uncompressed (%llu blocks)",
-						__FUNCTION__,alreadyInstalledPackageSizeInFsBlocks,uncompressedSizeInFsBlocks);
+						__FUNCTION__,(unsigned long long)alreadyInstalledPackageSizeInFsBlocks,(unsigned long long)uncompressedSizeInFsBlocks);
 		}
 	}
 	else 
@@ -920,21 +920,21 @@ int ApplicationInstaller::lunasvcQueryInstallCapacity(const std::string& package
 		//if yes, then the amount needed for install is:  package size + uncompressed size 
 		totalSizeNeededForPackageInInstallFsBlocks = packageSizeInFsBlocks + uncompressedSizeInFsBlocks - alreadyInstalledPackageSizeInFsBlocks;
 		g_warning("%s: Total size required for the package is: package size (%llu blocks) + uncompressed size (%llu blocks) - already installed size (%llu blocks) ==> %llu blocks total",
-				__FUNCTION__,packageSizeInFsBlocks,uncompressedSizeInFsBlocks,alreadyInstalledPackageSizeInFsBlocks,totalSizeNeededForPackageInInstallFsBlocks);
+				__FUNCTION__,(unsigned long long)packageSizeInFsBlocks,(unsigned long long)uncompressedSizeInFsBlocks,(unsigned long long)alreadyInstalledPackageSizeInFsBlocks,(unsigned long long)totalSizeNeededForPackageInInstallFsBlocks);
 	}
 	else
 	{
 		//if no, then the amount needed for install is: uncompressed size
 		totalSizeNeededForPackageInInstallFsBlocks = uncompressedSizeInFsBlocks - alreadyInstalledPackageSizeInFsBlocks;
 		g_warning("%s: Total size required for the package is: uncompressed size (%llu blocks) - already installed size (%llu blocks) ==> %llu blocks total",
-				__FUNCTION__,uncompressedSizeInFsBlocks,alreadyInstalledPackageSizeInFsBlocks,totalSizeNeededForPackageInInstallFsBlocks);
+				__FUNCTION__,(unsigned long long)uncompressedSizeInFsBlocks,(unsigned long long)alreadyInstalledPackageSizeInFsBlocks,(unsigned long long)totalSizeNeededForPackageInInstallFsBlocks);
 	}
 
 	if (totalSizeNeededForPackageInInstallFsBlocks > installFsFreeSpaceInBlocks)	{
 		g_warning("%s: Not enough free space on install fs; it has only %llu blocks, and %llu blocks are needed"
 				,__FUNCTION__,
-				installFsFreeSpaceInBlocks,
-				totalSizeNeededForPackageInInstallFsBlocks);
+				(unsigned long long)installFsFreeSpaceInBlocks,
+				(unsigned long long)totalSizeNeededForPackageInInstallFsBlocks);
 		rc |= INSTALLER_DEFV_RC_QUERYINSTALLCAP_INSTALLSPACEINSUFFICIENT;
 	}
 	
@@ -948,9 +948,9 @@ int ApplicationInstaller::lunasvcQueryInstallCapacity(const std::string& package
 	
 	g_warning("%s: \t\t ===> Total size needed in bytes for package install = %llu (~%llu KB)  [%llu for new package]",
 			__FUNCTION__,
-			installSpaceNeeded,
-			r_spaceNeededInKB,
-			totalSizeForPackageInBytes);
+			(unsigned long long)installSpaceNeeded,
+			(unsigned long long)r_spaceNeededInKB,
+			(unsigned long long)totalSizeForPackageInBytes);
 		
 	return rc;
 }
@@ -1247,7 +1247,7 @@ int ApplicationInstaller::getAllUserInstalledAppSizes(std::vector<std::pair<std:
 			continue;
 		}
 		
-		g_warning("%s: Found size = %llu for %s",__FUNCTION__,appDesc->appSize(),(*it).c_str());
+		g_warning("%s: Found size = %llu for %s",__FUNCTION__,(unsigned long long)appDesc->appSize(),(*it).c_str());
 		appList.push_back(std::pair<std::string,uint64_t>(*it,appDesc->appSize()));
 		++n_found;
 	} //end app name iteration
@@ -1267,7 +1267,7 @@ uint64_t ApplicationInstaller::getFsFreeSpaceInMB(const std::string& pathOnFs)
 		return 0;
 	}
 
-	g_warning("%s: %s = %lu units at %lu bytes/unit",__FUNCTION__,pathOnFs.c_str(),fs_stats.f_bfree,fs_stats.f_frsize);
+	g_warning("%s: %s = %llu units at %lu bytes/unit",__FUNCTION__,pathOnFs.c_str(),(unsigned long long)fs_stats.f_bfree,fs_stats.f_frsize);
 
 	return ((fs_stats.f_bfree * fs_stats.f_frsize) / 1048576);
 		
@@ -3832,8 +3832,8 @@ int ApplicationInstaller::dbg_statfs(const char * fsPath, struct statfs * buf)
 	if (buf->f_blocks < buf->f_bavail)
 		buf->f_blocks = buf->f_bavail;
 	
-	g_warning("(DEBUG-FN) %s: returning %lu blocks available (%d blocksize) for fs path [%s], id = %u",
-				__FUNCTION__,buf->f_bavail,buf->f_bsize,fsPath,it->first);
+	g_warning("(DEBUG-FN) %s: returning %llu blocks available (%ld blocksize) for fs path [%s], id = %u",
+				__FUNCTION__,(unsigned long long)buf->f_bavail,(long)buf->f_bsize,fsPath,it->first);
 	return 0;
 }
 
@@ -3884,8 +3884,8 @@ int ApplicationInstaller::dbg_statvfs(const char * fsPath,struct statvfs * buf)
 	if (buf->f_blocks < buf->f_bavail)
 		buf->f_blocks = buf->f_bavail;
 
-	g_warning("(DEBUG-FN) %s: returning %lu blocks available (%lu fundamental blocksize, %lu preferred blocksize) for fs path [%s], id = %u",
-			__FUNCTION__,buf->f_bavail,buf->f_frsize,buf->f_bsize,fsPath,it->first);
+	g_warning("(DEBUG-FN) %s: returning %llu blocks available (%lu fundamental blocksize, %lu preferred blocksize) for fs path [%s], id = %u",
+			__FUNCTION__,(unsigned long long)buf->f_bavail,buf->f_frsize,buf->f_bsize,fsPath,it->first);
 	return 0;
 }
 	

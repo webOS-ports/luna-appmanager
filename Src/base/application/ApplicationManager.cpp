@@ -703,7 +703,7 @@ void ApplicationManager::createOrUpdatePackageManifest(PackageDescription* packa
                     } else {
                         // set the size that's found
                         uint64_t packageSize = strtouq(packageSizeStr.c_str(), NULL, 10);
-                        g_debug("%s: [MANIFESTS]: manifest for %s blocksize = %s found total size = %llu...setting on package desc",__PRETTY_FUNCTION__, packageDesc->id().c_str(), bsizeStr.c_str(), packageSize);
+                        g_debug("%s: [MANIFESTS]: manifest for %s blocksize = %s found total size = %llu...setting on package desc",__PRETTY_FUNCTION__, packageDesc->id().c_str(), bsizeStr.c_str(), (unsigned long long)packageSize);
                         packageDesc->setPackageSize(packageSize);
                     }
                 }
@@ -712,7 +712,7 @@ void ApplicationManager::createOrUpdatePackageManifest(PackageDescription* packa
         }    //end else = found manifest
         packageDesc->setBlockSize((uint32_t)fsbsize);    //should be an ok cast, because if bsize is ever > 2^32 -1 , we have issues!!!!
 
-        g_debug("%s: [SIZES]: size of [%s] is %llu",__PRETTY_FUNCTION__, packageDesc->id().c_str(), packageDesc->packageSize());
+        g_debug("%s: [SIZES]: size of [%s] is %llu",__PRETTY_FUNCTION__, packageDesc->id().c_str(), (unsigned long long)packageDesc->packageSize());
     }
 #endif
 }
@@ -2591,7 +2591,7 @@ void ApplicationManager::handleApplicationStatusUpdates(LSMessage* msg)
                     }
                 }
             }
-            g_message("%s: processed initial status update (pending list now has %d elements)", __FUNCTION__, m_pendingApps.size());
+            g_message("%s: processed initial status update (pending list now has %zu elements)", __FUNCTION__, m_pendingApps.size());
             initialStatus = true;
         }
     }
