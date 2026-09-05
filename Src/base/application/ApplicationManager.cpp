@@ -143,6 +143,24 @@ void ApplicationManager::clear()
     }
 
     m_systemApps.clear();
+
+    for (unsigned int i=0; i < m_pendingApps.size(); ++i) {
+        delete m_pendingApps[i];
+    }
+
+    m_pendingApps.clear();
+
+    for (std::map<std::string, PackageDescription*>::iterator it = m_registeredPackages.begin(); it != m_registeredPackages.end(); ++it) {
+        delete it->second;
+    }
+
+    m_registeredPackages.clear();
+
+    for (std::map<std::string, ServiceDescription*>::iterator it = m_registeredServices.begin(); it != m_registeredServices.end(); ++it) {
+        delete it->second;
+    }
+
+    m_registeredServices.clear();
 }
 
 static const char* s_hiddenAppsPath = "/var/luna/data/.hidden-apps.json";
@@ -415,7 +433,11 @@ void ApplicationManager::scan()
     while (it !=  m_registeredApps.end()) {
         pAppDesc = *it;
         if (pAppDesc->isRemoveFlagged()) {
-            it = m_registeredApps.erase(it);
+            const LaunchPoint* dockLp = pAppDesc->getDefaultLaunchPoint();
+            if (dockLp && m_dockModeLaunchPoints.find(dockLp) != m_dockModeLaunchPoints.end()) {
+                Q_EMIT signalDockModeLaunchPointDisabled(dockLp);
+                m_dockModeLaunchPoints.erase(dockLp);
+            }
             pAppDesc->launchPoints(launchPoints);
             for (LaunchPointList::iterator lpit = launchPoints.begin();lpit != launchPoints.end();lpit++) {
                 const LaunchPoint *pLpoint = *lpit;
@@ -425,10 +447,11 @@ void ApplicationManager::scan()
                 }
                 else {
                     std::string erc;
-                    if (this->removeLaunchPoint(pLpoint->id(),erc) == false)
+                    if (this->removeLaunchPoint(pLpoint->launchPointId(),erc) == false)
                         g_message("ApplicationManager::scan(): can't remove launchpoint: %s\n",erc.c_str());
                 }
             }
+            it = m_registeredApps.erase(it);
 
             //notify of app removal
             ApplicationInstaller::instance()->notifyAppRemoved(pAppDesc->id(),pAppDesc->version());
@@ -1609,7 +1632,7 @@ ApplicationDescription* ApplicationManager::scanOneApplicationFolder(const std::
             // if-clause to handle the case where this app is ALSO hidden via the hidden list or duplicated
         }
         // ignore duplicate applications
-        if (!isAppHidden(appDesc->id()) || !getAppById(appDesc->id())) {
+        if (!isAppHidden(appDesc->id()) || getAppById(appDesc->id())) {
 
             //check to see if this is a system folder: rooted at /usr        TODO: make this better
             bool isSystemFolder;
@@ -1725,7 +1748,10 @@ void ApplicationManager::discoverAppChanges(std::vector<ApplicationDescription *
     std::vector<ApplicationDescription *>::iterator it = m_registeredApps.begin();
     while (it != m_registeredApps.end()) {
         ApplicationDescription *pAppDesc = *it;
-        if (!pAppDesc) continue;
+        if (!pAppDesc) {
+            it++;
+            continue;
+        }
 
         //is it in the app list and not on disk?
         if (getAppById(pAppDesc->id(),onDiskApps) == NULL) {
@@ -1815,6 +1841,11 @@ bool ApplicationManager::removeSysApp(const std::string& id)
         pAppDesc = *it;
         g_warning("%s",pAppDesc->id().c_str());
         if (pAppDesc->id() == id) {
+            const LaunchPoint* dockLp = pAppDesc->getDefaultLaunchPoint();
+            if (dockLp && m_dockModeLaunchPoints.find(dockLp) != m_dockModeLaunchPoints.end()) {
+                Q_EMIT signalDockModeLaunchPointDisabled(dockLp);
+                m_dockModeLaunchPoints.erase(dockLp);
+            }
             pAppDesc->launchPoints(launchPoints);
             for (LaunchPointList::iterator lpit = launchPoints.begin();lpit != launchPoints.end();lpit++) {
                 const LaunchPoint *pLpoint = *lpit;
@@ -1824,10 +1855,11 @@ bool ApplicationManager::removeSysApp(const std::string& id)
                 }
                 else {
                     std::string erc;
-                    if (this->removeLaunchPoint(pLpoint->id(),erc) == false)
+                    if (this->removeLaunchPoint(pLpoint->launchPointId(),erc) == false)
                         g_message("%s: can't remove launchpoint: %s\n",__FUNCTION__,erc.c_str());
                 }
             }
+            m_registeredApps.erase(it);
 
             // possibly removing a pending update
             removePendingApp(id);
@@ -1878,9 +1910,14 @@ bool ApplicationManager::removeApp( const std::string& appId,int cause)
             //lock it against execution (shouldn't be an issue since no thread can really interrupt here, but I'll do it anyways)
             pAppDesc->executionLock();
             pAppDesc->flagForRemoval();    //not needed but it helps in debugging later, in case any of this fn fails
-            it = m_registeredApps.erase(it);
 
             ApplicationProcessManager::instance()->killByAppId(pAppDesc->id());
+
+            const LaunchPoint* dockLp = pAppDesc->getDefaultLaunchPoint();
+            if (dockLp && m_dockModeLaunchPoints.find(dockLp) != m_dockModeLaunchPoints.end()) {
+                Q_EMIT signalDockModeLaunchPointDisabled(dockLp);
+                m_dockModeLaunchPoints.erase(dockLp);
+            }
 
             pAppDesc->launchPoints(launchPoints);
             for (LaunchPointList::iterator lpit = launchPoints.begin();lpit != launchPoints.end();lpit++) {
@@ -1891,10 +1928,11 @@ bool ApplicationManager::removeApp( const std::string& appId,int cause)
                 }
                 else {
                     std::string erc;
-                    if (this->removeLaunchPoint(pLpoint->id(),erc) == false)
+                    if (this->removeLaunchPoint(pLpoint->launchPointId(),erc) == false)
                         g_message("ApplicationManager::removeApp(): can't remove launchpoint: %s\n",erc.c_str());
                 }
             }
+            it = m_registeredApps.erase(it);
 
             // possibly removing a pending update
             removePendingApp(appId);
@@ -1983,13 +2021,18 @@ void ApplicationManager::focusApplication(std::string appId)
 
 std::string ApplicationManager::launch(std::string appId, std::string params)
 {
-    LSSubscriptionIter *iter;
+    LSSubscriptionIter *iter = NULL;
     json_object *reply;
+    bool hasSubscribers = false;
 
     // Check if we have a native application registered through libwebos-application and
     // send it the relaunch signal
-    LSSubscriptionAcquire(m_service, appId.c_str(), &iter, NULL);
-    if (iter && LSSubscriptionHasNext(iter))
+    if (LSSubscriptionAcquire(m_service, appId.c_str(), &iter, NULL))
+    {
+        hasSubscribers = LSSubscriptionHasNext(iter);
+        LSSubscriptionRelease(iter);
+    }
+    if (hasSubscribers)
     {
         g_message("Application %s is already running and registered through libwebos-application",
                   appId.c_str());
@@ -2036,9 +2079,12 @@ bool ApplicationManager::registerApplication(std::string appId, LSMessage *messa
 {
     LSSubscriptionIter *iter = NULL;
 
-    LSSubscriptionAcquire(m_service, appId.c_str(), &iter, NULL);
-    if (iter != NULL && LSSubscriptionHasNext(iter))
-        return false;
+    if (LSSubscriptionAcquire(m_service, appId.c_str(), &iter, NULL)) {
+        bool alreadyRegistered = LSSubscriptionHasNext(iter);
+        LSSubscriptionRelease(iter);
+        if (alreadyRegistered)
+            return false;
+    }
 
     LSSubscriptionAdd(m_service, appId.c_str(), message, NULL);
 
@@ -2237,7 +2283,7 @@ bool ApplicationManager::isValidMimeType( const std::string& mime )
  */
 bool ApplicationManager::isGenericMimeType( const std::string& mime )
 {
-    return !mime.empty() && (strcasecmp(mime.c_str(), "text/plain") == 0 || strcasecmp(mime.c_str(), "application/octet-stream"));
+    return !mime.empty() && (strcasecmp(mime.c_str(), "text/plain") == 0 || strcasecmp(mime.c_str(), "application/octet-stream") == 0);
 }
 
 /**
@@ -2760,7 +2806,6 @@ bool ApplicationManager::cbDownloadManagerUpdate (LSHandle* lshandle, LSMessage*
     if (!LSCallCancel(lshandle, token, &lserror)) {
         LSErrorPrint (&lserror, stderr);
         LSErrorFree (&lserror);
-        return true;
     }
 
     g_debug ("no more updates from download manager, deleting the download req");
@@ -2818,10 +2863,12 @@ bool ApplicationManager::getAppEntryPointFromAppinfoFile(const std::string& base
     char * str = readFile(filePath.c_str());
     if (!str || !g_utf8_validate(str, -1, NULL))
     {
+        delete[] str;
         filePath = baseDirOfApp + "/appinfo.json";
         str = readFile(filePath.c_str());
         if (!str || !g_utf8_validate(str, -1, NULL))
         {
+            delete[] str;
             return false;            //still can't find it
         }
 

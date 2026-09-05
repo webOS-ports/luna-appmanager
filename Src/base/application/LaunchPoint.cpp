@@ -289,7 +289,7 @@ json_object* LaunchPoint::toJSON() const
 		}
 	} else {
 		json_object_object_add(json, (char*) "size", json_object_new_int(0));
-		json_object_object_add(json, (char*) "packageId", json_object_new_string((char*) m_appDesc->id().c_str()));
+		json_object_object_add(json, (char*) "packageId", json_object_new_string((char*) id().c_str()));
 	}
 	json_object_object_add(json, (char*) "removable", json_object_new_boolean(m_removable));
 
@@ -299,7 +299,7 @@ json_object* LaunchPoint::toJSON() const
 	json_object_object_add(json, (char*) "icon", json_object_new_string((char*) iconPath().c_str()));
 
 	if (!params().empty()) {
-		if (m_appDesc->type() == ApplicationDescription::Type_Qt) {
+		if (m_appDesc && m_appDesc->type() == ApplicationDescription::Type_Qt) {
 			json_object_object_add(json, (char*) "params", json_object_new_string(params().c_str()));
 		}
 		else {
