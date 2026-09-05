@@ -66,12 +66,12 @@ std::string getResourcePathFromString(const std::string& entry, const std::strin
 
         // First check in the locale specific folder
 		std::string filePath = appDesc->folderPath() + "/resources/" + LocalePreferences::instance()->locale().toStdString() + "/" + entry;
-		if (::stat(filePath.c_str(), &stBuf) == 0 && (S_ISREG(stBuf.st_mode) || S_ISLNK(stBuf.st_mode)))
+		if (::lstat(filePath.c_str(), &stBuf) == 0 && (S_ISREG(stBuf.st_mode) || S_ISLNK(stBuf.st_mode)))
 			return filePath;
 
         // Try in the standard app folder path
 		filePath = appDesc->folderPath() + "/" + entry;
-		if (::stat(filePath.c_str(), &stBuf) == 0 && (S_ISREG(stBuf.st_mode) || S_ISLNK(stBuf.st_mode)))
+		if (::lstat(filePath.c_str(), &stBuf) == 0 && (S_ISREG(stBuf.st_mode) || S_ISLNK(stBuf.st_mode)))
 			return filePath;
 	}
 

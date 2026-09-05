@@ -158,10 +158,10 @@ void MemoryMonitor::monitorNativeProcessMemory(pid_t pid, int maxMemAllowed, pid
 			if (!maxMemAllowed){
 				// preserve the maxMemAllowed value from the old monitor
 				maxMemAllowed = monitor->maxMemAllowed;
-				// remove the old monitor
-				memRestrict.erase(old);
-				delete monitor;
 			}
+			// remove the old monitor
+			memRestrict.erase(old);
+			delete monitor;
 		}
 	}
 
@@ -170,6 +170,12 @@ void MemoryMonitor::monitorNativeProcessMemory(pid_t pid, int maxMemAllowed, pid
 	monitor->pid = pid;
 	monitor->maxMemAllowed = maxMemAllowed;
 	monitor->violationNumber = 0;
+
+	ProcMemRestrictions::iterator existing = memRestrict.find(pid);
+	if (existing != memRestrict.end()) {
+		delete existing->second;
+		memRestrict.erase(existing);
+	}
 
 	memRestrict[pid] = monitor;
 }

@@ -135,6 +135,9 @@ void ApplicationProcessManager::killApp(ApplicationInfo *app)
     }
 
     ApplicationManager::instance()->postApplicationHasBeenTerminated(appTitle, appName, app->appId().toStdString());
+
+    mApplications.removeAll(app);
+    app->deleteLater();
 }
 
 std::string ApplicationProcessManager::launch(std::string appId, std::string params)
@@ -195,6 +198,9 @@ void ApplicationProcessManager::notifyApplicationHasFinished(qint64 processId)
         }
     }
 
+    if (!appToRemove)
+        return;
+
     notifyApplicationHasFinished(appToRemove);
 }
 
@@ -234,6 +240,7 @@ void ApplicationProcessManager::removeAllWebApplications()
 
     Q_FOREACH(ApplicationInfo *app, appsToRemove) {
         mApplications.removeAll(app);
+        app->deleteLater();
     }
 }
 

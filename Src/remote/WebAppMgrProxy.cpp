@@ -94,7 +94,7 @@ void WebAppMgrProxy::connectWebAppMgr()
 bool WebAppMgrProxy::webAppManagerServiceStatusCb(LSHandle *handle, LSMessage *message, void *user_data)
 {
     const char* payload = LSMessageGetPayload(message);
-    if (!message)
+    if (!payload)
         return true;
 
     json_object* json = json_tokener_parse(payload);
@@ -176,7 +176,11 @@ void WebAppMgrProxy::updateRunningApps(const char *payload)
         for (int i = 0; i < json_object_array_length(appsValue); i++) {
             struct json_object *appEntry = json_object_array_get_idx(appsValue, i);
 
-            std::string appId = json_object_get_string(json_object_object_get(appEntry, "appId"));
+            const char *appIdStr = json_object_get_string(json_object_object_get(appEntry, "appId"));
+            if (!appIdStr)
+                continue;
+
+            std::string appId = appIdStr;
             // FIXME need to switch json parser in order to support int64 directly
             qint64 processId = (qint64) json_object_get_int(json_object_object_get(appEntry, "processId"));
 
@@ -185,7 +189,6 @@ void WebAppMgrProxy::updateRunningApps(const char *payload)
         }
     }
 
-cleanup:
     json_object_put(json);
 }
 
@@ -260,16 +263,16 @@ void WebAppMgrProxy::killApp(qint64 processId)
     LSErrorInit(&err);
 
     if (!connected()) {
-        g_warning("WebAppManager is not connected so can't kill app with process id %d",
-                  processId);
+        g_warning("WebAppManager is not connected so can't kill app with process id %lld",
+                  (long long) processId);
         return;
     }
 
-    char *payload = g_strdup_printf("{\"processId\":%llu}", processId);
+    char *payload = g_strdup_printf("{\"processId\":%lld}", (long long) processId);
 
     if (!LSCallOneReply(mService, "luna://com.palm.webappmanager/killApp", payload,
                         NULL, NULL, NULL, &err)) {
-        g_warning("Failed to kill app with process id %i: %s", processId, err.message);
+        g_warning("Failed to kill app with process id %lld: %s", (long long) processId, err.message);
         LSErrorFree(&err);
     }
 

@@ -154,7 +154,7 @@ static void crash_flush() {
 #if __WORDSIZE == 64
 const char *const regNames[NGREG] = {
     "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15",
-    "RDI", "RSI", "RBP" "RBX", "RDX", "RAX", "RCX", "RIP",
+    "RDI", "RSI", "RBP", "RBX", "RDX", "RAX", "RCX", "RIP",
     "EFL", "CSGSFS", "ERR", "TRAPNO", "OLDMASK", "CR2"
 };
 #else // __WORDSIZE == 32
@@ -360,6 +360,7 @@ static void initMallocStatsCb(GMainLoop* mainLoop, int secs)
 	GSource *timeoutSource = g_timeout_source_new_seconds(secs);
 	g_source_set_callback(timeoutSource, mallocStatsCb, NULL, NULL);
 	g_source_attach(timeoutSource, g_main_loop_get_context(mainLoop));
+	g_source_unref(timeoutSource);
 }
 
 /**
@@ -454,7 +455,7 @@ static void outerCrashHandler(int sig, siginfo_t *info, void *data)
         logFileName = logFileNameBuffer;
     }
     
-    crashLogFD = open(logFileName, O_WRONLY | O_CREAT | O_TRUNC);
+    crashLogFD = open(logFileName, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 
 #if 0 // Disable until we can do this without calling malloc and free:
 	int memTotal, memFree, swapTotal, swapFree, memchuteFree, memUsage;
@@ -506,8 +507,10 @@ static void outerCrashHandler(int sig, siginfo_t *info, void *data)
     sigaction(sig, &previous_crash_action, NULL);
 
     // Close the file:
-    fsync(crashLogFD);
-    close(crashLogFD);
+    if (crashLogFD >= 0) {
+        fsync(crashLogFD);
+        close(crashLogFD);
+    }
     crashLogFD = -1;
 }
 
@@ -598,7 +601,11 @@ static void parseCommandlineOptions(int argc, char** argv)
 
 	context = g_option_context_new(NULL);
 	g_option_context_add_main_entries (context, entries, NULL);
-	g_option_context_parse (context, &argc, &argv, &error);
+	if (!g_option_context_parse (context, &argc, &argv, &error)) {
+		g_warning("Failed to parse command line options: %s", error ? error->message : "unknown error");
+		if (error)
+			g_error_free(error);
+	}
 
 #if !defined(HAVE_OPENGL)
 	// if there's no OpenGL, then implicitely force software rendering

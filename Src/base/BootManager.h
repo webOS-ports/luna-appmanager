@@ -157,6 +157,9 @@ private:
 	BootStateBase *m_states[BOOT_STATE_MAX];
 	QFileSystemWatcher m_fileWatch;
 	bool m_compositorAvailable;
+	bool m_switchingState;
+	BootState m_pendingState;
+	bool m_hasPendingState;
 
 	friend class BootStateBase;
 };
