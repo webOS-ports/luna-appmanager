@@ -57,7 +57,7 @@ public:
 		Remove
 	};
 
-	CommandParams(Type t) :
+	explicit CommandParams(Type t) :
 		_type(t), _childStdOutChannel(0), _childStdOutSource(0) {
 	}
 	
@@ -78,14 +78,13 @@ public:
 
 class InstallParams : public CommandParams {
 public: 
-	InstallParams(const std::string& target, const std::string& id, const unsigned long ticket, LSHandle * lshandle,const LSMessage * msg,const unsigned int uncompressedSizeInKB, bool verify = true, bool systemMode = false)
-		: CommandParams(CommandParams::Install), _target(target) , _id(id), ticketId(ticket) , _lshandle(lshandle) , _msg(msg) , _verify(verify), _sysMode(systemMode), _uncompressedSizeInKB(uncompressedSizeInKB)
+	InstallParams(const std::string& target, const std::string& id, const unsigned long ticket, LSHandle * lshandle,const unsigned int uncompressedSizeInKB, bool verify = true, bool systemMode = false)
+		: CommandParams(CommandParams::Install), _target(target) , _id(id), ticketId(ticket) , _lshandle(lshandle) , _verify(verify), _sysMode(systemMode), _uncompressedSizeInKB(uncompressedSizeInKB)
 	{ }
 	const std::string _target;
 	const std::string _id;
 	const unsigned long ticketId;
 	LSHandle * _lshandle;
-	const LSMessage * _msg;
 	bool _verify;
 	bool _sysMode;
 	const unsigned int _uncompressedSizeInKB;
@@ -94,13 +93,12 @@ public:
 
 class RemoveParams : public CommandParams {
 public: 
-	RemoveParams(const std::string& packageName,const unsigned long ticket,LSHandle * lshandle,const LSMessage * msg,int cause) 
-		: CommandParams(CommandParams::Remove), _packageName(packageName) , ticketId(ticket) , _lshandle(lshandle) , _msg(msg)  , _cause(cause)
+	RemoveParams(const std::string& packageName,const unsigned long ticket,LSHandle * lshandle,int cause)
+		: CommandParams(CommandParams::Remove), _packageName(packageName) , ticketId(ticket) , _lshandle(lshandle) , _cause(cause)
 	{}
 	const std::string _packageName;
 	const unsigned long ticketId;
 	const LSHandle * _lshandle;
-	const LSMessage * _msg;
 	const int 		  _cause;
 };
 
@@ -166,7 +164,7 @@ public:
 		
 	static bool	extractVersionFromAppInfo(const std::string& appBaseDir,std::string& r_versionString);
 	
-#define APPREMOVED_CAUSE_UNKNOWN				-1
+#define APPREMOVED_CAUSE_UNKNOWN				(-1)
 #define APPREMOVED_CAUSE_USERDELETED			0
 #define APPREMOVED_CAUSE_APPREVOKED				1
 	void notifyAppRemoved(const std::string& appId,const std::string& appVersion,int cause=APPREMOVED_CAUSE_UNKNOWN);
@@ -212,9 +210,9 @@ private:
 	void closeApp(const std::string& appId);
 
 	static bool packageNameFromControl(const std::string& controlTarGzPathAndFile,const std::string& tempDir,std::string& return_PackageName);
-	static int getAllUserInstalledAppNames(std::vector<std::string>& appList,std::string basePkgDirName);
+	static int getAllUserInstalledAppNames(std::vector<std::string>& appList,const std::string& basePkgDirName);
 	static bool findUserInstalledAppName(const std::string& packageName,const std::string& basePkgDirName);
-	static int getAllUserInstalledAppSizes(std::vector<std::pair<std::string,uint64_t> >& appList,std::string basePkgDirName);
+	static int getAllUserInstalledAppSizes(std::vector<std::pair<std::string,uint64_t> >& appList,const std::string& basePkgDirName);
 
 	static bool	arePathsOnSameFilesystem(const std::string& path1,const std::string& path2);
 

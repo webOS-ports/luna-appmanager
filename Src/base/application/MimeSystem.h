@@ -39,16 +39,11 @@ public:
 	
 	class VerbInfo {
 	public:
-		VerbInfo(const std::string& verb,const std::string& params,const std::string handlerAppId, uint32_t handlerIndex) :
+		VerbInfo(const std::string& verb,const std::string& params,const std::string& handlerAppId, uint32_t handlerIndex) :
 			m_verb(verb) , m_params(params) , m_handlerAppId(handlerAppId) , m_handlerIndex(handlerIndex) , m_valid(true) {}
 		VerbInfo() : m_verb("") , m_params("") , m_handlerAppId("") ,  m_handlerIndex(0) , m_valid(false) {}
-		VerbInfo(const VerbInfo& c) {
-			m_valid = c.m_valid;
-			m_handlerAppId = c.m_handlerAppId;
-			m_handlerIndex = c.m_handlerIndex;
-			m_verb = c.m_verb;
-			m_params = c.m_params;
-		}
+		VerbInfo(const VerbInfo& c) :
+			m_verb(c.m_verb) , m_params(c.m_params) , m_handlerAppId(c.m_handlerAppId) , m_handlerIndex(c.m_handlerIndex) , m_valid(c.m_valid) {}
 
 		VerbInfo& operator=(const VerbInfo& c) {
 			if (&c == this)
@@ -105,9 +100,9 @@ public:
 	int					removeAllForMimeType(std::string mimeType);
 	int					removeAllForUrl(const std::string& url);
 	
-	int					addResourceHandler(std::string& extension,std::string mimeType,bool shouldDownload,const std::string appId,const std::map<std::string,std::string> * pVerbs,bool sysDefault);
-	int					addResourceHandler(std::string extension,bool shouldDownload,const std::string appId,const std::map<std::string,std::string> * pVerbs,bool sysDefault);
-	int					addRedirectHandler(const std::string& url,const std::string appId,const std::map<std::string,std::string> * pVerbs,bool isSchemeForm,bool sysDefault);
+	int					addResourceHandler(std::string& extension,std::string mimeType,bool shouldDownload,const std::string& appId,const std::map<std::string,std::string> * pVerbs,bool sysDefault);
+	int					addResourceHandler(std::string extension,bool shouldDownload,const std::string& appId,const std::map<std::string,std::string> * pVerbs,bool sysDefault);
+	int					addRedirectHandler(const std::string& url,const std::string& appId,const std::map<std::string,std::string> * pVerbs,bool isSchemeForm,bool sysDefault);
 	
 	int					addVerbsToResourceHandler(std::string mimeType,const std::string& appId,const std::map<std::string,std::string>& verbs);
 	int					addVerbsToRedirectHandler(const std::string& url,const std::string& appId,const std::map<std::string,std::string>& verbs);
@@ -150,8 +145,8 @@ public:
 private:
 	
 	MimeSystem();
-	MimeSystem(const MimeSystem& c) {}
-	MimeSystem& operator=(const MimeSystem& c) { return *this;}
+	MimeSystem(const MimeSystem& c) = delete;
+	MimeSystem& operator=(const MimeSystem& c) = delete;
 	virtual ~MimeSystem();
 	void destroy();
 	
@@ -163,7 +158,7 @@ private:
 	public:
 		
 		VerbCacheEntry() : activeIndex(0) , useCount(0) {}
-		VerbCacheEntry(uint32_t index) : activeIndex(index) , useCount(1) {}
+		explicit VerbCacheEntry(uint32_t index) : activeIndex(index) , useCount(1) {}
 		VerbCacheEntry(const VerbCacheEntry& c) : activeIndex(c.activeIndex) , useCount(c.useCount) {}
 		VerbCacheEntry& operator=(const VerbCacheEntry& c) {
 			if (this == &c)
@@ -181,6 +176,8 @@ private:
 		RedirectHandlerNode(const std::string& urlRe, const std::string& appId , bool schemeForm) : m_redirectHandler(urlRe,appId,schemeForm) {
 			m_handlersByIndex[m_redirectHandler.index()] = &m_redirectHandler;
 		}
+		RedirectHandlerNode(const RedirectHandlerNode& c) = delete;
+		RedirectHandlerNode& operator=(const RedirectHandlerNode& c) = delete;
 		RedirectHandler	m_redirectHandler;
 		std::vector<RedirectHandler *> m_alternates;
 	
@@ -215,8 +212,8 @@ private:
 		struct json_object * toJson();			//WARNING: memory allocated; caller must clean
 		static MimeSystem::RedirectHandlerNode * fromJsonString(const std::string& jsonString);
 		static MimeSystem::RedirectHandlerNode * fromJson(struct json_object * jobj);
-		
-		int fixupVerbCacheTable(struct json_object * jsonHandlerNodeEntry);
+
+		int fixupVerbCacheTable(struct json_object * jsonHandlerNodeEntry,const std::map<uint32_t,uint32_t>& indexMap);
 	};
 
 	class ResourceHandlerNode {
@@ -227,7 +224,9 @@ private:
 						bool stream=false ) : m_resourceHandler(ext,contentType,appId,stream) {
 			m_handlersByIndex[m_resourceHandler.index()] = &m_resourceHandler;
 		}
-		
+		ResourceHandlerNode(const ResourceHandlerNode& c) = delete;
+		ResourceHandlerNode& operator=(const ResourceHandlerNode& c) = delete;
+
 		ResourceHandler		m_resourceHandler;
 		std::vector<ResourceHandler *> m_alternates;
 		std::map<std::string,VerbCacheEntry> m_verbCache;
@@ -273,8 +272,8 @@ private:
 		struct json_object * toJson();			//WARNING: memory allocated; caller must clean
 		static MimeSystem::ResourceHandlerNode * fromJsonString(const std::string& jsonString);
 		static MimeSystem::ResourceHandlerNode * fromJson(struct json_object * jobj);
-		
-		int fixupVerbCacheTable(struct json_object * jsonHandlerNodeEntry);
+
+		int fixupVerbCacheTable(struct json_object * jsonHandlerNodeEntry,const std::map<uint32_t,uint32_t>& indexMap);
 	};
 	
 	static void reclaimIndex(uint32_t idx);

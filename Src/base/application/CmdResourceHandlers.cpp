@@ -54,16 +54,9 @@ RedirectHandler::RedirectHandler(const std::string& urlRe, const std::string& ap
 	}
 }
 
-RedirectHandler::RedirectHandler(const RedirectHandler& c) 
+RedirectHandler::RedirectHandler(const RedirectHandler& c) :
+	m_urlRe(c.m_urlRe), m_appId(c.m_appId), m_valid(c.m_valid), m_schemeForm(c.m_schemeForm), m_tag(c.m_tag), m_index(c.m_index), m_verbs(c.m_verbs)
 {
-	m_urlRe = c.m_urlRe;
-	m_appId = c.m_appId;
-	m_valid = c.m_valid;
-	m_tag = c.m_tag;
-	m_index = c.m_index;
-	m_schemeForm = c.m_schemeForm;
-	m_verbs = c.m_verbs;
-	
 	if (!m_urlRe.empty() && 0 == regcomp(&m_urlReg, m_urlRe.c_str(), REG_EXTENDED | REG_ICASE | REG_NOSUB)) {
 	}
 	else {
@@ -134,9 +127,10 @@ bool RedirectHandler::addVerb(const std::string& verb,const std::string& jsonize
 	struct json_object * jobj = json_tokener_parse(jsonizedParams.c_str());
 	if (!jobj)
 		return false;
-	
+	json_object_put(jobj);
+
 	m_verbs[verb] = jsonizedParams;
-	
+
 	return true;
 }
 
@@ -156,20 +150,20 @@ std::string	RedirectHandler::toJsonString()
 struct json_object * RedirectHandler::toJson()			//WARNING: memory allocated; caller must clean
 {
 	struct json_object * jobj = json_object_new_object();
-	json_object_object_add(jobj,(char *)"url",json_object_new_string(m_urlRe.c_str()));
-	json_object_object_add(jobj,(char *)"appId",json_object_new_string(m_appId.c_str()));
-	json_object_object_add(jobj,(char *)"index",json_object_new_int(m_index));
+	json_object_object_add(jobj,"url",json_object_new_string(m_urlRe.c_str()));
+	json_object_object_add(jobj,"appId",json_object_new_string(m_appId.c_str()));
+	json_object_object_add(jobj,"index",json_object_new_int(static_cast<int32_t>(m_index)));
 	if (m_tag.size())
-		json_object_object_add(jobj,(char *)"tag",json_object_new_string(m_tag.c_str()));
-	json_object_object_add(jobj,(char *)"schemeForm",json_object_new_boolean(m_schemeForm));
+		json_object_object_add(jobj,"tag",json_object_new_string(m_tag.c_str()));
+	json_object_object_add(jobj,"schemeForm",json_object_new_boolean(m_schemeForm));
 	if (m_verbs.size()) {
 		json_object * jparam = json_object_new_object();
 		for (std::map<std::string,std::string>::iterator it = m_verbs.begin();
 		it != m_verbs.end();++it)
 		{
-			json_object_object_add(jparam,(char *)(it->first.c_str()),json_object_new_string(it->second.c_str()));
+			json_object_object_add(jparam,it->first.c_str(),json_object_new_string(it->second.c_str()));
 		}
-		json_object_object_add(jobj,(char*)"verbs",jparam);
+		json_object_object_add(jobj,"verbs",jparam);
 	}
 
 	return jobj;
@@ -205,17 +199,9 @@ ResourceHandler::ResourceHandler( const std::string& ext,
 	m_index = MimeSystem::assignIndex();
 }
 
-ResourceHandler::ResourceHandler(const ResourceHandler& c) 
+ResourceHandler::ResourceHandler(const ResourceHandler& c) :
+	m_fileExt(c.m_fileExt), m_contentType(c.m_contentType), m_appId(c.m_appId), m_stream(c.m_stream), m_valid(c.m_valid), m_tag(c.m_tag), m_index(c.m_index), m_verbs(c.m_verbs)
 {
-	m_fileExt = c.m_fileExt;
-	m_contentType = c.m_contentType;
-	m_appId = c.m_appId;
-	m_stream = c.m_stream;
-	m_valid = c.m_valid;
-	m_tag = c.m_tag;
-	m_index = c.m_index;
-	m_verbs = c.m_verbs;
-	
 }
 
 ResourceHandler& ResourceHandler::operator=(const ResourceHandler& c) 
@@ -239,9 +225,10 @@ bool ResourceHandler::addVerb(const std::string& verb,const std::string& jsonize
 	struct json_object * jobj = json_tokener_parse(jsonizedParams.c_str());
 	if (!jobj)
 		return false;
-	
+	json_object_put(jobj);
+
 	m_verbs[verb] = jsonizedParams;
-	
+
 	return true;
 }
 
@@ -261,21 +248,21 @@ std::string	ResourceHandler::toJsonString()
 struct json_object * ResourceHandler::toJson()			//WARNING: memory allocated; caller must clean
 {
 	struct json_object * jobj = json_object_new_object();
-	json_object_object_add(jobj,(char *)"mime",json_object_new_string(m_contentType.c_str()));
-	json_object_object_add(jobj,(char *)"extension",json_object_new_string(m_fileExt.c_str()));
-	json_object_object_add(jobj,(char *)"appId",json_object_new_string(m_appId.c_str()));
-	json_object_object_add(jobj,(char *)"streamable",json_object_new_boolean(m_stream));
-	json_object_object_add(jobj,(char *)"index",json_object_new_int(m_index));
+	json_object_object_add(jobj,"mime",json_object_new_string(m_contentType.c_str()));
+	json_object_object_add(jobj,"extension",json_object_new_string(m_fileExt.c_str()));
+	json_object_object_add(jobj,"appId",json_object_new_string(m_appId.c_str()));
+	json_object_object_add(jobj,"streamable",json_object_new_boolean(m_stream));
+	json_object_object_add(jobj,"index",json_object_new_int(static_cast<int32_t>(m_index)));
 	if (m_tag.size())
-		json_object_object_add(jobj,(char *)"tag",json_object_new_string(m_tag.c_str()));
+		json_object_object_add(jobj,"tag",json_object_new_string(m_tag.c_str()));
 	if (m_verbs.size()) {
 		json_object * jparam = json_object_new_object();
 		for (std::map<std::string,std::string>::iterator it = m_verbs.begin();
 		it != m_verbs.end();++it)
 		{
-			json_object_object_add(jparam,(char *)(it->first.c_str()),json_object_new_string(it->second.c_str()));
+			json_object_object_add(jparam,it->first.c_str(),json_object_new_string(it->second.c_str()));
 		}
-		json_object_object_add(jobj,(char*)"verbs",jparam);
+		json_object_object_add(jobj,"verbs",jparam);
 	}
 	
 	return jobj;

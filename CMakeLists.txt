@@ -29,7 +29,6 @@ pkg_check_modules(GLIB2 glib-2.0 REQUIRED)
 pkg_check_modules(GTHREAD2 gthread-2.0 REQUIRED)
 pkg_check_modules(LS2 luna-service2 REQUIRED)
 pkg_check_modules(LUNA_SYSMGR_COMMON LunaSysMgrCommon REQUIRED)
-pkg_check_modules(LUNA_SYSMGR_IPC LunaSysMgrIpc REQUIRED)
 pkg_check_modules(LUNA_SYSMGR_IPC_MESSAGES LunaSysMgrIpcMessages REQUIRED)
 pkg_check_modules(LUNA_PREFS luna-prefs REQUIRED)
 pkg_check_modules(NYX nyx REQUIRED)
@@ -47,7 +46,6 @@ include_directories(
     ${GTHREAD2_INCLUDE_DIRS}
     ${LS2_INCLUDE_DIRS}
     ${LUNA_SYSMGR_COMMON_INCLUDE_DIRS}
-    ${LUNA_SYSMGR_IPC_INCLUDE_DIRS}
     ${LUNA_SYSMGR_IPC_MESSAGES_INCLUDE_DIRS}
     ${LUNA_PREFS_INCLUDE_DIRS}
     ${NYX_INCLUDE_DIRS}
@@ -107,7 +105,6 @@ target_link_libraries(LunaAppManager
     ${GLIB2_LIBRARIES}
     ${GTHREAD2_LIBRARIES}
     ${LUNA_SYSMGR_COMMON_LIBRARIES}
-    ${LUNA_SYSMGR_IPC_LIBRARIES}
     ${LUNA_PREFS_LIBRARIES}
     ${NYX_LIBRARIES}
     ${PBNJSON_C_LIBRARIES}

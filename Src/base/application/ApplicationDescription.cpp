@@ -94,13 +94,14 @@ ApplicationDescription* ApplicationDescription::fromFile(const std::string& file
 	jsonStr = readFile(filePath.c_str());
 	if (!jsonStr || !g_utf8_validate(jsonStr, -1, NULL))
 	{
+		delete [] jsonStr;
 		return 0;
 	}
 
 	struct json_object* root=0;
 	struct json_object* label=0;
 
-	std::string title, icon, dirPath;
+	std::string icon, dirPath;
     gchar* dirPathCStr;
 
 	dirPathCStr = g_path_get_dirname(filePath.c_str());
@@ -528,7 +529,7 @@ ApplicationDescription* ApplicationDescription::fromJsonString(const char* jsonS
     struct json_object* root = json_tokener_parse( jsonStr );
     if( !root )
     {
-        fprintf( stderr, "ApplicationDescriptionBase::fromJsonString: Failed to parse string into a JSON string.\n" );
+        (void)fprintf( stderr, "ApplicationDescriptionBase::fromJsonString: Failed to parse string into a JSON string.\n" );
         return 0;
     }
     ApplicationDescription* appDesc = new ApplicationDescription();
@@ -616,6 +617,7 @@ std::string ApplicationDescription::versionFromFile(const std::string& filePath,
 	jsonStr = readFile(filePath.c_str());
 	if (!jsonStr || !g_utf8_validate(jsonStr, -1, NULL))
 	{
+		delete [] jsonStr;
 		return "";
 	}
 
@@ -625,6 +627,7 @@ std::string ApplicationDescription::versionFromFile(const std::string& filePath,
 	std::string version ="1.0";			///default from constructor
 	
 	root = json_tokener_parse( jsonStr );
+	delete [] jsonStr;
 	if( !root )
 	{
 		g_warning("%s: Failed to parse '%s' into a JSON string.\n",__FUNCTION__,filePath.c_str() );
@@ -702,12 +705,12 @@ void ApplicationDescription::removeLaunchPoint(const LaunchPoint* lp)
 
 json_object* ApplicationDescription::toJSON() const
 {
-	const LaunchPoint* defaultLP = m_launchPoints.front();
+	const LaunchPoint* defaultLP = m_launchPoints.empty() ? 0 : m_launchPoints.front();
 
 	json_object* json = ApplicationDescriptionBase::getAppDescription();
 	json_object_object_add(json, (char*) "version", json_object_new_string(m_version.c_str()));
 	json_object_object_add(json, (char*) "category", json_object_new_string((char*) m_category.c_str()));
-	json_object_object_add(json, (char*) "appmenu",json_object_new_string((char*) defaultLP->menuName().c_str()));
+	json_object_object_add(json, (char*) "appmenu",json_object_new_string((char*) (defaultLP ? defaultLP->menuName() : m_appmenuName).c_str()));
 	json_object_object_add(json, (char*) "vendor", json_object_new_string((char*) m_vendorName.c_str()));
 	json_object_object_add(json, (char*) "vendorUrl", json_object_new_string((char*) m_vendorUrl.c_str()));
 	json_object_object_add(json, (char*) "size", json_object_new_int((int)m_appSize));
@@ -823,7 +826,7 @@ void ApplicationDescription::update(const ApplicationStatus& appStatus, bool isU
 		m_status = isUpdating ? Status_Updating : Status_Installing;
 
 	const LaunchPoint* lp = getDefaultLaunchPoint();
-	if (appStatus.iconPath != lp->iconPath()) {
+	if (lp && appStatus.iconPath != lp->iconPath()) {
 		const_cast<LaunchPoint*>(lp)->updateIconPath(appStatus.iconPath);
 	}
 }
@@ -959,7 +962,7 @@ void ApplicationDescription::getAppDescriptionString(std::string &descString) co
 	json_object_object_add(json, (char*) "removable",   json_object_new_boolean(m_isRemovable));
 	json_object_object_add(json, (char*) "userHideable",   json_object_new_boolean(m_isUserHideable));
 	json_object_object_add(json, (char*) "visible",   json_object_new_boolean(m_isVisible));
-	json_object_object_add(json, (char*) "hardwareFeaturesNeeded",   json_object_new_int(m_hardwareFeaturesNeeded));
+	json_object_object_add(json, (char*) "hardwareFeaturesNeeded",   json_object_new_int(static_cast<int32_t>(m_hardwareFeaturesNeeded)));
 	json_object_object_add(json, (char*) "type",   json_object_new_int(m_type));
 	json_object_object_add(json, (char*) "attributes", json_object_new_string((char*) m_attributes.c_str()));
 	json_object_object_add(json, (char*) "vendor", json_object_new_string((char*) m_vendorName.c_str()));
@@ -983,7 +986,7 @@ void ApplicationDescription::getAppDescriptionString(std::string &descString) co
 
 void desaturate(QImage &img)
 {
-	int length = img.sizeInBytes();
+	int length = static_cast<int>(img.sizeInBytes());
 	uchar* data = img.bits();
 
 	int avg;
@@ -1011,7 +1014,9 @@ QPixmap ApplicationDescription::miniIcon() const
 #endif
 	int miniIconSize = Settings::LunaSettings()->positiveSpaceBottomPadding;
 
-	const LaunchPoint* lp = m_launchPoints.front();
+	const LaunchPoint* lp = m_launchPoints.empty() ? 0 : m_launchPoints.front();
+	if (!lp)
+		return pix;
 
 	QImage img = QImage(qFromUtf8Stl(lp->iconPath())).scaled(miniIconSize, miniIconSize,
 		                Qt::IgnoreAspectRatio,
@@ -1125,7 +1130,10 @@ void ApplicationDescription::updateSysmgrBuiltinWithLocalization()
 
 	char * jsonStr = readFile(filePath.c_str());
 	if (!jsonStr || !g_utf8_validate(jsonStr, -1, NULL))
+	{
+		delete [] jsonStr;
 		return;		// probably no file there
+	}
 
 	struct json_object* root=0;
 	struct json_object* label=0;

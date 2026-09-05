@@ -54,7 +54,7 @@ MemoryMonitor::MemoryMonitor()
 	, m_state(MemoryMonitor::Normal)
 {
 	m_fileName[kFileNameLen - 1] = 0;
-	snprintf(m_fileName, kFileNameLen - 1, "/proc/%d/statm", getpid());
+	(void) snprintf(m_fileName, kFileNameLen - 1, "/proc/%d/statm", getpid());
 }
 
 MemoryMonitor::~MemoryMonitor()
@@ -99,7 +99,7 @@ int MemoryMonitor::getProcessMemInfo(pid_t pid)
 	char fileName[kFileNameLen];
 	fileName[kFileNameLen - 1] = 0;
 
-	snprintf(fileName, kFileNameLen - 1, "/proc/%d/status", pid);
+	(void) snprintf(fileName, kFileNameLen - 1, "/proc/%d/status", pid);
 	std::ifstream status(fileName);
 
 	if (!status)
@@ -110,7 +110,7 @@ int MemoryMonitor::getProcessMemInfo(pid_t pid)
 
 	while(status >> field) {
 		// strip off the ':' on the end of each label
-		field = field.substr(0, field.length() - 1);
+		field.resize(field.length() - 1);
 
 		if (field == sProcRSS) {
 			status >> procRss;
@@ -119,7 +119,7 @@ int MemoryMonitor::getProcessMemInfo(pid_t pid)
 			// Make sure the value is in megabytes
 			if (!strcasecmp(label.c_str(), sKBLabel.c_str()))
 				procRss /= 1024;
-			else if (strcasecmp(label.c_str(), sMBLabel.c_str()))
+			else if (strcasecmp(label.c_str(), sMBLabel.c_str()) != 0)
 				procRss /= 1024 * 1024;
 
 			if (procSwap != -1)
@@ -132,7 +132,7 @@ int MemoryMonitor::getProcessMemInfo(pid_t pid)
 			//Make sure the value is in megabytes
 			if (!strcasecmp(label.c_str(), sKBLabel.c_str()))
 				procSwap /= 1024;
-			else if (strcasecmp(label.c_str(), sMBLabel.c_str()))
+			else if (strcasecmp(label.c_str(), sMBLabel.c_str()) != 0)
 				procSwap /= 1024 * 1024;
 
 			if(procRss != -1)
@@ -158,10 +158,10 @@ void MemoryMonitor::monitorNativeProcessMemory(pid_t pid, int maxMemAllowed, pid
 			if (!maxMemAllowed){
 				// preserve the maxMemAllowed value from the old monitor
 				maxMemAllowed = monitor->maxMemAllowed;
-				// remove the old monitor
-				memRestrict.erase(old);
-				delete monitor;
 			}
+			// remove the old monitor
+			memRestrict.erase(old);
+			delete monitor;
 		}
 	}
 
@@ -171,13 +171,18 @@ void MemoryMonitor::monitorNativeProcessMemory(pid_t pid, int maxMemAllowed, pid
 	monitor->maxMemAllowed = maxMemAllowed;
 	monitor->violationNumber = 0;
 
+	ProcMemRestrictions::iterator existing = memRestrict.find(pid);
+	if (existing != memRestrict.end()) {
+		delete existing->second;
+		memRestrict.erase(existing);
+	}
+
 	memRestrict[pid] = monitor;
 }
 
 int MemoryMonitor::getMonitoredProcessesMemoryOffset()
 {
 	int offset = 0;
-	int takenMem, declaredMem;
 	ProcMemRestrictions::iterator it, temp;
 
 	it = memRestrict.begin();
@@ -187,13 +192,13 @@ int MemoryMonitor::getMonitoredProcessesMemoryOffset()
 		temp = it;
 		++it;
 
-		ProcMemMonitor *monitor = temp->second;
+		const ProcMemMonitor *monitor = temp->second;
 
 		// declared memory figure
-		declaredMem = monitor->maxMemAllowed;
+		int declaredMem = monitor->maxMemAllowed;
 
 		// find out how much memory the process is actually taking at the moment
-		takenMem = getProcessMemInfo(monitor->pid);
+		int takenMem = getProcessMemInfo(monitor->pid);
 
 		if (declaredMem > takenMem){ // if process isn't at or above its declared memory figure
 			// add the difference to the memory offset
@@ -206,8 +211,6 @@ int MemoryMonitor::getMonitoredProcessesMemoryOffset()
 
 void MemoryMonitor::checkMonitoredProcesses()
 {
-	int procMem;
-
 	ProcMemRestrictions::iterator it, temp;
 	it = memRestrict.begin();
 	while (it != memRestrict.end()) {
@@ -216,7 +219,7 @@ void MemoryMonitor::checkMonitoredProcesses()
 
 		ProcMemMonitor *monitor = temp->second;
 
-		procMem = getProcessMemInfo(monitor->pid);
+		int procMem = getProcessMemInfo(monitor->pid);
 
 		if(-1 == procMem) { // Process doesn't exist (terminated), so remove the entry from the monitor list
 			memRestrict.erase(temp);

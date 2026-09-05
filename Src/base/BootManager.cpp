@@ -100,6 +100,18 @@ DisplayBlocker::DisplayBlocker() :
 
 DisplayBlocker::~DisplayBlocker()
 {
+	if (!m_service)
+		return;
+
+	LSError lserror;
+	LSErrorInit(&lserror);
+
+	if (!LSUnregister(m_service, &lserror)) {
+		LSErrorPrint(&lserror, stderr);
+		LSErrorFree(&lserror);
+	}
+
+	m_service = 0;
 }
 
 void DisplayBlocker::acquire(const char *clientName)
@@ -140,6 +152,8 @@ void DisplayBlocker::release()
 		LSErrorPrint(&lserror, stderr);
 		LSErrorFree(&lserror);
 	}
+
+	m_token = 0;
 }
 
 void BootStateStartup::handleEvent(BootEvent event)
@@ -323,7 +337,10 @@ BootManager* BootManager::instance()
 BootManager::BootManager() :
 	m_service(0),
 	m_currentState(BOOT_STATE_STARTUP),
-	m_compositorAvailable(false)
+	m_compositorAvailable(false),
+	m_switchingState(false),
+	m_pendingState(BOOT_STATE_STARTUP),
+	m_hasPendingState(false)
 {
 	m_states[BOOT_STATE_STARTUP] = new BootStateStartup();
 	m_states[BOOT_STATE_FIRSTUSE] = new BootStateFirstUse();
@@ -414,13 +431,30 @@ void BootManager::stopService()
 
 void BootManager::switchState(BootState state)
 {
-	qDebug() << __PRETTY_FUNCTION__ << "Switching to state" << QString::fromStdString(bootStateToStr(state));
+	if (m_switchingState) {
+		m_pendingState = state;
+		m_hasPendingState = true;
+		return;
+	}
 
-	m_states[m_currentState]->leave();
-	m_currentState = state;
-	m_states[m_currentState]->enter();
+	m_switchingState = true;
+	m_pendingState = state;
+	m_hasPendingState = true;
 
-	postCurrentState();
+	while (m_hasPendingState) {
+		BootState nextState = m_pendingState;
+		m_hasPendingState = false;
+
+		qDebug() << __PRETTY_FUNCTION__ << "Switching to state" << QString::fromStdString(bootStateToStr(nextState));
+
+		m_states[m_currentState]->leave();
+		m_currentState = nextState;
+		m_states[m_currentState]->enter();
+
+		postCurrentState();
+	}
+
+	m_switchingState = false;
 }
 
 void BootManager::handleEvent(BootEvent event)

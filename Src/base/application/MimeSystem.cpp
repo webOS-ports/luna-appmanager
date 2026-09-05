@@ -221,6 +221,7 @@ int MimeSystem::RedirectHandlerNode::swapHandler(uint32_t index)
 MimeSystem::RedirectHandlerNode::~RedirectHandlerNode()
 {
 	//clear out all entries
+	MimeSystem::reclaimIndex(m_redirectHandler.index());
 	for (std::vector<RedirectHandler *>::iterator it = m_alternates.begin();
 			it != m_alternates.end();++it) {
 		MimeSystem::reclaimIndex((*it)->index());
@@ -251,7 +252,7 @@ struct json_object * MimeSystem::RedirectHandlerNode::toJson() 		//WARNING: memo
 		for (std::map<std::string,VerbCacheEntry>::iterator it = m_verbCache.begin();it != m_verbCache.end();++it) {
 			struct json_object * innerVerbObject = json_object_new_object();
 			json_object_object_add(innerVerbObject,(char *)"verb",json_object_new_string(it->first.c_str()));
-			json_object_object_add(innerVerbObject,(char *)"index",json_object_new_int(it->second.activeIndex));
+			json_object_object_add(innerVerbObject,(char *)"index",json_object_new_int(static_cast<int32_t>(it->second.activeIndex)));
 			json_object_array_add(jarray,innerVerbObject);
 		}
 		json_object_object_add(jobj,(char *)"verbs",jarray);
@@ -316,69 +317,65 @@ MimeSystem::RedirectHandlerNode * MimeSystem::RedirectHandlerNode::fromJson(stru
 	RedirectHandlerNode * p_rhn;
 	p_rhn = new RedirectHandlerNode(url,appId,schemeForm);
 	p_rhn->m_redirectHandler.setTag(tag);
-	
+
+	//map the saved index of each handler to the index it was assigned on re-creation
+	std::map<uint32_t,uint32_t> indexMap;
+	indexMap[index] = p_rhn->m_redirectHandler.index();
+
 	//extract verbs
 	std::map<std::string,std::string> verbs;
 
-	if (MimeSystem::extractVerbsFromHandlerEntryJson(primary_jobj,verbs) > 0) 
+	if (MimeSystem::extractVerbsFromHandlerEntryJson(primary_jobj,verbs) > 0)
 	{
-		//go through the verbs and add them
-		for (std::map<std::string,std::string>::iterator it = verbs.begin();
-		it != verbs.end();++it) 
-		{
-			MimeSystem::addVerbs(verbs,*p_rhn,p_rhn->m_redirectHandler);
-		}
+		MimeSystem::addVerbs(verbs,*p_rhn,p_rhn->m_redirectHandler);
 	}
-		
+
 	struct json_object * alternate_jobj = JsonGetObject(jobj,"alternates");
 	if (alternate_jobj == NULL) {
-		p_rhn->fixupVerbCacheTable(jobj);
+		p_rhn->fixupVerbCacheTable(jobj,indexMap);
 		return p_rhn;		//there are no alternate handlers for this
 	}
-	
+
 	if (json_object_is_type(alternate_jobj, json_type_array) == false) {
-		p_rhn->fixupVerbCacheTable(jobj);
+		p_rhn->fixupVerbCacheTable(jobj,indexMap);
 		return p_rhn;
 	}
 
 	for (int i=0; i<json_object_array_length(alternate_jobj); i++) {
 		json_object* e = json_object_array_get_idx(alternate_jobj, i);
 		if (extractFromJson(e,"url",url) == false)
-			return NULL;
+			continue;
 		if (extractFromJson(e,"appId",appId) == false)
-			return NULL;
+			continue;
 		if ((tmp = JsonGetObject(e,"index")) == NULL)
-			return NULL;
+			continue;
 		index = json_object_get_int(tmp);
 		if ((tmp = JsonGetObject(e,"schemeForm")) == NULL)
-			return NULL;
+			continue;
 		schemeForm = json_object_get_boolean(tmp);
 		if (extractFromJson(e,"tag",tag) == false) {
 			tag = "";
 		}
-		
+
 		RedirectHandler * p_newHandler = new RedirectHandler(url,appId,schemeForm,tag);
 		p_rhn->m_handlersByIndex[p_newHandler->index()] = p_newHandler;
 		p_rhn->m_alternates.push_back(p_newHandler);
-		
+		indexMap[index] = p_newHandler->index();
+
 		//extract the handler's verbs and add them
 		verbs.clear();
-		if (MimeSystem::extractVerbsFromHandlerEntryJson(primary_jobj,verbs) > 0) 
+		if (MimeSystem::extractVerbsFromHandlerEntryJson(e,verbs) > 0)
 		{
-			//go through the verbs and add them
-			for (std::map<std::string,std::string>::iterator it = verbs.begin();
-			it != verbs.end();++it) 
-			{
-				MimeSystem::addVerbs(verbs,*p_rhn,*p_newHandler);
-			}
+			MimeSystem::addVerbs(verbs,*p_rhn,*p_newHandler);
 		}
-				
+
 	}
 
+	p_rhn->fixupVerbCacheTable(jobj,indexMap);
 	return p_rhn;
 }
 	
-int MimeSystem::RedirectHandlerNode::fixupVerbCacheTable(struct json_object * jsonHandlerNodeEntry)
+int MimeSystem::RedirectHandlerNode::fixupVerbCacheTable(struct json_object * jsonHandlerNodeEntry,const std::map<uint32_t,uint32_t>& indexMap)
 {
 	std::map<std::string,uint32_t> verbs;
 	if (MimeSystem::extractVerbsFromHandlerNodeEntryJson(jsonHandlerNodeEntry,verbs) == 0)
@@ -386,7 +383,7 @@ int MimeSystem::RedirectHandlerNode::fixupVerbCacheTable(struct json_object * js
 
 	int rc=0;
 	for (std::map<std::string,uint32_t>::iterator it = verbs.begin();
-	it != verbs.end();++it) 
+	it != verbs.end();++it)
 	{
 		//locate the VerbCacheEntry correspoding to the key in the verb iterator
 		std::map<std::string,VerbCacheEntry>::iterator search_it = m_verbCache.find(it->first);
@@ -395,7 +392,12 @@ int MimeSystem::RedirectHandlerNode::fixupVerbCacheTable(struct json_object * js
 			//try to recover by ignoring it
 			continue;
 		}
-		search_it->second.activeIndex = it->second;
+		//translate the saved index to the index the handler was assigned on re-creation
+		std::map<uint32_t,uint32_t>::const_iterator map_it = indexMap.find(it->second);
+		if (map_it == indexMap.end()) {
+			continue;
+		}
+		search_it->second.activeIndex = map_it->second;
 		++rc;
 	}
 
@@ -568,6 +570,7 @@ bool MimeSystem::ResourceHandlerNode::reassignRandomVerbHandler(const std::strin
 MimeSystem::ResourceHandlerNode::~ResourceHandlerNode()
 {
 	//clear out all entries
+	MimeSystem::reclaimIndex(m_resourceHandler.index());
 	for (std::vector<ResourceHandler *>::iterator it = m_alternates.begin();
 			it != m_alternates.end();++it) {
 		MimeSystem::reclaimIndex((*it)->index());
@@ -598,7 +601,7 @@ struct json_object * MimeSystem::ResourceHandlerNode::toJson() 		//WARNING: memo
 		for (std::map<std::string,VerbCacheEntry>::iterator it = m_verbCache.begin();it != m_verbCache.end();++it) {
 			json_object * innerVerbObject = json_object_new_object();
 			json_object_object_add(innerVerbObject,(char *)"verb",json_object_new_string(it->first.c_str()));
-			json_object_object_add(innerVerbObject,(char *)"index",json_object_new_int(it->second.activeIndex));
+			json_object_object_add(innerVerbObject,(char *)"index",json_object_new_int(static_cast<int32_t>(it->second.activeIndex)));
 			json_object_array_add(jarray,innerVerbObject);
 		}
 		json_object_object_add(jobj,(char *)"verbs",jarray);
@@ -672,27 +675,26 @@ MimeSystem::ResourceHandlerNode * MimeSystem::ResourceHandlerNode::fromJson(stru
 		p_rhn = new ResourceHandlerNode(MimeSystem::makePseudoExtensionFromMime(mime),mime,appId,streamable);  //make pseudo-extension
 	
 	p_rhn->m_resourceHandler.setTag(tag);
-	
+
+	//map the saved index of each handler to the index it was assigned on re-creation
+	std::map<uint32_t,uint32_t> indexMap;
+	indexMap[index] = p_rhn->m_resourceHandler.index();
+
 	//extract verbs
 	std::map<std::string,std::string> verbs;
-		
-	if (MimeSystem::extractVerbsFromHandlerEntryJson(primary_jobj,verbs) > 0) 
+
+	if (MimeSystem::extractVerbsFromHandlerEntryJson(primary_jobj,verbs) > 0)
 	{
-		//go through the verbs and add them
-		for (std::map<std::string,std::string>::iterator it = verbs.begin();
-				it != verbs.end();++it) 
-		{
-			MimeSystem::addVerbs(verbs,*p_rhn,p_rhn->m_resourceHandler);
-		}
+		MimeSystem::addVerbs(verbs,*p_rhn,p_rhn->m_resourceHandler);
 	}
-		
+
 	struct json_object * alternate_jobj = JsonGetObject(jobj,"alternates");
 	if (alternate_jobj == NULL) {
-		p_rhn->fixupVerbCacheTable(jobj);
+		p_rhn->fixupVerbCacheTable(jobj,indexMap);
 		return p_rhn;		//there are no alternate handlers for this
 	}
 	if (json_object_is_type(alternate_jobj, json_type_array) == false) {
-		p_rhn->fixupVerbCacheTable(jobj);
+		p_rhn->fixupVerbCacheTable(jobj,indexMap);
 		return p_rhn;
 	}
 	
@@ -730,29 +732,25 @@ MimeSystem::ResourceHandlerNode * MimeSystem::ResourceHandlerNode::fromJson(stru
 		else {
 			p_newHandler = new ResourceHandler(MimeSystem::makePseudoExtensionFromMime(mime),mime,appId,streamable,tag);
 			p_rhn->m_handlersByIndex[p_newHandler->index()] = p_newHandler;
-			p_rhn->m_alternates.push_back(p_newHandler);	
-			
+			p_rhn->m_alternates.push_back(p_newHandler);
+
 		}
-		
+		indexMap[index] = p_newHandler->index();
+
 		//extract the handler's verbs and add them
 		verbs.clear();
-		if (MimeSystem::extractVerbsFromHandlerEntryJson(primary_jobj,verbs) > 0) 
+		if (MimeSystem::extractVerbsFromHandlerEntryJson(e,verbs) > 0)
 		{
-			//go through the verbs and add them
-			for (std::map<std::string,std::string>::iterator it = verbs.begin();
-			it != verbs.end();++it) 
-			{
-				MimeSystem::addVerbs(verbs,*p_rhn,*p_newHandler);
-			}
+			MimeSystem::addVerbs(verbs,*p_rhn,*p_newHandler);
 		}
 	}
-	
+
 	//since all the verbs were added now, fixup the verb cache table according to the verbs entry in the main json object
-	p_rhn->fixupVerbCacheTable(jobj);
+	p_rhn->fixupVerbCacheTable(jobj,indexMap);
 	return p_rhn;
 }
 	
-int MimeSystem::ResourceHandlerNode::fixupVerbCacheTable(struct json_object * jsonHandlerNodeEntry)
+int MimeSystem::ResourceHandlerNode::fixupVerbCacheTable(struct json_object * jsonHandlerNodeEntry,const std::map<uint32_t,uint32_t>& indexMap)
 {
 	std::map<std::string,uint32_t> verbs;
 	if (MimeSystem::extractVerbsFromHandlerNodeEntryJson(jsonHandlerNodeEntry,verbs) == 0)
@@ -760,7 +758,7 @@ int MimeSystem::ResourceHandlerNode::fixupVerbCacheTable(struct json_object * js
 
 	int rc=0;
 	for (std::map<std::string,uint32_t>::iterator it = verbs.begin();
-			it != verbs.end();++it) 
+			it != verbs.end();++it)
 	{
 		//locate the VerbCacheEntry correspoding to the key in the verb iterator
 		std::map<std::string,VerbCacheEntry>::iterator search_it = m_verbCache.find(it->first);
@@ -769,10 +767,15 @@ int MimeSystem::ResourceHandlerNode::fixupVerbCacheTable(struct json_object * js
 			//try to recover by ignoring it
 			continue;
 		}
-		search_it->second.activeIndex = it->second;
+		//translate the saved index to the index the handler was assigned on re-creation
+		std::map<uint32_t,uint32_t>::const_iterator map_it = indexMap.find(it->second);
+		if (map_it == indexMap.end()) {
+			continue;
+		}
+		search_it->second.activeIndex = map_it->second;
 		++rc;
 	}
-	
+
 	return rc;
 }
 
@@ -949,7 +952,7 @@ int	MimeSystem::getAllAppIdForResource(std::string mimeType,std::string& r_activ
 		r_alternatives.push_back((*rit)->appId());
 	}
 
-	return (p_rhn->m_alternates.size() +1);
+	return static_cast<int>(p_rhn->m_alternates.size() +1);
 }
 
 ResourceHandler	MimeSystem::getActiveHandlerForResource(std::string mimeType)
@@ -983,7 +986,7 @@ int	MimeSystem::getAllHandlersForResource(std::string mimeType,ResourceHandler& 
 		r_alternatives.push_back(*(*rit));
 	}
 	
-	return (p_rhn->m_alternates.size() +1);
+	return static_cast<int>(p_rhn->m_alternates.size() +1);
 }
 	
 std::string	MimeSystem::getActiveAppIdForRedirect(const std::string& url,bool doNotUseRegexpMatch,bool disallowSchemeForms)
@@ -1452,7 +1455,7 @@ int MimeSystem::getAllAppIdByVerbForRedirect(const std::string& url,const std::s
 
 RedirectHandler	MimeSystem::getRedirectHandlerDirect(const uint32_t index)
 {
-	
+	MutexLocker lock(&m_mutex);
 	for (RedirectMapIterType it = m_redirectHandlerMap.begin();it != m_redirectHandlerMap.end();++it) {
 		std::map<uint32_t,RedirectHandler *>::iterator rit = it->second->m_handlersByIndex.find(index);
 		if (rit != it->second->m_handlersByIndex.end())
@@ -1464,6 +1467,7 @@ RedirectHandler	MimeSystem::getRedirectHandlerDirect(const uint32_t index)
 
 ResourceHandler	MimeSystem::getResourceHandlerDirect(const uint32_t index)
 {
+	MutexLocker lock(&m_mutex);
 	for (ResourceMapIterType it = m_resourceHandlerMap.begin();it != m_resourceHandlerMap.end();++it) {
 		std::map<uint32_t,ResourceHandler *>::iterator rit = it->second->m_handlersByIndex.find(index);
 		if (rit != it->second->m_handlersByIndex.end())
@@ -1491,7 +1495,6 @@ int MimeSystem::removeAllForAppId(const std::string& appId)
 	//erase all the keys for nodes which are completely obliterated
 	for (std::vector<std::string>::iterator it = keys.begin();it != keys.end();++it) {
 		RedirectMapIterType found_it = m_redirectHandlerMap.find(*it);
-		MimeSystem::reclaimIndex(found_it->second->m_redirectHandler.index());
 		delete (found_it->second);
 		m_redirectHandlerMap.erase(*it);
 	}
@@ -1510,7 +1513,6 @@ int MimeSystem::removeAllForAppId(const std::string& appId)
 	//erase all the keys for nodes which are completely obliterated
 	for (std::vector<std::string>::iterator it = keys.begin();it != keys.end();++it) {
 		ResourceMapIterType found_it = m_resourceHandlerMap.find(*it);
-		MimeSystem::reclaimIndex(found_it->second->m_resourceHandler.index());
 		delete (found_it->second);
 		m_resourceHandlerMap.erase(*it);
 	}
@@ -1548,7 +1550,7 @@ int	MimeSystem::removeAllForUrl(const std::string& url)
 /*
  * returns >0 on success, 0 on error
  */
-int	MimeSystem::addResourceHandler(std::string& extension,std::string mimeType,bool shouldDownload,const std::string appId,const std::map<std::string,std::string> * pVerbs,bool sysDefault)
+int	MimeSystem::addResourceHandler(std::string& extension,std::string mimeType,bool shouldDownload,const std::string& appId,const std::map<std::string,std::string> * pVerbs,bool sysDefault)
 {
 	MutexLocker lock(&m_mutex);
 	
@@ -1605,7 +1607,7 @@ int	MimeSystem::addResourceHandler(std::string& extension,std::string mimeType,b
 	return 2;
 }
 
-int	MimeSystem::addResourceHandler(std::string extension,bool shouldDownload,const std::string appId,const std::map<std::string,std::string> * pVerbs,bool sysDefault)
+int	MimeSystem::addResourceHandler(std::string extension,bool shouldDownload,const std::string& appId,const std::map<std::string,std::string> * pVerbs,bool sysDefault)
 {
 	MutexLocker lock(&m_mutex);
 	//find the mime type for this extension
@@ -1642,7 +1644,7 @@ int	MimeSystem::addResourceHandler(std::string extension,bool shouldDownload,con
 	return 2;
 }
 
-int	MimeSystem::addRedirectHandler(const std::string& url,const std::string appId,const std::map<std::string,std::string> * pVerbs,bool isSchemeForm,bool sysDefault)
+int	MimeSystem::addRedirectHandler(const std::string& url,const std::string& appId,const std::map<std::string,std::string> * pVerbs,bool isSchemeForm,bool sysDefault)
 {
 	MutexLocker lock(&m_mutex);
 	//see if there is a primary entry already
@@ -1671,7 +1673,7 @@ int	MimeSystem::addRedirectHandler(const std::string& url,const std::string appI
 
 int	MimeSystem::addVerbsToResourceHandler(std::string mimeType,const std::string& appId,const std::map<std::string,std::string>& verbs)
 {
-
+	MutexLocker lock(&m_mutex);
 	std::transform(mimeType.begin(),mimeType.end(),mimeType.begin(),tolower);
 	ResourceMapIterType resource_it = m_resourceHandlerMap.find(mimeType);
 	if (resource_it != m_resourceHandlerMap.end())
@@ -1692,6 +1694,7 @@ int	MimeSystem::addVerbsToResourceHandler(std::string mimeType,const std::string
 
 int	MimeSystem::addVerbsToRedirectHandler(const std::string& url,const std::string& appId,const std::map<std::string,std::string>& verbs)
 {
+	MutexLocker lock(&m_mutex);
 	RedirectMapIterType redirect_it = m_redirectHandlerMap.find(url);
 	if (redirect_it != m_redirectHandlerMap.end())
 	{
@@ -1711,6 +1714,7 @@ int	MimeSystem::addVerbsToRedirectHandler(const std::string& url,const std::stri
 
 int	MimeSystem::addVerbsDirect(uint32_t index,const std::map<std::string,std::string>& verbs)
 {
+	MutexLocker lock(&m_mutex);
 	//scan all the maps to find one that has the index in question
 	for (ResourceMapIterType resource_it = m_resourceHandlerMap.begin();
 			resource_it != m_resourceHandlerMap.end();++resource_it)
@@ -1954,7 +1958,6 @@ json_object * MimeSystem::extensionMapAsJsonArray() //WARNING: memory allocated;
 bool MimeSystem::saveMimeTable(const std::string& file,std::string& r_err)
 {
 	MutexLocker locker(&m_mutex);
-	std::string mimeTablesJsonStr;
 	r_err.clear();
 	//try and open the file
 	FILE * fp = fopen(file.c_str(),"w");
@@ -1981,7 +1984,7 @@ bool MimeSystem::saveMimeTable(const std::string& file,std::string& r_err)
 		goto Done_saveMimeTable;
 	}
 	
-	fprintf(fp,"\n\n");
+	(void)fprintf(fp,"\n\n");
 	
 Done_saveMimeTable:
 
@@ -1994,7 +1997,6 @@ Done_saveMimeTable:
 bool MimeSystem::saveMimeTableToActiveFile(std::string& r_err)
 {
 	MutexLocker locker(&m_mutex);
-	std::string mimeTablesJsonStr;
 	r_err.clear();
 	//try and open the file
 	FILE * fp = fopen(Settings::LunaSettings()->lunaCmdHandlerSavedPath.c_str(),"w");
@@ -2021,7 +2023,7 @@ bool MimeSystem::saveMimeTableToActiveFile(std::string& r_err)
 		goto Done_saveMimeTableToActiveFile;
 	}
 	
-	fprintf(fp,"\n\n");
+	(void)fprintf(fp,"\n\n");
 	
 Done_saveMimeTableToActiveFile:
 
@@ -2034,6 +2036,7 @@ Done_saveMimeTableToActiveFile:
 //TODO: reimplement as static factory fn?
 bool MimeSystem::restoreMimeTable(const std::string& file,std::string& r_err)
 {
+	MutexLocker locker(&m_mutex);
 	//read in the file as json
 	char* tables = readFile(file.c_str());
 	if (!tables) {
@@ -2054,9 +2057,10 @@ bool MimeSystem::restoreMimeTable(const std::string& file,std::string& r_err)
 
 bool MimeSystem::restoreMimeTable(json_object * root,std::string& r_err)
 {
+	MutexLocker locker(&m_mutex);
 	std::string val_s;
 	json_object * topLevel_jobj;
-	
+
 	if (!root)
 	{
 		root = 0;
@@ -2066,6 +2070,16 @@ bool MimeSystem::restoreMimeTable(json_object * root,std::string& r_err)
 
 	//restore the extension map
 	m_extensionToMimeMap.clear();
+
+	//dispose of the current tables before rebuilding them
+	for (RedirectMapIterType rd_it = m_redirectHandlerMap.begin();
+		rd_it != m_redirectHandlerMap.end();++rd_it)
+		delete rd_it->second;
+	m_redirectHandlerMap.clear();
+	for (ResourceMapIterType rs_it = m_resourceHandlerMap.begin();
+		rs_it != m_resourceHandlerMap.end();++rs_it)
+		delete rs_it->second;
+	m_resourceHandlerMap.clear();
 
 	if ((topLevel_jobj = JsonGetObject(root,"extensionMap")) != NULL) 
 	{
@@ -2099,6 +2113,9 @@ bool MimeSystem::restoreMimeTable(json_object * root,std::string& r_err)
 				RedirectHandlerNode * p_rhn = RedirectHandlerNode::fromJson(h);
 				if (p_rhn != NULL) {
 					//add...
+					RedirectMapIterType found_it = m_redirectHandlerMap.find(p_rhn->m_redirectHandler.urlRe());
+					if (found_it != m_redirectHandlerMap.end())
+						delete found_it->second;
 					m_redirectHandlerMap[p_rhn->m_redirectHandler.urlRe()] = p_rhn;
 				}
 			}
@@ -2119,6 +2136,9 @@ bool MimeSystem::restoreMimeTable(json_object * root,std::string& r_err)
 				ResourceHandlerNode * p_rhn = ResourceHandlerNode::fromJson(h);
 				if (p_rhn != NULL) {
 					//add...
+					ResourceMapIterType found_it = m_resourceHandlerMap.find(p_rhn->m_resourceHandler.contentType());
+					if (found_it != m_resourceHandlerMap.end())
+						delete found_it->second;
 					m_resourceHandlerMap[p_rhn->m_resourceHandler.contentType()] = p_rhn;
 				}
 			}
@@ -2441,7 +2461,7 @@ int MimeSystem::extractVerbsFromHandlerNodeEntryJson(struct json_object * jsonHa
 	int rc=0;
 	for (int i = 0; i < array_list_length(srcJsonArray); i++) {
 		json_object* obj = (json_object*) array_list_get_idx(srcJsonArray, i);
-		if (!(json_object_is_type(obj,json_type_string)))
+		if (!(json_object_is_type(obj,json_type_object)))
 			continue;
 		std::string verb;
 		uint32_t idx;

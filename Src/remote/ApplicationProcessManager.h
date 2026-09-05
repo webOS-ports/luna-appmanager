@@ -45,7 +45,7 @@ public:
     {
     }
 
-    QString appId() const { return mAppId; }
+    const QString& appId() const { return mAppId; }
     qint64 processId() const { return mProcessId; }
     ApplicationType type() const { return mType; }
 
@@ -66,7 +66,7 @@ class WebApplication : public ApplicationInfo
 public:
     WebApplication(const QString& appId, qint64 processId, QObject *parent = 0);
 
-    virtual void kill();
+    virtual void kill() override;
 };
 
 class ApplicationProcessManager : public QObject
@@ -75,15 +75,15 @@ class ApplicationProcessManager : public QObject
 public:
     static ApplicationProcessManager* instance();
 
-    std::string launch(std::string appId, std::string params);
-    void relaunch(std::string appId, std::string params);
+    std::string launch(const std::string& appId, std::string params);
+    void relaunch(const std::string& appId, const std::string& params);
 
-    std::string getPid(std::string appId);
-    bool isRunning(std::string appId);
-    void killByAppId(std::string appId, bool notifyUser = false);
+    std::string getPid(const std::string& appId);
+    bool isRunning(const std::string& appId);
+    void killByAppId(const std::string& appId, bool notifyUser = false);
     void killByProcessId(qint64 processId, bool notifyUser = false);
 
-    QList<ApplicationInfo*> runningApplications() const;
+    const QList<ApplicationInfo*>& runningApplications() const;
 
     void notifyApplicationHasStarted(ApplicationInfo *app);
     void notifyApplicationHasFinished(qint64 processId);

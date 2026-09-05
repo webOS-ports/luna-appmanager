@@ -37,7 +37,7 @@ public:
 
     static WebAppMgrProxy* instance();
 
-    bool connected();
+    bool connected() const;
 
     virtual ~WebAppMgrProxy();
 

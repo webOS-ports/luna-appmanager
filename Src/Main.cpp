@@ -135,7 +135,7 @@ static void crash_printf(const char *format, ...) {
 	va_list ap;
 
 	va_start(ap, format);
-	vsnprintf(buf, sizeof(buf), format, ap);
+	(void) vsnprintf(buf, sizeof(buf), format, ap);
 	va_end(ap);
 	ssize_t result = write(crashLogFD, buf, strlen(buf));
 	Q_UNUSED(result);
@@ -154,7 +154,7 @@ static void crash_flush() {
 #if __WORDSIZE == 64
 const char *const regNames[NGREG] = {
     "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15",
-    "RDI", "RSI", "RBP" "RBX", "RDX", "RAX", "RCX", "RIP",
+    "RDI", "RSI", "RBP", "RBX", "RDX", "RAX", "RCX", "RIP",
     "EFL", "CSGSFS", "ERR", "TRAPNO", "OLDMASK", "CR2"
 };
 #else // __WORDSIZE == 32
@@ -179,7 +179,7 @@ void logCrashRegisterContext(int sig, siginfo_t *info, void *data) {
     // Note: For ia32/x64, we dump all the registers because this is not for
     // field deployment.  Hence, there is no risk of violation of user privacy.
     for (int i = 0; i < NGREG; i++) {
-        int value = context->uc_mcontext.gregs[i];
+        int value = static_cast<int>(context->uc_mcontext.gregs[i]);
         crash_printf("  %2d %8s = 0x%08x %d\n", i, regNames[i], value, value);
     }
 
@@ -314,7 +314,7 @@ static gboolean mallocStatsCb(gpointer data)
 {
 	char buf[30];
 	time_t cur_time;
-	time(&cur_time);
+	(void) time(&cur_time);
 	static pid_t my_pid = 0;
 	static char process_name[16] = { 0 };
 
@@ -332,12 +332,12 @@ static gboolean mallocStatsCb(gpointer data)
 
     flock(STDERR_FILENO, LOCK_EX);
 
-	fflush(stderr);
-	fprintf(stderr, "\nMALLOC STATS FOR PROCESS: \"%s\" (PID: %d) AT [%ld.%ld] %s", process_name, my_pid, ts.tv_sec, ts.tv_nsec, ctime_r(&cur_time, buf));
-	fflush(stderr);
+	(void) fflush(stderr);
+	(void) fprintf(stderr, "\nMALLOC STATS FOR PROCESS: \"%s\" (PID: %d) AT [%ld.%ld] %s", process_name, my_pid, ts.tv_sec, ts.tv_nsec, ctime_r(&cur_time, buf));
+	(void) fflush(stderr);
 	malloc_stats();
-	fprintf(stderr, "\n\n");
-	fflush(stderr);
+	(void) fprintf(stderr, "\n\n");
+	(void) fflush(stderr);
 	fsync(STDERR_FILENO);
 
     flock(STDERR_FILENO, LOCK_UN);
@@ -360,6 +360,7 @@ static void initMallocStatsCb(GMainLoop* mainLoop, int secs)
 	GSource *timeoutSource = g_timeout_source_new_seconds(secs);
 	g_source_set_callback(timeoutSource, mallocStatsCb, NULL, NULL);
 	g_source_attach(timeoutSource, g_main_loop_get_context(mainLoop));
+	g_source_unref(timeoutSource);
 }
 
 /**
@@ -371,11 +372,12 @@ static void initMallocStatsCb(GMainLoop* mainLoop, int secs)
  */
 static void setupMallocStats(const char* mallocStatsFile)
 {
-	FILE* file = ::freopen(mallocStatsFile, "a+", stderr);
+	const FILE* file = ::freopen(mallocStatsFile, "a+", stderr);
 
 	if (!file) {
 		g_critical("Unable to open file: %s", mallocStatsFile);
 	}
+	// cppcheck-suppress resourceLeak
 }
 
 /**
@@ -449,12 +451,12 @@ static void outerCrashHandler(int sig, siginfo_t *info, void *data)
     const char *logFileName = Settings::LunaSettings()->logFileName.c_str();
     char logFileNameBuffer[64];
     if (Settings::LunaSettings()->debug_doVerboseCrashLogging) {
-        snprintf(logFileNameBuffer, 64,
+        (void) snprintf(logFileNameBuffer, 64,
                  "/media/internal/lunasysmgr.%d.verbose.log", sysmgrPid);
         logFileName = logFileNameBuffer;
     }
     
-    crashLogFD = open(logFileName, O_WRONLY | O_CREAT | O_TRUNC);
+    crashLogFD = open(logFileName, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 
 #if 0 // Disable until we can do this without calling malloc and free:
 	int memTotal, memFree, swapTotal, swapFree, memchuteFree, memUsage;
@@ -506,8 +508,10 @@ static void outerCrashHandler(int sig, siginfo_t *info, void *data)
     sigaction(sig, &previous_crash_action, NULL);
 
     // Close the file:
-    fsync(crashLogFD);
-    close(crashLogFD);
+    if (crashLogFD >= 0) {
+        fsync(crashLogFD);
+        close(crashLogFD);
+    }
     crashLogFD = -1;
 }
 
@@ -583,22 +587,26 @@ static void parseCommandlineOptions(int argc, char** argv)
     GOptionContext* context = NULL;
 
 	static GOptionEntry entries[] = {
-		{ "ui",  'u',  0, G_OPTION_ARG_STRING, &s_uiStr, "UI type to launch (minimal, luna)", "name" },
-		{ "app", 'a', 0, G_OPTION_ARG_STRING,  &s_appToLaunchStr, "App Id of app to launch", "id" },
-		{ "logger", 'l', 0, G_OPTION_ARG_STRING,  &s_logLevelStr, "log level", "level"},
+		{ "ui",  'u',  0, G_OPTION_ARG_STRING, static_cast<void*>(&s_uiStr), "UI type to launch (minimal, luna)", "name" },
+		{ "app", 'a', 0, G_OPTION_ARG_STRING,  static_cast<void*>(&s_appToLaunchStr), "App Id of app to launch", "id" },
+		{ "logger", 'l', 0, G_OPTION_ARG_STRING,  static_cast<void*>(&s_logLevelStr), "log level", "level"},
 		{ "syslog", 's', 0, G_OPTION_ARG_NONE, &s_useSysLog, "Use syslog", NULL },
 		{ "colorlogging", 'c', 0, G_OPTION_ARG_NONE, &s_colorLog, "Color logging on or off", NULL },	// use -c=0 or --colorlogging=0 to disable color logging
 		{ "terminal", 't', 0, G_OPTION_ARG_NONE, &s_useTerminal, "Use terminal for logs", NULL },
-		{ "debug-trap", 'x', 0, G_OPTION_ARG_STRING,  &s_debugTrapStr, "debug trap (on/ off)", "state"},
+		{ "debug-trap", 'x', 0, G_OPTION_ARG_STRING,  static_cast<void*>(&s_debugTrapStr), "debug trap (on/ off)", "state"},
 		{ "force-software-rendering", 'S', 0, G_OPTION_ARG_NONE, &s_forceSoftwareRendering, "Force Software rendering", NULL},
-		{ "malloc-stats-file", 'm', 0, G_OPTION_ARG_STRING,  &s_mallocStatsFileStr, "File for logging malloc stats", "file" },
+		{ "malloc-stats-file", 'm', 0, G_OPTION_ARG_STRING,  static_cast<void*>(&s_mallocStatsFileStr), "File for logging malloc stats", "file" },
 		{ "malloc-stats-interval", 'i', 0, G_OPTION_ARG_INT,  &s_mallocStatsInterval, "Interval at which to log malloc stats", "seconds" },
 		{ NULL }
 	};
 
 	context = g_option_context_new(NULL);
 	g_option_context_add_main_entries (context, entries, NULL);
-	g_option_context_parse (context, &argc, &argv, &error);
+	if (!g_option_context_parse (context, &argc, &argv, &error)) {
+		g_warning("Failed to parse command line options: %s", error ? error->message : "unknown error");
+		if (error)
+			g_error_free(error);
+	}
 
 #if !defined(HAVE_OPENGL)
 	// if there's no OpenGL, then implicitely force software rendering
@@ -647,6 +655,7 @@ static void parseCommandlineOptions(int argc, char** argv)
 static void generateGoodBacktraceTerminateHandler()
 {
 	volatile int* p = 0;
+	// cppcheck-suppress nullPointer
 	*p = 0;
 	exit(-1);
 }
@@ -759,7 +768,7 @@ int main( int argc, char** argv)
 	// Initialize Preferences handler
 	(void) Preferences::instance();
 
-	LocalePreferences* lp = LocalePreferences::instance();
+	(void) LocalePreferences::instance();
 
 	// Initialize Localization handler
 	(void) Localization::instance();

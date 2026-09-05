@@ -94,7 +94,7 @@ void WebAppMgrProxy::connectWebAppMgr()
 bool WebAppMgrProxy::webAppManagerServiceStatusCb(LSHandle *handle, LSMessage *message, void *user_data)
 {
     const char* payload = LSMessageGetPayload(message);
-    if (!message)
+    if (!payload)
         return true;
 
     json_object* json = json_tokener_parse(payload);
@@ -109,8 +109,8 @@ bool WebAppMgrProxy::webAppManagerServiceStatusCb(LSHandle *handle, LSMessage *m
 
     WebAppMgrProxy *proxy = static_cast<WebAppMgrProxy*>(user_data);
 
-    bool connected = json_object_get_boolean(value);
-    if (connected)
+    bool isConnected = json_object_get_boolean(value);
+    if (isConnected)
         proxy->onWebAppManagerConnected();
     else
         proxy->onWebAppManagerDisconnected();
@@ -176,7 +176,11 @@ void WebAppMgrProxy::updateRunningApps(const char *payload)
         for (int i = 0; i < json_object_array_length(appsValue); i++) {
             struct json_object *appEntry = json_object_array_get_idx(appsValue, i);
 
-            std::string appId = json_object_get_string(json_object_object_get(appEntry, "appId"));
+            const char *appIdStr = json_object_get_string(json_object_object_get(appEntry, "appId"));
+            if (!appIdStr)
+                continue;
+
+            std::string appId = appIdStr;
             // FIXME need to switch json parser in order to support int64 directly
             qint64 processId = (qint64) json_object_get_int(json_object_object_get(appEntry, "processId"));
 
@@ -185,7 +189,6 @@ void WebAppMgrProxy::updateRunningApps(const char *payload)
         }
     }
 
-cleanup:
     json_object_put(json);
 }
 
@@ -235,7 +238,7 @@ cleanup:
     json_object_put(json);
 }*/
 
-bool WebAppMgrProxy::connected()
+bool WebAppMgrProxy::connected() const
 {
     return mConnected;
 }
@@ -260,16 +263,16 @@ void WebAppMgrProxy::killApp(qint64 processId)
     LSErrorInit(&err);
 
     if (!connected()) {
-        g_warning("WebAppManager is not connected so can't kill app with process id %d",
-                  processId);
+        g_warning("WebAppManager is not connected so can't kill app with process id %lld",
+                  (long long) processId);
         return;
     }
 
-    char *payload = g_strdup_printf("{\"processId\":%llu}", processId);
+    char *payload = g_strdup_printf("{\"processId\":%lld}", (long long) processId);
 
     if (!LSCallOneReply(mService, "luna://com.palm.webappmanager/killApp", payload,
                         NULL, NULL, NULL, &err)) {
-        g_warning("Failed to kill app with process id %i: %s", processId, err.message);
+        g_warning("Failed to kill app with process id %lld: %s", (long long) processId, err.message);
         LSErrorFree(&err);
     }
 
@@ -317,7 +320,7 @@ void WebAppMgrProxy::launchUrl(const char* url, WindowType::Type winType,
         json_object_object_add(obj, "appDesc", appDesc->toJSON());
 
     json_object_object_add(obj, "parameters", json_object_new_string(params));
-    json_object_object_add(obj, "processId", json_object_new_int(processId));
+    json_object_object_add(obj, "processId", json_object_new_int(static_cast<int32_t>(processId)));
     json_object_object_add(obj, "launchingAppId", json_object_new_string(launchingAppId));
     json_object_object_add(obj, "launchingProcId", json_object_new_string(launchingProcId));
 
@@ -338,7 +341,7 @@ std::string WebAppMgrProxy::launchApp(const std::string& appId,
                                       const std::string& launchingProcId,
                                       std::string& errMsg)
 {
-    std::string appIdToLaunch = appId;
+    const std::string& appIdToLaunch = appId;
     std::string paramsToLaunch = params;
     if(paramsToLaunch.empty()) paramsToLaunch = "{}";
     errMsg.erase();
@@ -376,7 +379,6 @@ std::string WebAppMgrProxy::launchApp(const std::string& appId,
     {
         desc = ApplicationManager::instance()->getAppById(appIdToLaunch);
         if (desc) {
-            appIdToLaunch = desc->id();
             paramsToLaunch = "{}";
         }
         else {
@@ -399,7 +401,7 @@ std::string WebAppMgrProxy::launchApp(const std::string& appId,
         json_object *obj = json_object_new_object();
         json_object_object_add(obj, "appDesc", desc->toJSON());
         json_object_object_add(obj, "parameters", json_tokener_parse(paramsToLaunch.c_str()));
-        json_object_object_add(obj, "processId", json_object_new_int(processId));
+        json_object_object_add(obj, "processId", json_object_new_int(static_cast<int32_t>(processId)));
         json_object_object_add(obj, "launchingAppId", json_object_new_string(launchingAppId.c_str()));
         json_object_object_add(obj, "launchingProcId", json_object_new_string(launchingProcId.c_str()));
         json_object_object_add(obj, "instanceId", json_object_new_string(appId.c_str()));
