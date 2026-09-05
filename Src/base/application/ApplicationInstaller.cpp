@@ -89,6 +89,7 @@ static void util_unmountCryptofs() __attribute__((unused));
 static gboolean util_cryptofsPathAvailable() __attribute__((unused));
 static void util_validateCryptofs() __attribute__((unused));
 static int runScriptCwd(const std::string& scriptFile,const std::string& cwd);
+static bool util_validPackageId(const std::string& packageId);
 
 //TODO: these don't need to be vars...they can be #defines ... I need this for now to debug something
 
@@ -584,12 +585,30 @@ static void util_validateCryptofs()
 
 static void util_deleteJail(const char* appId)
 {
-	int rc;
-	std::string cmdbuf;
-	cmdbuf.append("/usr/bin/jailer -D -i ");
-	cmdbuf.append(appId);
-	rc = ::system(cmdbuf.c_str());
-	if (rc < 0) {
+	gchar * argv[5];
+	argv[0] = (gchar *)"/usr/bin/jailer";
+	argv[1] = (gchar *)"-D";
+	argv[2] = (gchar *)"-i";
+	argv[3] = (gchar *)appId;
+	argv[4] = NULL;
+
+	GError * gerr = NULL;
+	gint exit_status = 0;
+	gboolean resultStatus = g_spawn_sync(NULL,
+			argv,
+			NULL,
+			(GSpawnFlags)(G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL),
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			&exit_status,
+			&gerr);
+	if (gerr) {
+		g_error_free(gerr);
+		gerr = NULL;
+	}
+	if (!resultStatus) {
 		g_critical("Can't delete jail");
 	}
 	else {
@@ -637,6 +656,10 @@ int ApplicationInstaller::lunasvcRemove(RemoveParams *removeParams)
 	std::vector<std::string> packageAppsList;
 	std::vector<std::string> packageServicesList;
 	PackageDescription * pPkgDesc = ApplicationManager::instance()->getPackageInfoByPackageId(packageName);
+	if (pPkgDesc == NULL) {
+		g_warning("%s: no package descriptor found for [%s] - aborting remove",__FUNCTION__,packageName.c_str());
+		return REMOVER_RETURNC__FAILEDIPKGREMOVE;
+	}
 
 	//FOR EASE OF DEBUG - no copy needed otherwise, so remove the locals and use directly. This will have to change if the assumptions on the lifetime of the package desc. pointer ever change
 	packageAppsList = pPkgDesc->appIds();
@@ -704,7 +727,8 @@ int ApplicationInstaller::lunasvcRemove(RemoveParams *removeParams)
 		// conceivably, ro partition apps wouldn't have a pre remove script so this would all be ok
 
 		// attempting an ipkg remove would fail + we don't really want to remove these from the system
-		g_idle_add_full(G_PRIORITY_HIGH_IDLE, cbShallowRemove, (gpointer)removeParams, NULL);
+		m_cmdState.processing = true;
+		m_cmdState.sourceId = g_idle_add_full(G_PRIORITY_HIGH_IDLE, cbShallowRemove, (gpointer)removeParams, NULL);
 		return REMOVER_RETURNC__SUCCESS;
 	}
 
@@ -1303,7 +1327,9 @@ uint64_t ApplicationInstaller::getSizeOfAppDir(const std::string& dirName)
 			g_warning("ApplicationInstaller::getSizeOfAppDir(): error - %s",gerr->message);
 			g_error_free(gerr);
 		}
-		
+		if (g_stdoutBuffer)
+			g_free(g_stdoutBuffer);
+		return 0;
 	}
 
 	//split
@@ -1574,32 +1600,58 @@ int ApplicationInstaller::extractPublicKeyFromCert(const std::string& certFile,c
 {
 	if ((certFile.size() == 0) || (pubkeyFile.size() == 0))
 		return 0;
-	
+
 	//warning: no explicit checks on pubkeyFile path/name validity, so the calls to this function need to be restricted
 	//(or else someone could specify e.g. /usr/bin/LunaSysMgr as the pubkeyFile to write to)
-	//...but as a basic safety check, check for the existence of the file. if it is there, fail.
-	//This will require the file to be deleted before this function is run each time
-	
-	if (doesExistOnFilesystem(pubkeyFile.c_str()))
-		return 0;
-	
-	//extract the public key
-	//openssl x509 -in <certname> -pubkey -out pubkey.pem
-	std::string space = std::string(" ");
-	std::string cmdline = std::string(s_verifyExec)
-	+space+std::string(s_extractKeyOpts[0])
-	+space+std::string(s_extractKeyOpts[1])
-	+space+certFile
-	+space+std::string(s_extractKeyOpts[2])
-	+space+std::string(s_extractKeyOpts[3])
-	+space+pubkeyFile;
 
-	g_warning("ApplicationInstaller::extractPublicKeyFromCert(): executing (via system()): %s",cmdline.c_str());
-	int exit_status = system(cmdline.c_str());
-	if (isNonErrorProcExit((int)exit_status) == false) {
-		g_warning("ApplicationInstaller::extractPublicKeyFromCert(): error: system() call returned %d",exit_status);
+	//extract the public key
+	//openssl x509 -in <certname> -pubkey
+	gchar * argv[6];
+	argv[0] = (gchar *)s_verifyExec;
+	argv[1] = (gchar *)s_extractKeyOpts[0];
+	argv[2] = (gchar *)s_extractKeyOpts[1];
+	argv[3] = (gchar *)certFile.c_str();
+	argv[4] = (gchar *)s_extractKeyOpts[2];
+	argv[5] = NULL;
+
+	gchar * g_stdoutBuffer = NULL;
+	GError * gerr = NULL;
+	gint exit_status = 0;
+
+	g_warning("ApplicationInstaller::extractPublicKeyFromCert(): executing: %s %s %s %s %s",argv[0],argv[1],argv[2],argv[3],argv[4]);
+	gboolean resultStatus = g_spawn_sync(NULL,
+			argv,
+			NULL,
+			(GSpawnFlags)(G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL),
+			NULL,
+			NULL,
+			&g_stdoutBuffer,
+			NULL,
+			&exit_status,
+			&gerr);
+
+	if (gerr) {
+		g_warning("ApplicationInstaller::extractPublicKeyFromCert(): error: %s",gerr->message);
+		g_error_free(gerr);
+		gerr = NULL;
+	}
+
+	if ((!resultStatus) || (isNonErrorProcExit((int)exit_status) == false) || (!g_stdoutBuffer)) {
+		g_warning("ApplicationInstaller::extractPublicKeyFromCert(): error: spawn result = %d , exit status = %d",(int)resultStatus,exit_status);
+		if (g_stdoutBuffer)
+			g_free(g_stdoutBuffer);
 		return 0;
 	}
+
+	GError * werr = NULL;
+	if (!g_file_set_contents(pubkeyFile.c_str(),g_stdoutBuffer,-1,&werr)) {
+		g_warning("ApplicationInstaller::extractPublicKeyFromCert(): error: failed to write %s : %s",pubkeyFile.c_str(),(werr ? werr->message : "(unknown)"));
+		if (werr)
+			g_error_free(werr);
+		g_free(g_stdoutBuffer);
+		return 0;
+	}
+	g_free(g_stdoutBuffer);
 
 	return 1;
 }
@@ -1955,7 +2007,7 @@ Done:
 				__PRETTY_FUNCTION__, targetPackageFile.c_str(), ticket_id);
 		//set an install to start when the main loop gets the next chance to exec something
 		InstallParams * installParams = new InstallParams(targetPackageFile, id, ticket_id,
-														  lshandle,msg,uncompressedAppSize);
+														  lshandle,uncompressedAppSize);
 		//MEMALLOC: reclaim:cbInstall_detached
 		ApplicationInstaller::instance()->processOrQueueCommand(installParams);
 	}
@@ -2169,7 +2221,7 @@ Done:
 	if (success) {
 		//set an install to start when the main loop gets the next chance to exec something (VERIFY = false)
 		InstallParams * installParams = new InstallParams(targetPackageFile, "", ticket_id,
-														  lshandle,msg,uncompressedAppSize,
+														  lshandle,uncompressedAppSize,
 														  false,systemMode);			//MEMALLOC: reclaim:cbInstall_detached
 		ApplicationInstaller::instance()->processOrQueueCommand(installParams);
 	}
@@ -2310,6 +2362,11 @@ bool ApplicationInstaller::cbRemove(LSHandle* lshandle, LSMessage *msg,void *use
 	}
 	packageName = packageName_ccptr;
 
+	if (!util_validPackageId(packageName)) {
+		luna_warn(s_logChannel, "Invalid packageName in message");
+		goto Done;
+	}
+
 	//BLOWFISH: figure out if the packageName is referring to an app id (old style) or a package name (new style)...
 	pPkgDesc = ApplicationManager::instance()->getPackageInfoByPackageId(packageName);
 	if (pPkgDesc == NULL)
@@ -2386,7 +2443,7 @@ Done:
 		g_debug("%s: Queueing up remove for %s with ticket: %ld",
 				__PRETTY_FUNCTION__, packageName.c_str(), ticket_id);
 		//set a remove to start when the main loop gets the next chance to exec something
-		RemoveParams * removeParams = new RemoveParams(packageName,ticket_id,lshandle,msg,APPREMOVED_CAUSE_USERDELETED);
+		RemoveParams * removeParams = new RemoveParams(packageName,ticket_id,lshandle,APPREMOVED_CAUSE_USERDELETED);
 		ApplicationInstaller::instance()->processOrQueueCommand(removeParams);
 	}
 	
@@ -3387,6 +3444,8 @@ bool ApplicationInstaller::cbRevoke(LSHandle* lshandle,LSMessage *msg,void *user
 	int listIdx;
 	std::vector<std::string> opensslParams;
 	std::string pubkeyTmpFilename;
+	char pubkeyTmpTemplate[] = "/tmp/pubsub_pubkey_XXXXXX";
+	int pubkeyTmpFd = -1;
 
     // {"item": string, "payload": {"signature": string, "appId": array}}
     VALIDATE_SCHEMA_AND_RETURN(lshandle,
@@ -3444,7 +3503,15 @@ bool ApplicationInstaller::cbRevoke(LSHandle* lshandle,LSMessage *msg,void *user
 	}
 	
 	for (listIdx=0;listIdx<json_object_array_length(appidArray);++listIdx) {
-		appIdForIdx = json_object_get_string(json_object_array_get_idx(appidArray,listIdx));
+		json_object * appIdJo = json_object_array_get_idx(appidArray,listIdx);
+		const char * appIdCStr = (appIdJo ? json_object_get_string(appIdJo) : NULL);
+		if (!appIdCStr)
+			continue;
+		appIdForIdx = appIdCStr;
+		if (!util_validPackageId(appIdForIdx)) {
+			errorText = "invalid appId in list";
+			goto Done;
+		}
 		appIdGlob += appIdForIdx;
 	}
 	
@@ -3461,9 +3528,13 @@ bool ApplicationInstaller::cbRevoke(LSHandle* lshandle,LSMessage *msg,void *user
 	}
 	
 	//extract the pubkey to a tempfile
-	//but first delete any old ones there
-	pubkeyTmpFilename = std::string("/tmp/pubsub_pubkey.pem");
-	unlink(pubkeyTmpFilename.c_str());
+	pubkeyTmpFd = g_mkstemp(pubkeyTmpTemplate);
+	if (pubkeyTmpFd < 0) {
+		errorText = "couldn't create temp filename for pubkey";
+		goto Done;
+	}
+	close(pubkeyTmpFd);
+	pubkeyTmpFilename = std::string(pubkeyTmpTemplate);
 	if (ApplicationInstaller::extractPublicKeyFromCert(s_revocationCertFile,pubkeyTmpFilename) <= 0) {
 		errorText = "key extraction from cert failed";
 		goto Done;
@@ -3477,8 +3548,12 @@ bool ApplicationInstaller::cbRevoke(LSHandle* lshandle,LSMessage *msg,void *user
 	
 	//ok signature verified. Now go through a loop and add remove "sources" for each appid in the list
 	for (listIdx=0;listIdx<json_object_array_length(appidArray);++listIdx) {
-		appIdForIdx = json_object_get_string(json_object_array_get_idx(appidArray,listIdx));
-		RemoveParams * removeParams = new RemoveParams(appIdForIdx,-69,lshandle,msg,APPREMOVED_CAUSE_APPREVOKED);
+		json_object * appIdJo = json_object_array_get_idx(appidArray,listIdx);
+		const char * appIdCStr = (appIdJo ? json_object_get_string(appIdJo) : NULL);
+		if (!appIdCStr)
+			continue;
+		appIdForIdx = appIdCStr;
+		RemoveParams * removeParams = new RemoveParams(appIdForIdx,-69,lshandle,APPREMOVED_CAUSE_APPREVOKED);
 		ApplicationInstaller::instance()->processOrQueueCommand(removeParams);
 	}
 	
@@ -3491,6 +3566,8 @@ Done:
 	
 	if (signatureTmpFilename.size())
 		deleteFile(signatureTmpFilename.c_str());
+	if (appIdGlobTmpFilename.size())
+		deleteFile(appIdGlobTmpFilename.c_str());
 	if (pubkeyTmpFilename.size())
 		deleteFile(pubkeyTmpFilename.c_str());
 	
@@ -3629,7 +3706,7 @@ bool ApplicationInstaller::install(const std::string& targetPackageFile, unsigne
 	//start a detached install procedure
 		//set an install to start when the main loop gets the next chance to exec something
 	InstallParams * installParams = new InstallParams(targetPackageFile, "", ticket,
-													  NULL,NULL,uncompressedPackageSizeInKB);			//MEMALLOC: reclaim:cbInstall_detached
+													  NULL,uncompressedPackageSizeInKB);			//MEMALLOC: reclaim:cbInstall_detached
 	processOrQueueCommand(installParams);
 	return true;
 }
@@ -3903,22 +3980,55 @@ static void util_LSSubReplyWithRelay_IgnoreError(LSHandle* lshandle,const std::s
  * Be very careful! these don't check path validity - Check the path validity completely in the caller!
  * These are not called from anywhere but inside this file 
  */
-static void util_cleanup_tempDir(const std::string& tmpDirPath) {
-	
-	std::string cmdline = std::string("rm -fr ")+tmpDirPath;
+static void util_removeRecursive(const std::string& path) {
 
-	int ret = system(cmdline.c_str());
-	Q_UNUSED(ret);
+	gchar * argv[4];
+	argv[0] = (gchar *)"rm";
+	argv[1] = (gchar *)"-fr";
+	argv[2] = (gchar *)path.c_str();
+	argv[3] = NULL;
+
+	GError * gerr = NULL;
+	gint exit_status = 0;
+	g_spawn_sync(NULL,
+			argv,
+			NULL,
+			(GSpawnFlags)(G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL),
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			&exit_status,
+			&gerr);
+	if (gerr)
+		g_error_free(gerr);
+}
+
+static void util_cleanup_tempDir(const std::string& tmpDirPath) {
+
+	util_removeRecursive(tmpDirPath);
 }
 
 /*
  * Be very careful! doesn't check path validity!
  */
 static void util_cleanup_installDir(const std::string& installDirPath) {
-	
-	std::string cmdline = std::string("rm -fr ")+installDirPath;
-	int ret = system(cmdline.c_str());
-	Q_UNUSED(ret);
+
+	util_removeRecursive(installDirPath);
+}
+
+static bool util_validPackageId(const std::string& packageId)
+{
+	if (packageId.empty())
+		return false;
+	for (std::string::size_type i = 0; i < packageId.size(); ++i) {
+		char c = packageId[i];
+		if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
+				|| (c == '.') || (c == '+') || (c == '_') || (c == '-'))
+			continue;
+		return false;
+	}
+	return true;
 }
 
 
@@ -4039,6 +4149,7 @@ bool ApplicationInstaller::processInstallCommand(InstallParams* params)
 
 	if (result) {
 		params->_childStdOutChannel = g_io_channel_unix_new(childStdoutFd);
+		g_io_channel_set_close_on_unref(params->_childStdOutChannel, TRUE);
 		params->_childStdOutSource = g_io_create_watch(params->_childStdOutChannel, G_IO_IN);
 		g_source_set_callback(params->_childStdOutSource, (GSourceFunc) util_ipkgInstallIoChannelCallback,
 							  params, NULL);
@@ -4148,11 +4259,14 @@ void ApplicationInstaller::enterBrickMode()
 			cmd->_childStdOutSource = 0;			
 		}
 
-		g_source_remove(m_cmdState.sourceId);
-		
-		int status;
-		::kill(m_cmdState.pid, SIGKILL);		
-		::waitpid(m_cmdState.pid, &status, WNOHANG);
+		if (m_cmdState.sourceId)
+			g_source_remove(m_cmdState.sourceId);
+
+		if (m_cmdState.pid > 0) {
+			int status;
+			::kill(m_cmdState.pid, SIGKILL);
+			::waitpid(m_cmdState.pid, &status, 0);
+		}
 
 		m_cmdState.reset();
 	}
@@ -4240,9 +4354,13 @@ static int runScriptCwd(const std::string& scriptFile,const std::string& cwd)
 
 	GSpawnFlags flags = (GSpawnFlags)(G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL);
 
-	argv[0] = (gchar*)"sh"; 
-	argv[1] = (gchar*)"-c"; 
-	argv[2] = (gchar*)scriptFile.c_str();
+	gchar * quotedScriptFile = g_shell_quote(scriptFile.c_str());
+	std::string quotedScript = quotedScriptFile;
+	g_free(quotedScriptFile);
+
+	argv[0] = (gchar*)"sh";
+	argv[1] = (gchar*)"-c";
+	argv[2] = (gchar*)quotedScript.c_str();
 	argv[3] = NULL;
 
 	std::string envCWD = std::string("PWD=")+cwd;
