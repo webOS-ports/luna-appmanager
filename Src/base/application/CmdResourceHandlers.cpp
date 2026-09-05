@@ -134,9 +134,10 @@ bool RedirectHandler::addVerb(const std::string& verb,const std::string& jsonize
 	struct json_object * jobj = json_tokener_parse(jsonizedParams.c_str());
 	if (!jobj)
 		return false;
-	
+	json_object_put(jobj);
+
 	m_verbs[verb] = jsonizedParams;
-	
+
 	return true;
 }
 
@@ -239,9 +240,10 @@ bool ResourceHandler::addVerb(const std::string& verb,const std::string& jsonize
 	struct json_object * jobj = json_tokener_parse(jsonizedParams.c_str());
 	if (!jobj)
 		return false;
-	
+	json_object_put(jobj);
+
 	m_verbs[verb] = jsonizedParams;
-	
+
 	return true;
 }
 

@@ -150,8 +150,8 @@ public:
 private:
 	
 	MimeSystem();
-	MimeSystem(const MimeSystem& c) {}
-	MimeSystem& operator=(const MimeSystem& c) { return *this;}
+	MimeSystem(const MimeSystem& c) = delete;
+	MimeSystem& operator=(const MimeSystem& c) = delete;
 	virtual ~MimeSystem();
 	void destroy();
 	
@@ -181,6 +181,8 @@ private:
 		RedirectHandlerNode(const std::string& urlRe, const std::string& appId , bool schemeForm) : m_redirectHandler(urlRe,appId,schemeForm) {
 			m_handlersByIndex[m_redirectHandler.index()] = &m_redirectHandler;
 		}
+		RedirectHandlerNode(const RedirectHandlerNode& c) = delete;
+		RedirectHandlerNode& operator=(const RedirectHandlerNode& c) = delete;
 		RedirectHandler	m_redirectHandler;
 		std::vector<RedirectHandler *> m_alternates;
 	
@@ -215,8 +217,8 @@ private:
 		struct json_object * toJson();			//WARNING: memory allocated; caller must clean
 		static MimeSystem::RedirectHandlerNode * fromJsonString(const std::string& jsonString);
 		static MimeSystem::RedirectHandlerNode * fromJson(struct json_object * jobj);
-		
-		int fixupVerbCacheTable(struct json_object * jsonHandlerNodeEntry);
+
+		int fixupVerbCacheTable(struct json_object * jsonHandlerNodeEntry,const std::map<uint32_t,uint32_t>& indexMap);
 	};
 
 	class ResourceHandlerNode {
@@ -227,7 +229,9 @@ private:
 						bool stream=false ) : m_resourceHandler(ext,contentType,appId,stream) {
 			m_handlersByIndex[m_resourceHandler.index()] = &m_resourceHandler;
 		}
-		
+		ResourceHandlerNode(const ResourceHandlerNode& c) = delete;
+		ResourceHandlerNode& operator=(const ResourceHandlerNode& c) = delete;
+
 		ResourceHandler		m_resourceHandler;
 		std::vector<ResourceHandler *> m_alternates;
 		std::map<std::string,VerbCacheEntry> m_verbCache;
@@ -273,8 +277,8 @@ private:
 		struct json_object * toJson();			//WARNING: memory allocated; caller must clean
 		static MimeSystem::ResourceHandlerNode * fromJsonString(const std::string& jsonString);
 		static MimeSystem::ResourceHandlerNode * fromJson(struct json_object * jobj);
-		
-		int fixupVerbCacheTable(struct json_object * jsonHandlerNodeEntry);
+
+		int fixupVerbCacheTable(struct json_object * jsonHandlerNodeEntry,const std::map<uint32_t,uint32_t>& indexMap);
 	};
 	
 	static void reclaimIndex(uint32_t idx);
