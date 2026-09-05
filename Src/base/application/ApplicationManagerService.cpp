@@ -261,6 +261,8 @@ static bool servicecallback_listRunningApps( LSHandle* lshandle,
     if (!LSMessageReply(lshandle, message, json_object_to_json_string(reply_obj), &lserror))
         LSErrorFree (&lserror);
 
+    json_object_put(reply_obj);
+
     return true;
 }
 
@@ -556,7 +558,7 @@ static bool servicecallback_getresourceinfo( LSHandle* lshandle, LSMessage *mess
 	if (redirectHandler.valid()) {
 		success = true;
 		appId = redirectHandler.appId();
-		canStream = resourceHandler.stream();
+		canStream = false;
 		goto done;
 	}
 	
@@ -759,11 +761,11 @@ static bool servicecallback_getappinfo( LSHandle* lshandle, LSMessage *message,
 	LaunchPoint * defaultLp=NULL;
 	bool success=false;
 
-    // {"appID": string }
+    // {"appId": string }
 
     VALIDATE_SCHEMA_AND_RETURN(lshandle,
                                message,
-                               SCHEMA_1(REQUIRED(appID, string)));
+                               SCHEMA_1(REQUIRED(appId, string)));
 
 	const char* str = LSMessageGetPayload( message );
 	if (!str) {
@@ -790,7 +792,7 @@ static bool servicecallback_getappinfo( LSHandle* lshandle, LSMessage *message,
 		goto done;
 	}
 
-	defaultLp = const_cast<LaunchPoint*>(appDesc->getDefaultLaunchPoint());		//to get around the goto restrictions 
+	defaultLp = const_cast<LaunchPoint*>(appDesc->getDefaultLaunchPoint());		//to get around the goto restrictions
 	if (defaultLp == NULL) {
 		errMsg = "application id: " + appId + " has no title";
 		goto done;
@@ -1373,8 +1375,8 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 				if (!strMime.empty())
 					json_object_object_add (downloadParams, "mime", json_object_new_string (strMime.c_str()));
 				if (auth && devid) {
-					json_object_object_add (downloadParams, "authToken", auth);
-					json_object_object_add (downloadParams, "deviceId", devid);
+					json_object_object_add (downloadParams, "authToken", json_object_get (auth));
+					json_object_object_add (downloadParams, "deviceId", json_object_get (devid));
 				}
 
 				json_object_object_add (downloadParams, "subscribe", json_object_new_boolean (true));
@@ -1775,7 +1777,7 @@ static bool servicecallback_listPackages(LSHandle* lshandle, LSMessage *message,
 			}
 
 			// App catalog wants us to copy over some of the app properties to the package.
-			std::string appId = packageDesc->appIds().front();
+			std::string appId = packageDesc->appIds().empty() ? "" : packageDesc->appIds().front();
 			if (appId != "") {
 				ApplicationDescription* appDesc = appMgr->getAppById(appId);
 				if (appDesc) {
@@ -1927,11 +1929,11 @@ static bool servicecallback_getSizeOf(LSHandle* lshandle, LSMessage *message,
 	std::vector<std::pair<std::string,uint32_t> > sizes;
 	bool includeDbSize = true;
 
-    // {"includeDbSize": bool, "appIds": array}
+    // {"includeDbSize": bool, "appIds": array or "appId": string}
 
     VALIDATE_SCHEMA_AND_RETURN(lshandle,
                                message,
-                               SCHEMA_2(REQUIRED(includeDbSize, boolean), REQUIRED(appIds, array)));
+                               SCHEMA_3(OPTIONAL(includeDbSize, boolean), OPTIONAL(appIds, array), OPTIONAL(appId, string)));
 	
 	const char* str = LSMessageGetPayload( message );
 	if (!str) {
@@ -2093,7 +2095,7 @@ static bool servicecallback_searchForApps(LSHandle* lshandle, LSMessage *message
 		void *user_data)
 {
 	json_object* root = 0;
-	json_object* returnObj = json_object_new_object();
+	json_object* returnObj = 0;
 	json_object* array = 0;
 
 	SearchSet matchedByTitle, matchedByKeyword;
@@ -2106,6 +2108,8 @@ static bool servicecallback_searchForApps(LSHandle* lshandle, LSMessage *message
     VALIDATE_SCHEMA_AND_RETURN(lshandle,
                                message,
                                SCHEMA_1(REQUIRED(keyword, string)));
+
+	returnObj = json_object_new_object();
 
 	const char* str = LSMessageGetPayload(message);
 	if (!str) {
@@ -2554,11 +2558,11 @@ static bool servicecallback_addDockModeLaunchPoint(LSHandle* lsHandle, LSMessage
 	LSError lserror;
 	LSErrorInit(&lserror);
 
-    // {"appID": string}
+    // {"appId": string}
 
     VALIDATE_SCHEMA_AND_RETURN(lsHandle,
                                message,
-                               SCHEMA_1(REQUIRED(appID, string)));
+                               SCHEMA_1(REQUIRED(appId, string)));
 
 	const char* str = LSMessageGetPayload(message);
 	if (!str)
@@ -2642,11 +2646,11 @@ static bool servicecallback_removeDockModeLaunchPoint(LSHandle* lsHandle, LSMess
 	LSError lserror;
 	LSErrorInit(&lserror);
 
-    // {"appID": string }
+    // {"appId": string }
 
     VALIDATE_SCHEMA_AND_RETURN(lsHandle,
                                message,
-                               SCHEMA_1(REQUIRED(appID, string)));
+                               SCHEMA_1(REQUIRED(appId, string)));
 
 	const char* str = LSMessageGetPayload(message);
 	if (!str)
@@ -2776,11 +2780,11 @@ static bool servicecallback_inspect( LSHandle* lshandle, LSMessage* message, voi
 	struct json_object* root=0;
 	struct json_object* processid=0;
 
-    // {"processID": string }
+    // {"processId": string }
 
     VALIDATE_SCHEMA_AND_RETURN(lshandle,
                                message,
-                               SCHEMA_1(REQUIRED(processID, string)));
+                               SCHEMA_1(REQUIRED(processId, string)));
 
 	const char* str = LSMessageGetPayload(message);
 	if( !str )
@@ -2794,10 +2798,7 @@ static bool servicecallback_inspect( LSHandle* lshandle, LSMessage* message, voi
 	}
 
 	processid = json_object_object_get(root,"processId");
-	if( processid )
-	{
-        json_object_put( processid );
-	}
+	(void) processid;
 
 	if( root ) json_object_put( root );
 	return true;
@@ -2885,11 +2886,11 @@ static bool servicecallback_addLaunchPoint(LSHandle* lshandle, LSMessage *messag
 	bool success = false;
 	const char* paramsStr = 0;
 
-    // {"id": string, "title": string, OPTIONAL: "appMenu": string, "icon": string, "params": string, "removable": boolean}
+    // {"id": string, "title": string, OPTIONAL: "appmenu": string, "icon": string, "params": string, "removable": boolean}
 
     VALIDATE_SCHEMA_AND_RETURN(lshandle,
                                message,
-                               SCHEMA_6(REQUIRED(id, string), REQUIRED(title, string), OPTIONAL(appMenu, string),
+                               SCHEMA_6(REQUIRED(id, string), REQUIRED(title, string), OPTIONAL(appmenu, string),
                                         REQUIRED(icon, string), REQUIRED(params, string), REQUIRED(removable, boolean)));
 
 	const char* str = LSMessageGetPayload(message);
@@ -3657,11 +3658,11 @@ static bool servicecallback_addResourceHandler(LSHandle* lsHandle, LSMessage *me
 	std::string appid;
 	bool shouldDownload;
 
-    // {"appID": string, "shouldDownload": boolean, "mimeType": string or "extension": string}
+    // {"appId": string, "shouldDownload": boolean, "mimeType": string or "extension": string}
 
     VALIDATE_SCHEMA_AND_RETURN(lsHandle,
                                message,
-                               SCHEMA_4(REQUIRED(keyword, string), REQUIRED(shouldDownload, boolean),
+                               SCHEMA_4(REQUIRED(appId, string), REQUIRED(shouldDownload, boolean),
                                         OPTIONAL(mimeType, string), OPTIONAL(extension, string)));
 
 	const char* str = LSMessageGetPayload( message );
@@ -7067,6 +7068,9 @@ static bool servicecallback_forceSingleAppScan(LSHandle* lsHandle, LSMessage *me
 		resultStr = std::string("invalid json in message");
 	}
 
+	if (root)
+		json_object_put(root);
+
 	json_object * reply = json_object_new_object();
 	json_object_object_add(reply, "subscribed", json_object_new_boolean(false));
 	json_object_object_add(reply, "returnValue", json_object_new_boolean(success));
@@ -7247,11 +7251,11 @@ static bool servicecallback_getappbasepath( LSHandle* lshandle, LSMessage *messa
 	LaunchPoint * defaultLp=NULL;
 	bool success=false;
 
-    // {"appID": string}
+    // {"appId": string}
 
     VALIDATE_SCHEMA_AND_RETURN(lshandle,
                                message,
-                               SCHEMA_1(REQUIRED(appID, string)));
+                               SCHEMA_1(REQUIRED(appId, string)));
 
 	const char* str = LSMessageGetPayload( message );
 	if (!str) {
