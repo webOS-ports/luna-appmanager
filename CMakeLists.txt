@@ -29,7 +29,6 @@ pkg_check_modules(GLIB2 glib-2.0 REQUIRED)
 pkg_check_modules(GTHREAD2 gthread-2.0 REQUIRED)
 pkg_check_modules(LS2 luna-service2 REQUIRED)
 pkg_check_modules(LUNA_SYSMGR_COMMON LunaSysMgrCommon REQUIRED)
-pkg_check_modules(LUNA_SYSMGR_IPC_MESSAGES LunaSysMgrIpcMessages REQUIRED)
 pkg_check_modules(LUNA_PREFS luna-prefs REQUIRED)
 pkg_check_modules(NYX nyx REQUIRED)
 pkg_check_modules(PBNJSON_CPP pbnjson_cpp REQUIRED)
@@ -46,7 +45,6 @@ include_directories(
     ${GTHREAD2_INCLUDE_DIRS}
     ${LS2_INCLUDE_DIRS}
     ${LUNA_SYSMGR_COMMON_INCLUDE_DIRS}
-    ${LUNA_SYSMGR_IPC_MESSAGES_INCLUDE_DIRS}
     ${LUNA_PREFS_INCLUDE_DIRS}
     ${NYX_INCLUDE_DIRS}
     ${PBNJSON_CPP_INCLUDE_DIRS}
