@@ -59,7 +59,6 @@
 #include <signal.h>
 #include <stdarg.h>
 #include <syslog.h>
-#include <ucontext.h>
 #include <fcntl.h>
 #include <sys/file.h>
 
@@ -90,218 +89,9 @@ static gchar* s_logLevelStr = NULL;
 static gboolean s_useSysLog = false;
 static gboolean s_colorLog = true;
 static gboolean s_useTerminal = false;
-static gchar* s_debugTrapStr = NULL;
 static gboolean s_forceSoftwareRendering = false;
 static gchar* s_mallocStatsFileStr = NULL;
 static int s_mallocStatsInterval = -1;
-
-/**
- * Whether or not to debug crashes
- * debugCrashes indicates whether the user has specified "-x on" in the command
- * line args to enable debugging of crashes.
- */ 
-static bool debugCrashes = false;
-
-/**
- * Used to allow us to bail from the handler when we're done debugging. 
- *
- * This is meant to be set only from within a gdb seesion.
- */
-volatile bool stayInLoop = true;
-
-/**
- * Crash log file descriptor
- */
-int crashLogFD = -1;
-
-/**
- * Process ID of the current process
- */
-pid_t sysmgrPid;
-
-/**
- * printf for crash logging purposes
- * 
- * Safe printf that does not call malloc (to avoid re-entrancy issue when
- * called from the signal handler.
- * 
- * @param	format		Format of output string
- * @param	...		List of values to include in the output string
- */
-static void crash_printf(const char *format, ...) {
-    // Allocate the buffer staticly because we don't want to assume that
-    // there's a lot of stack space left at the time of the crash:
-	static char buf[512];
-	va_list ap;
-
-	va_start(ap, format);
-	(void) vsnprintf(buf, sizeof(buf), format, ap);
-	va_end(ap);
-	ssize_t result = write(crashLogFD, buf, strlen(buf));
-	Q_UNUSED(result);
-}
-
-/**
- * Flushes the crash log to disk
- */
-static void crash_flush() {
-    fsync(crashLogFD);
-}
-
-#if (defined(__i386__) || defined(__x86_64__))
-
-// Register context dumper for ia32 / x64:
-#if __WORDSIZE == 64
-const char *const regNames[NGREG] = {
-    "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15",
-    "RDI", "RSI", "RBP", "RBX", "RDX", "RAX", "RCX", "RIP",
-    "EFL", "CSGSFS", "ERR", "TRAPNO", "OLDMASK", "CR2"
-};
-#else // __WORDSIZE == 32
-const char *const regNames[NGREG] = {
-    "GS", "FS", "ES", "DS", "EDI", "ESI", "EBP", "ESP",
-    "EBX", "EDX", "ECX", "EAX", "TRAPNO", "ERR", "EIP",
-    "CS", "EFL", "UESP", "SS"
-};
-#endif
-
-/**
- * Log register values
- * 
- * @param	sig		The signal which triggered this handler
- * @param	info		Pointer to information about the signal
- * @param	data		Pointer to a ucontext_t with info on the crashing process
- */
-void logCrashRegisterContext(int sig, siginfo_t *info, void *data) {
-    ucontext_t *context = reinterpret_cast<ucontext_t *>(data);
-    crash_printf("reg context {\n");
-
-    // Note: For ia32/x64, we dump all the registers because this is not for
-    // field deployment.  Hence, there is no risk of violation of user privacy.
-    for (int i = 0; i < NGREG; i++) {
-        int value = static_cast<int>(context->uc_mcontext.gregs[i]);
-        crash_printf("  %2d %8s = 0x%08x %d\n", i, regNames[i], value, value);
-    }
-
-    crash_printf("}\n");
-    crash_flush();
-}
-
-#elif defined(__arm__)
-
-// Register context dumper for ARM:
-/**
- * Log register values
- * 
- * @param	sig		The signal which triggered this handler
- * @param	info		Pointer to information about the signal
- * @param	data		Pointer to a ucontext_t with info on the crashing process
- */
-void logCrashRegisterContext(int sig, siginfo_t *info, void *data) {
-    ucontext_t *context = reinterpret_cast<ucontext_t *>(data);
-    crash_printf("reg context {\n");
-
-    // Dumping non-sensitive register content:
-    crash_printf("  // non-sensitive register content:\n");
-    crash_printf("  trap_no       = 0x%08x %d\n", context->uc_mcontext.trap_no, context->uc_mcontext.trap_no);
-    crash_printf("  error_code    = 0x%08x %d\n", context->uc_mcontext.error_code, context->uc_mcontext.error_code);
-    crash_printf("  oldmask       = 0x%08x %d\n", context->uc_mcontext.oldmask, context->uc_mcontext.oldmask);
-
-    crash_printf("  arm_sp        = 0x%08x %d\n", context->uc_mcontext.arm_sp, context->uc_mcontext.arm_sp);
-    crash_printf("  arm_lr        = 0x%08x %d\n", context->uc_mcontext.arm_lr, context->uc_mcontext.arm_lr);
-    crash_printf("  arm_pc        = 0x%08x %d\n", context->uc_mcontext.arm_pc, context->uc_mcontext.arm_pc);
-    crash_printf("  arm_cpsr      = 0x%08x %d\n", context->uc_mcontext.arm_cpsr, context->uc_mcontext.arm_cpsr);
-    crash_printf("  fault_address = 0x%08x %d\n", context->uc_mcontext.fault_address, context->uc_mcontext.fault_address);
-
-    if (Settings::LunaSettings()->debug_doVerboseCrashLogging) {
-        // Dumping sensitive register content for internal debugging only.
-        // By default, this data should not be dumped in the field (to avoid
-        // potential violation of user privacy issues):
-        crash_printf("  arm_r0        = 0x%08x %d\n", context->uc_mcontext.arm_r0, context->uc_mcontext.arm_r0);
-        crash_printf("  arm_r1        = 0x%08x %d\n", context->uc_mcontext.arm_r1, context->uc_mcontext.arm_r1);
-        crash_printf("  arm_r2        = 0x%08x %d\n", context->uc_mcontext.arm_r2, context->uc_mcontext.arm_r2);
-        crash_printf("  arm_r3        = 0x%08x %d\n", context->uc_mcontext.arm_r3, context->uc_mcontext.arm_r3);
-        crash_printf("  arm_r4        = 0x%08x %d\n", context->uc_mcontext.arm_r4, context->uc_mcontext.arm_r4);
-        crash_printf("  arm_r5        = 0x%08x %d\n", context->uc_mcontext.arm_r5, context->uc_mcontext.arm_r5);
-        crash_printf("  arm_r6        = 0x%08x %d\n", context->uc_mcontext.arm_r6, context->uc_mcontext.arm_r6);
-        crash_printf("  arm_r7        = 0x%08x %d\n", context->uc_mcontext.arm_r7, context->uc_mcontext.arm_r7);
-        crash_printf("  arm_r8        = 0x%08x %d\n", context->uc_mcontext.arm_r8, context->uc_mcontext.arm_r8);
-        crash_printf("  arm_r9        = 0x%08x %d\n", context->uc_mcontext.arm_r9, context->uc_mcontext.arm_r9);
-        crash_printf("  arm_r10       = 0x%08x %d\n", context->uc_mcontext.arm_r10, context->uc_mcontext.arm_r10);
-        crash_printf("  arm_fp        = 0x%08x %d\n", context->uc_mcontext.arm_fp, context->uc_mcontext.arm_fp);
-        crash_printf("  arm_ip        = 0x%08x %d\n", context->uc_mcontext.arm_ip, context->uc_mcontext.arm_ip);
-    }
-
-    crash_printf("}\n");
-    crash_flush();
-}
-
-#elif defined (__aarch64__)
-
-// Register context dumper for __aarch64__:
-/**
- * Log register values
- *
- * @param       sig             The signal which triggered this handler
- * @param       info            Pointer to information about the signal
- * @param       data            Pointer to a ucontext_t with info on the crashing process
- */
-void logCrashRegisterContext(int sig, siginfo_t *info, void *data) {
-    crash_printf("TODO: print relevant registers for __aarch64__\n");
-    crash_flush();
-}
-#endif
-
-/**
- * Whether or not innerCrashHandler() has handled a signal
- * 
- * This variable is set to true by {@link innerCrashHandler() innerCrashHandler()} when it handles a signal.
- * 
- * @see innerCrashHandler()
- */
-static volatile bool hasCrashedInCrashHandler = false;
-
-static void innerCrashHandler(int sig, siginfo_t *info, void *data);
-static void outerCrashHandler(int sig, siginfo_t *info, void *data);
-
-/**
- * Installs innerCrashHandler as the handler for a given signal
- * 
- * @param	sig		The signal to handle using {@link innerCrashHandler innerCrashHandler}
- * @param	previous_crash_action		Pointer at which to store the previous crash handler when installing this one
- */
-static void installInnerCrashHandler(int sig,
-                                     struct sigaction *previous_crash_action)
-{
-    struct sigaction crash_action;
-    sigset_t block_mask;
-    sigfillset(&block_mask);
-    crash_action.sa_flags = SA_SIGINFO | SA_RESETHAND;
-    crash_action.sa_mask = block_mask;
-    crash_action.sa_sigaction = &innerCrashHandler;
-
-    // Install the handler for signals that we want to trap:
-    sigaction(sig, &crash_action, previous_crash_action);
-}
-
-/**
- * Installs outerCrashHandler as the handler for a given signal
- * 
- * @param	sig		The signal to handle using {@link outerCrashHandler outerCrashHandler}
- */
-static void installOuterCrashHandler(int sig)
-{
-    struct sigaction crash_action;
-    sigset_t block_mask;
-    sigfillset(&block_mask);
-    sigdelset(&block_mask, SIGSEGV);
-    crash_action.sa_flags = SA_SIGINFO | SA_RESETHAND | SA_NODEFER;
-    crash_action.sa_mask = block_mask;
-    crash_action.sa_sigaction = &outerCrashHandler;
-
-    // Install the handler for signals that we want to trap:
-    sigaction(sig, &crash_action, NULL);
-}
 
 /**
  * Writes malloc statistics to stderr
@@ -378,141 +168,6 @@ static void setupMallocStats(const char* mallocStatsFile)
 		g_critical("Unable to open file: %s", mallocStatsFile);
 	}
 	// cppcheck-suppress resourceLeak
-}
-
-/**
- * Handle a SIGSEGV signal
- * 
- * If on ARM, this skips instructions which are trying to access non-accessible memory.
- * This function also logs the fact that it has run by setting {@link hasCrashedInCrashHandler hasCrashedInCrashHandler] to true.
- * If it does anything, it also reinstalls itself as the signal handler for the signal type so next time it happens it runs again.
- * 
- * @see hasCrashedInCrashHandler
- * 
- * @param	sig		The signal which triggered this handler
- * @param	info		Pointer to information about the signal
- * @param	data		Pointer to a ucontext_t with info on the crashing process
- */
-static void innerCrashHandler(int sig, siginfo_t *info, void *data)
-{
-    if (sig == SIGSEGV) {
-        // The inner crash handler is expecting to only see SIGSEGVs as a
-        // result of memory dumps that may have unknowingly touched a
-        // non-accessible page of memory.  In this case, we simply bypass
-        // the instruction of the memory access and flag the error so that
-        // the outer crash handler know not to continue with this region
-        // of memory.
-#if defined(__arm__)
-        ucontext_t *context = reinterpret_cast<ucontext_t *>(data);
-        context->uc_mcontext.arm_pc = context->uc_mcontext.arm_pc + 4;
-#endif
-        hasCrashedInCrashHandler = true;
-
-        // Note: We need to reinstall the inner signal handler because the
-        // outer handler may rely on it to safe access multiple regions of
-        // memory.
-
-        // Note: We only reinstall the inner signal handler if the fault is a
-        // known SIGSEGV fault that we know how to handle.  Otherwise, let the
-        // normal faulting system handle the crash.
-        installInnerCrashHandler(sig, NULL);
-    }
-}
-
-/**
- * Handle a process signal
- * 
- * Steps are as follows:
- * - Attempt to let WebKit handle the signal.  If it does, keep running and reinstall the handler.  Otherwise, continue.
- * - Log crash diagnostics.
- * - If debugging is enabled, start an infinite loop to give gdb a chance to connect and see what's going on.
- * 
- * @param	sig		The signal which triggered this handler
- * @param	info		Pointer to information about the signal
- * @param	data		Pointer to a ucontext_t with info on the crashing process
- */
-static void outerCrashHandler(int sig, siginfo_t *info, void *data)
-{
-    // Let webkit handle the crash if it wants to.  If it returns true,
-    // the signal has been handled.  Just return:
-    /*if (Palm::WebGlobal::handleSignal(sig, info, data)) {
-
-        // Webkit side has handled the signal.  Hence, we're not going to crash,
-        // and will keep running.  Therefore, we need to re-install the signal
-        // handler:
-        installOuterCrashHandler(sig);
-        return;
-    }*/
-
-    // Otherwise, report the crash diagnostics:
-    struct sigaction previous_crash_action;
-    installInnerCrashHandler(sig, &previous_crash_action);
-
-    const char *logFileName = Settings::LunaSettings()->logFileName.c_str();
-    char logFileNameBuffer[64];
-    if (Settings::LunaSettings()->debug_doVerboseCrashLogging) {
-        (void) snprintf(logFileNameBuffer, 64,
-                 "/media/internal/lunasysmgr.%d.verbose.log", sysmgrPid);
-        logFileName = logFileNameBuffer;
-    }
-    
-    crashLogFD = open(logFileName, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-
-#if 0 // Disable until we can do this without calling malloc and free:
-	int memTotal, memFree, swapTotal, swapFree, memchuteFree, memUsage;
-#endif
-
-
-    if (crashLogFD != -1) {
-        crash_printf("LunaSysMgr.%d: Caught signal %d\n", sysmgrPid, sig);
-        crash_flush();
-
-        // Dump the register context for the crash to the logs:
-        logCrashRegisterContext(sig, info, data);
-
-        // Let webkit do some analysis on the crash information and log report
-        // as appropriate:
-#ifndef FIX_FOR_QT
-        Palm::WebGlobal::reportCrashDiagnostics(sig, info, data, crashLogFD,
-            Settings::LunaSettings()->debug_doVerboseCrashLogging,
-            &hasCrashedInCrashHandler);
-#endif
-        crash_flush();
-
-        crash_printf("LunaSysMgr.%d: Caught signal %d END report\n",
-                     sysmgrPid, sig);
-        crash_flush();
-    }
-
-    // If the option to debug crashes is enabled, then we'll enter an infinite
-    // loop here to capture the crash conditions until a gdb session can be
-    // attached.
-    //
-    // By default, this option is disabled, and the crashHandler will return
-    // to the crashing instruction.  Since the crashHandler is set up to
-    // fire only once (see SA_RESETHAND option which resets the handler after
-    // it has fired), when we return to the crashing pc, we'll fault again.
-    // This time, the fault will be handled by the default system handler and
-    // generate a core or minicore as appropriate.
-
-    if (debugCrashes || Settings::LunaSettings()->debug_loopInCrashHandler) {
-        // Infinite loop until we turn off stayInLoop using gdb:
-        while (stayInLoop) {
-            // If we get here, sit and wait for someone to come and debug
-            // this device.
-        }
-    }
-
-    // Restore the previous handler before we return.  Otherwise, the inner
-    // handler will perpetually skip over faulting addresses:
-    sigaction(sig, &previous_crash_action, NULL);
-
-    // Close the file:
-    if (crashLogFD >= 0) {
-        fsync(crashLogFD);
-        close(crashLogFD);
-    }
-    crashLogFD = -1;
 }
 
 #if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
@@ -593,7 +248,6 @@ static void parseCommandlineOptions(int argc, char** argv)
 		{ "syslog", 's', 0, G_OPTION_ARG_NONE, &s_useSysLog, "Use syslog", NULL },
 		{ "colorlogging", 'c', 0, G_OPTION_ARG_NONE, &s_colorLog, "Color logging on or off", NULL },	// use -c=0 or --colorlogging=0 to disable color logging
 		{ "terminal", 't', 0, G_OPTION_ARG_NONE, &s_useTerminal, "Use terminal for logs", NULL },
-		{ "debug-trap", 'x', 0, G_OPTION_ARG_STRING,  static_cast<void*>(&s_debugTrapStr), "debug trap (on/ off)", "state"},
 		{ "force-software-rendering", 'S', 0, G_OPTION_ARG_NONE, &s_forceSoftwareRendering, "Force Software rendering", NULL},
 		{ "malloc-stats-file", 'm', 0, G_OPTION_ARG_STRING,  static_cast<void*>(&s_mallocStatsFileStr), "File for logging malloc stats", "file" },
 		{ "malloc-stats-interval", 'i', 0, G_OPTION_ARG_INT,  &s_mallocStatsInterval, "Interval at which to log malloc stats", "seconds" },
@@ -705,15 +359,9 @@ int main( int argc, char** argv)
 	// Command-Line options
 	parseCommandlineOptions(argc, argv);
 
-	if (s_debugTrapStr && 0 == strcasecmp(s_debugTrapStr, "on")) {
-		debugCrashes = true;
-	}
-
 	if (s_mallocStatsFileStr) {
 		setupMallocStats(s_mallocStatsFileStr);
 	}
-
-	sysmgrPid = getpid();
 
 	// Load Settings (first!)
 	Settings* settings = Settings::LunaSettings();
