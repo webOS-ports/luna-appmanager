@@ -97,8 +97,6 @@ private Q_SLOTS:
 private:
     ApplicationProcessManager();
 
-    QString getAppInfoPathFromDesc(ApplicationDescription *desc);
-
     qint64 newProcessId();
 
     void killApp(ApplicationInfo *app);

@@ -70,6 +70,8 @@ std::string bootStateToStr(BootState state)
 	case BOOT_STATE_NORMAL:
 		stateStr = "normal";
 		break;
+	default:
+		break;
 	}
 
 	return stateStr;

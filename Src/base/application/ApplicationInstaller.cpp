@@ -258,13 +258,13 @@ Done:
 
 void ApplicationInstaller::stopService()
 {
-    LSError lsError;
-    LSErrorInit(&lsError);
-    bool result;
+	LSError lsError;
+	LSErrorInit(&lsError);
+	bool result;
 
 	result = LSUnregister(m_service, &lsError);
-    if (!result)
-        LSErrorFree(&lsError);
+	if (!result)
+		LSErrorFree(&lsError);
 
 	m_service = 0;
 }
@@ -361,16 +361,13 @@ static void util_ipkgInstallDone (GPid pid, gint status, gpointer data)
 static void util_ipkgRemoveDone (GPid pid, gint status, gpointer data)
 {
     RemoveParams* removeParams = (RemoveParams*)data;
-    bool success = true;
     std::string message;
 
     g_warning ("%s: Step 3: child pid %d done with status %d",__PRETTY_FUNCTION__,  pid, status);
     if (isNonErrorProcExit ((int)status) == false) {
 		message = "FAILED_IPKG_REMOVE";
-		success = false;
     } else {
 		message = "SUCCESS";
-		success = true;
 
 		EventReporter::instance()->report( "uninstall", removeParams->_packageName.c_str() );
 		//also remove the app dir, because ipkg doesn't do a complete job
@@ -632,8 +629,6 @@ int ApplicationInstaller::lunasvcRemove(RemoveParams *removeParams)
 	unsigned long ticket = removeParams->ticketId;
 	int cause = removeParams->_cause;
 	bool suppressIpkgRemove=false;
-	gchar * g_stdoutBuffer = NULL; g_stdoutBuffer = 0;		//suppress warnings
-	gchar * g_stderrBuffer = NULL; g_stderrBuffer = 0;
 
 	std::string ls_sub_key = toSTLString<long>(static_cast<long>(ticket));
 	std::string ls_payload;
