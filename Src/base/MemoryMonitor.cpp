@@ -69,22 +69,6 @@ void MemoryMonitor::start()
 	m_timer.start(kTimerMs);
 }
 
-static const char* nameForState(MemoryMonitor::MemState state)
-{
-	switch (state) {
-	case (MemoryMonitor::Low):
-		return "Low";
-	case (MemoryMonitor::Critical):
-		return "Critical";
-	case (MemoryMonitor::Medium):
-		return "Medium";
-	default:
-		break;
-	}
-
-	return "Normal";
-}
-
 bool MemoryMonitor::timerTicked()
 {
 	if (!memRestrict.empty())

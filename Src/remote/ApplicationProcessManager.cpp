@@ -243,26 +243,3 @@ void ApplicationProcessManager::removeAllWebApplications()
         app->deleteLater();
     }
 }
-
-QString ApplicationProcessManager::getAppInfoPathFromDesc(ApplicationDescription *desc)
-{
-    QString appInfoFilePath;
-
-    if (desc->filePath().length() == 0)
-    {
-        QString appDescription = QString::fromStdString(desc->toString());
-        QTemporaryFile appInfoFile;
-        appInfoFile.setAutoRemove(false);
-        appInfoFile.open();
-        appInfoFile.write(appDescription.toUtf8());
-        appInfoFile.close();
-
-        appInfoFilePath = appInfoFile.fileName();
-    }
-    else
-    {
-        appInfoFilePath = QString::fromStdString(desc->filePath());
-    }
-
-    return appInfoFilePath;
-}

@@ -88,7 +88,6 @@ static ApplicationManager* s_instance = 0;
 std::set<std::string> ApplicationManager::s_appExeclockSet;
 Mutex ApplicationManager::s_mutexExecLockFunctions;
 
-static std::string rot13( const char* s );
 static bool hardwareFeaturesRequirementSatisfied(uint32_t hardwareFeaturesNeeded);
 
 unsigned long ApplicationManager::s_ticketGenerator = 1;
