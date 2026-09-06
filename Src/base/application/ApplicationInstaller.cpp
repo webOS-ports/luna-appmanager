@@ -258,13 +258,13 @@ Done:
 
 void ApplicationInstaller::stopService()
 {
-    LSError lsError;
-    LSErrorInit(&lsError);
-    bool result;
+	LSError lsError;
+	LSErrorInit(&lsError);
+	bool result;
 
 	result = LSUnregister(m_service, &lsError);
-    if (!result)
-        LSErrorFree(&lsError);
+	if (!result)
+		LSErrorFree(&lsError);
 
 	m_service = 0;
 }

@@ -111,10 +111,10 @@ LaunchPoint* LaunchPoint::fromJSON(ApplicationDescription* appDesc,
 	label = json_object_object_get(root, "params");
 	if (!label)
 		goto Done;
-    if (appDesc && appDesc->type() == ApplicationDescription::Type_Qt)
-        params = json_object_get_string(label);
-    else
-    	params = json_object_to_json_string(label);
+	if (appDesc && appDesc->type() == ApplicationDescription::Type_Qt)
+		params = json_object_get_string(label);
+	else
+		params = json_object_to_json_string(label);
 
 	label = json_object_object_get(root, "id");
 	if (!label)
