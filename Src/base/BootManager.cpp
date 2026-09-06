@@ -180,7 +180,7 @@ void BootStateStartup::tryAdvanceState()
 
 void BootStateStartup::advanceState()
 {
-	if (!QFile::exists("/var/luna/preferences/ran-first-use") || (QFile::exists("/var/luna/preferences/ran-first-use") && !QFile::exists("/var/luna/preferences/first-use-profile-created")))
+	if (!QFile::exists("/var/luna/preferences/ran-firstuse") || (QFile::exists("/var/luna/preferences/ran-firstuse") && !QFile::exists("/var/luna/preferences/first-use-profile-created")))
 		BootManager::instance()->switchState(BOOT_STATE_FIRSTUSE);
 	else
 		BootManager::instance()->switchState(BOOT_STATE_NORMAL);
@@ -469,9 +469,9 @@ void BootManager::handleEvent(BootEvent event)
 
 void BootManager::onFileChanged(const QString& path)
 {
-	if (QFile::exists("/var/luna/preferences/ran-first-use") && !QFile::exists("/var/luna/preferences/first-use-profile-created"))
+	if (QFile::exists("/var/luna/preferences/ran-firstuse") && !QFile::exists("/var/luna/preferences/first-use-profile-created"))
 		handleEvent(BOOT_EVENT_FIRST_USE_DONE);
-	else if (QFile::exists("/var/luna/preferences/ran-first-use") && QFile::exists("/var/luna/preferences/first-use-profile-created"))
+	else if (QFile::exists("/var/luna/preferences/ran-firstuse") && QFile::exists("/var/luna/preferences/first-use-profile-created"))
 		handleEvent(BOOT_EVENT_PROFILE_CREATED);
 }
 
