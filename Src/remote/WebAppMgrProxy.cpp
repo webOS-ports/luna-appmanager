@@ -310,6 +310,8 @@ void WebAppMgrProxy::launchUrl(const char* url, WindowType::Type winType,
     case WindowType::Type_StatusBar:
         windowType = "statusBar";
         break;
+    default:
+        break;
     }
 
     json_object *obj = json_object_new_object();
