@@ -700,8 +700,6 @@ int main( int argc, char** argv)
 
 	std::set_terminate(generateGoodBacktraceTerminateHandler);
 
-	g_thread_init(NULL);
-
 	g_debug("SysMgr compiled against Qt %s, running on %s", QT_VERSION_STR, qVersion());
 
 	// Command-Line options
