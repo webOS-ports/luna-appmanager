@@ -1,4 +1,7 @@
 {
+    "application.launcher": [
+        "com.palm.applicationManager/launch"
+    ],
     "appmanager.management": [
         "com.palm.applicationManager/getHandlerForExtension",
         "com.palm.applicationManager/getHandlerForMimeType",
