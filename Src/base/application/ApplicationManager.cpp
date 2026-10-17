@@ -2018,7 +2018,8 @@ void ApplicationManager::focusApplication(const std::string& appId)
     g_free(params);
 }
 
-std::string ApplicationManager::launch(const std::string& appId, const std::string& params)
+void ApplicationManager::launch(const std::string& appId, const std::string& params,
+                                const LaunchCallback& done)
 {
     LSSubscriptionIter *iter = NULL;
     json_object *reply;
@@ -2047,7 +2048,15 @@ std::string ApplicationManager::launch(const std::string& appId, const std::stri
 
         json_object_put(reply);
 
-        return ApplicationProcessManager::instance()->getPid(appId);
+        if (done) {
+            LaunchResult result;
+            result.success = true;
+            result.processId = ApplicationProcessManager::instance()->getPid(appId);
+            if (result.processId.empty())
+                result.processId = appId;
+            done(result);
+        }
+        return;
     }
 
     // If the appication is registered with the process manager instead send it the
@@ -2059,10 +2068,14 @@ std::string ApplicationManager::launch(const std::string& appId, const std::stri
 
         focusApplication(appId);
 
-        std::string processId = ApplicationProcessManager::instance()->getPid(appId);
+        LaunchResult result;
+        result.success = true;
+        result.processId = ApplicationProcessManager::instance()->getPid(appId);
         ApplicationProcessManager::instance()->relaunch(appId, params);
 
-        return processId;
+        if (done)
+            done(result);
+        return;
     }
 
     // At this point we're not able to detect applications which are not launched
@@ -2071,7 +2084,7 @@ std::string ApplicationManager::launch(const std::string& appId, const std::stri
 
     g_message("Application %s isn't already running", appId.c_str());
 
-    return ApplicationProcessManager::instance()->launch(appId, params);
+    ApplicationProcessManager::instance()->launch(appId, params, done);
 }
 
 bool ApplicationManager::registerApplication(const std::string& appId, LSMessage *message)
@@ -2654,6 +2667,28 @@ Done:
         json_object_put(payload);
 }
 
+// Launches inAppId on a file the download manager has fetched; if the launch
+// fails, the subscribers to the download hear why, as they do for other errors.
+static void launchDownloaded(const std::string& inAppId, const std::string& inTarget, unsigned long inTicket)
+{
+    json_object *params = json_object_new_object();
+    json_object_object_add(params, "target", json_object_new_string(inTarget.c_str()));
+    std::string paramsStr = json_object_to_json_string(params);
+    json_object_put(params);
+
+    ApplicationProcessManager::instance()->launch(inAppId, paramsStr,
+            [inAppId, inTarget, inTicket](const LaunchResult& result) {
+        if (result.success)
+            return;
+        std::string errMsg = "launching app " + inAppId + " on target " + inTarget + " failed with msg " + result.errorText;
+        json_object *errorObject = json_object_new_object();
+        json_object_object_add(errorObject, "returnValue", json_object_new_boolean(false));
+        json_object_object_add(errorObject, "errMsg", json_object_new_string(errMsg.c_str()));
+        ApplicationManager::instance()->relayStatus(std::string(json_object_to_json_string(errorObject)), inTicket);
+        json_object_put(errorObject);
+    });
+}
+
 bool ApplicationManager::cbDownloadManagerUpdate (LSHandle* lshandle, LSMessage* msg, void* user_data)
 {
     std::string errMsg;
@@ -2665,7 +2700,7 @@ bool ApplicationManager::cbDownloadManagerUpdate (LSHandle* lshandle, LSMessage*
     struct json_object* completedField = NULL;
     struct json_object* targetField = NULL;
     ResourceHandler resourceHandler;
-    std::string ticket, target, processId, ticketStr;
+    std::string ticket, target, ticketStr;
     std::string guessedMime;
     std::string resourceExtension;
 
@@ -2756,12 +2791,7 @@ bool ApplicationManager::cbDownloadManagerUpdate (LSHandle* lshandle, LSMessage*
         }
         else if (!req->m_overrideHandlerAppId.empty()) {
             g_warning ("%s:%d launching with overrideHandlerAppId %s target %s\n", __FILE__, __LINE__, req->m_overrideHandlerAppId.c_str(), target.c_str());
-            std::string processId;
-            processId = ApplicationProcessManager::instance()->launch(req->m_overrideHandlerAppId, "{ \"target\" : \"" + target + "\" }");
-            if (processId.empty()) {
-                errMsg = "launching app " + req->m_overrideHandlerAppId + " on target " + target + " failed with msg " + errMsg;
-                goto in_error;
-            }
+            launchDownloaded(req->m_overrideHandlerAppId, target, req->m_ticket);
         }
         else {
             resourceHandler = MimeSystem::instance()->getActiveHandlerForResource(req->m_mime);
@@ -2778,11 +2808,7 @@ bool ApplicationManager::cbDownloadManagerUpdate (LSHandle* lshandle, LSMessage*
                 }
             }
             g_debug ("%s:%d launching with resource handler appid %s target %s\n", __FILE__, __LINE__, resourceHandler.appId().c_str(), target.c_str());
-            processId = ApplicationProcessManager::instance()->launch(resourceHandler.appId(), " { \"target\" : \"" + target + "\" }");
-            if (processId.empty()) {
-                errMsg = "launching app " + resourceHandler.appId() + " on target " + target + " failed with msg " + errMsg;
-                goto in_error;
-            }
+            launchDownloaded(resourceHandler.appId(), target, req->m_ticket);
         }
     }
 

@@ -33,6 +33,7 @@
 #include <luna-service2/lunaservice.h>
 #include "Mutex.h"
 #include "MimeSystem.h"
+#include "ApplicationProcessManager.h"
 
 #include <QObject>
 #include <QBitArray>
@@ -105,7 +106,10 @@ public:
 	void launchBootTimeApps();
 	bool isLaunchAtBootApp(const std::string& appId);
 
-	std::string launch(const std::string& appId, const std::string& params);
+	// Launches appId, or relaunches it if it runs already; the outcome goes to
+	// done (see ApplicationProcessManager::launch)
+	void launch(const std::string& appId, const std::string& params,
+	            const LaunchCallback& done = LaunchCallback());
 
 	bool registerApplication(const std::string& appId, LSMessage *message);
 
