@@ -21,6 +21,7 @@
 #include <QTimer>
 
 #include <rolegen.h>
+#include <json.h>
 
 #include "ApplicationProcessManager.h"
 #include "ApplicationDescription.h"
@@ -140,24 +141,109 @@ void ApplicationProcessManager::killApp(ApplicationInfo *app)
     app->deleteLater();
 }
 
-std::string ApplicationProcessManager::launch(const std::string& appId, std::string params)
+namespace {
+
+// How long SAM gets to answer a launch before the launch counts as failed
+const int kSamLaunchTimeoutMs = 30000;
+
+struct PendingLaunch
+{
+    std::string appId;
+    LaunchCallback done;
+};
+
+void finishLaunch(PendingLaunch *pending, const LaunchResult& result)
+{
+    if (!result.success)
+        g_warning("Launching %s failed: %s", pending->appId.c_str(), result.errorText.c_str());
+    if (pending->done)
+        pending->done(result);
+    delete pending;
+}
+
+} // namespace
+
+/*
+ * Applications are started by SAM. Its answer (an instanceId, or an
+ * errorText) comes back later, so the outcome is passed to done rather
+ * than returned. done is called exactly once, possibly before launch()
+ * returns.
+ */
+void ApplicationProcessManager::launch(const std::string& appId, const std::string& params,
+                                       const LaunchCallback& done)
 {
     qDebug() << "Launching application" << QString::fromStdString(appId);
 
+    PendingLaunch *pending = new PendingLaunch{appId, done};
+
+    // Built with json-c, so an appId or target with quotes in it cannot break
+    // the payload. params is a JSON object for nearly every caller; anything
+    // else goes through as the string it is.
+    json_object *payload = json_object_new_object();
+    json_object_object_add(payload, "id", json_object_new_string(appId.c_str()));
+    json_object *paramsObj = params.empty() ? json_object_new_object() : json_tokener_parse(params.c_str());
+    if (!paramsObj || !json_object_is_type(paramsObj, json_type_object)) {
+        if (paramsObj)
+            json_object_put(paramsObj);
+        paramsObj = json_object_new_string(params.c_str());
+    }
+    json_object_object_add(payload, "params", paramsObj);
+
     LSError lserror;
     LSErrorInit(&lserror);
-    
-    if(params.empty()) params = "{}";
-    std::string SAM_params = "{ \"id\": \"" + appId + "\", \"params\": " + params + " }";
-    g_warning("Delegating launch call to SAM...");
-    if (!LSCall(ApplicationManager::instance()->getServiceHandle(),
-                "luna://com.webos.service.applicationManager/launch", SAM_params.c_str(),
-                NULL, NULL, NULL, &lserror))
-    {
+    LSMessageToken token = LSMESSAGE_TOKEN_INVALID;
+    LSHandle *handle = ApplicationManager::instance()->getServiceHandle();
+    bool sent = LSCallOneReply(handle, "luna://com.webos.service.applicationManager/launch",
+                               json_object_to_json_string(payload), launchReplyCb, pending, &token, &lserror);
+    json_object_put(payload);
+
+    if (!sent) {
+        LaunchResult result;
+        result.errorText = std::string("Could not ask SAM to launch ") + appId + ": " +
+                (lserror.message ? lserror.message : "unknown error");
+        LSErrorFree(&lserror);
+        finishLaunch(pending, result);
+        return;
+    }
+
+    if (!LSCallSetTimeout(handle, token, kSamLaunchTimeoutMs, &lserror)) {
         LSErrorPrint(&lserror, stderr);
         LSErrorFree(&lserror);
     }
-    return std::string("");
+}
+
+bool ApplicationProcessManager::launchReplyCb(LSHandle *handle, LSMessage *message, void *user_data)
+{
+    PendingLaunch *pending = static_cast<PendingLaunch*>(user_data);
+    LaunchResult result;
+
+    const char *payload = LSMessageGetPayload(message);
+    json_object *reply = payload ? json_tokener_parse(payload) : NULL;
+    json_object *value = NULL;
+
+    if (reply && json_object_object_get_ex(reply, "returnValue", &value))
+        result.success = json_object_get_boolean(value);
+
+    if (result.success) {
+        if (json_object_object_get_ex(reply, "instanceId", &value) ||
+            json_object_object_get_ex(reply, "processId", &value))
+            result.processId = json_object_get_string(value);
+        // An older SAM gives no instance id; the app's id stands in for it
+        if (result.processId.empty())
+            result.processId = pending->appId;
+    }
+    else if (reply && json_object_object_get_ex(reply, "errorText", &value) && json_object_get_string(value)) {
+        result.errorText = json_object_get_string(value);
+    }
+    else {
+        result.errorText = std::string("SAM did not launch ") + pending->appId;
+    }
+
+    if (reply)
+        json_object_put(reply);
+
+    finishLaunch(pending, result);
+    return true;
 }
 
 void ApplicationProcessManager::relaunch(const std::string& appId, const std::string& params)

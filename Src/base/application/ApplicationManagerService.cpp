@@ -1006,6 +1006,32 @@ static bool servicecallback_install( LSHandle* lshandle, LSMessage *message,
 }
 
 
+/*
+ * Replies to message once a launch has an outcome: {"returnValue": true,
+ * "processId": <SAM's instance id>} or {"returnValue": false, "errorText":
+ * <why>}. Until 2022 launches were started here and the process id known at
+ * once; SAM answers later, and replying before it did said "false" for every
+ * app that then started.
+ */
+static LaunchCallback replyWhenLaunched(LSHandle* lshandle, LSMessage* message)
+{
+	LSMessageRef(message);
+	return [lshandle, message](const LaunchResult& result) {
+		LSError lserror;
+		LSErrorInit(&lserror);
+		json_object* json = json_object_new_object();
+		json_object_object_add(json, "returnValue", json_object_new_boolean(result.success));
+		if (result.success)
+			json_object_object_add(json, "processId", json_object_new_string(result.processId.c_str()));
+		else
+			json_object_object_add(json, "errorText", json_object_new_string(result.errorText.c_str()));
+		if (!LSMessageReply(lshandle, message, json_object_to_json_string(json), &lserror))
+			LSErrorFree(&lserror);
+		json_object_put(json);
+		LSMessageUnref(message);
+	};
+}
+
 /*!
 \page com_palm_application_manager
 \n
@@ -1163,7 +1189,6 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 {
 	LSError lserror;
 	LSErrorInit(&lserror);
-	std::string processId = "";
 	std::string errMsg;
 	bool success = false;
 	struct json_object* root=0;
@@ -1191,6 +1216,7 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 	std::string strMime;
 	std::string strExtn;
 	std::string trueFileName;
+	bool replied = false;		// a launch replies itself, once SAM has answered
 
     // {"id": string, "target": string, "mime": string, "params": [ string, object ], "authToken": object, "deviceId": object, "overrideHandlerAppId": string, "fileName": string}
 
@@ -1269,15 +1295,8 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 	{
 		// we'll assume this is an appId, and we'll launch it.
         std::string url = json_object_get_string(appid);
-        processId = ApplicationManager::instance()->launch(url, params);
-		if (!processId.empty()) {
-			success = true;
-			json_object_object_add(json, "processId", json_object_new_string(processId.c_str()));
-		}
-		else {
-			errMsg = "\"" + url + "\" was not found";
-		}
-		
+        ApplicationManager::instance()->launch(url, params, replyWhenLaunched(lshandle, message));
+		replied = true;
 		goto done;
 	}
 
@@ -1306,25 +1325,25 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 		goto done;
 	}
 
-	if (trueFileNameParam)
 	{
-		trueFileName = json_object_get_string(trueFileNameParam);
-		appArgUrl = std::string("{ \"target\":\"") + targetUri.c_str() + std::string("\" , \"fileName\":\"")+trueFileName+std::string("\"}");
-	}
-	else
-	{
-		appArgUrl = std::string("{ \"target\":\"") + targetUri.c_str() + std::string("\"}");
+		// Built with json-c: a target or file name may hold quotes or backslashes
+		json_object* appArgs = json_object_new_object();
+		json_object_object_add(appArgs, "target", json_object_new_string(targetUri.c_str()));
+		if (trueFileNameParam)
+		{
+			trueFileName = json_object_get_string(trueFileNameParam);
+			json_object_object_add(appArgs, "fileName", json_object_new_string(trueFileName.c_str()));
+		}
+		appArgUrl = json_object_to_json_string(appArgs);
+		json_object_put(appArgs);
 	}
 	redirectHandler = MimeSystem::instance()->getActiveHandlerForRedirect(targetUri,false,true);			//true argument limits to only redirects (and not command (scheme) handlers)
 	if (redirectHandler.valid()) {
 		// A redirected URL implies streaming.
         g_message( "LAUNCH APP ID %s with %s", redirectHandler.appId().c_str(), targetUri.c_str() );
         const std::string& appid = redirectHandler.appId();
-        processId = ApplicationManager::instance()->launch(appid, appArgUrl);
-		if (!processId.empty()) {
-			success = true;
-			json_object_object_add(json, "processId", json_object_new_string(processId.c_str()));
-		}
+        ApplicationManager::instance()->launch(appid, appArgUrl, replyWhenLaunched(lshandle, message));
+		replied = true;
 		goto done;
 	}
 	g_debug ("No redirect handler");
@@ -1349,11 +1368,8 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 				targetAppId = ovrHandlerAppId;
 			}
 
-            processId = ApplicationManager::instance()->launch(targetAppId, appArgUrl);
-			if (!processId.empty()) {
-				success = true;
-				json_object_object_add(json, "processId", json_object_new_string(processId.c_str()));
-			}
+            ApplicationManager::instance()->launch(targetAppId, appArgUrl, replyWhenLaunched(lshandle, message));
+			replied = true;
 			goto done;
 		}
 		else {
@@ -1413,11 +1429,8 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 			else {
 				//targetAppId = resourceHandler->appId();
 				targetAppId = resourceHandler.appId();
-                processId = ApplicationManager::instance()->launch(targetAppId, appArgUrl);
-				if (!processId.empty()) {
-					success = true;
-					json_object_object_add(json, "processId", json_object_new_string(processId.c_str()));
-				}
+                ApplicationManager::instance()->launch(targetAppId, appArgUrl, replyWhenLaunched(lshandle, message));
+				replied = true;
 				goto done;
 
 			}
@@ -1430,11 +1443,8 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 	if (redirectHandler.valid()) {
 		g_debug ("Command handler detected");
         targetAppId = redirectHandler.appId();
-        processId = ApplicationManager::instance()->launch(targetAppId, appArgUrl);
-		if (!processId.empty()) {
-			success = true;
-			json_object_object_add(json, "processId", json_object_new_string(processId.c_str()));
-		}
+        ApplicationManager::instance()->launch(targetAppId, appArgUrl, replyWhenLaunched(lshandle, message));
+		replied = true;
 		goto done;
 	}
 	g_debug ("No command handler");
@@ -1444,13 +1454,15 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 
 	done:
 
-	json_object_object_add(json, "returnValue", json_object_new_boolean(success));
-	if (!success) {
-		json_object_object_add(json, "errorText", json_object_new_string(errMsg.c_str()));
-	}
+	if (!replied) {
+		json_object_object_add(json, "returnValue", json_object_new_boolean(success));
+		if (!success) {
+			json_object_object_add(json, "errorText", json_object_new_string(errMsg.c_str()));
+		}
 
-	if (!LSMessageReply( lshandle, message, json_object_to_json_string(json), &lserror ))
-		LSErrorFree (&lserror); 
+		if (!LSMessageReply( lshandle, message, json_object_to_json_string(json), &lserror ))
+			LSErrorFree (&lserror);
+	}
 
 	if (root)
 		json_object_put( root );
@@ -1522,7 +1534,6 @@ static bool servicecallback_launch( LSHandle* lshandle, LSMessage *message,
 	LSError lserror;
 	LSErrorInit(&lserror);
 	std::string errMsg;
-	std::string processId;
 	json_object * label = 0;
 	json_object * root = 0;
 	json_object * activityMgrParam = 0;
@@ -1531,7 +1542,6 @@ static bool servicecallback_launch( LSHandle* lshandle, LSMessage *message,
 	const char* caller = LSMessageGetApplicationID(message);
 	std::string callerAppId;
 	std::string callerProcessId;
-	bool success=false;
     qint64 pid;
 
     // {"id": object { "label" :string }, "params": [ string, object ]}
@@ -1602,11 +1612,10 @@ static bool servicecallback_launch( LSHandle* lshandle, LSMessage *message,
 	g_message("ApplicationManagerService:: servicecallback_launch(): launching as: appId = [%s] , param json = [%s]\n",
 			id.c_str(), params.c_str());
 
-    processId = ApplicationManager::instance()->launch(id, params);
-	success = !processId.empty();
-	if(processId.empty()){
-		errMsg = "\"" + id + "\" was not found";
-	}
+    ApplicationManager::instance()->launch(id, params, replyWhenLaunched(lshandle, message));
+	if (root)
+		json_object_put(root);
+	return true;
 
 	Done:
 
@@ -1614,11 +1623,8 @@ static bool servicecallback_launch( LSHandle* lshandle, LSMessage *message,
 		json_object_put( root );
 
 	json_object* json = json_object_new_object();
-	json_object_object_add(json, "returnValue", json_object_new_boolean(success));
-	if (success)
-		json_object_object_add(json, "processId", json_object_new_string(processId.c_str()));
-	else
-		json_object_object_add(json, "errorText", json_object_new_string(errMsg.c_str()));
+	json_object_object_add(json, "returnValue", json_object_new_boolean(false));
+	json_object_object_add(json, "errorText", json_object_new_string(errMsg.c_str()));
 
 	if (!LSMessageReply( lshandle, message, json_object_to_json_string(json), &lserror ))
 		LSErrorFree (&lserror);

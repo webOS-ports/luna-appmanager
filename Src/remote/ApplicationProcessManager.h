@@ -19,11 +19,14 @@
 #ifndef APPLICATIONPROCESSMANAGER_H
 #define APPLICATIONPROCESSMANAGER_H
 
+#include <functional>
 #include <string>
 #include <QString>
 #include <QProcess>
 #include <QList>
 #include <QTemporaryFile>
+
+#include <luna-service2/lunaservice.h>
 
 #include "ApplicationDescription.h"
 #include "Common.h"
@@ -69,13 +72,27 @@ public:
     virtual void kill() override;
 };
 
+/**
+ * What became of a launch: whether it succeeded, the id of the started
+ * instance (or process) if it did, and the reason if it did not.
+ */
+struct LaunchResult
+{
+    bool success = false;
+    std::string processId;
+    std::string errorText;
+};
+
+typedef std::function<void(const LaunchResult&)> LaunchCallback;
+
 class ApplicationProcessManager : public QObject
 {
     Q_OBJECT
 public:
     static ApplicationProcessManager* instance();
 
-    std::string launch(const std::string& appId, std::string params);
+    void launch(const std::string& appId, const std::string& params,
+                const LaunchCallback& done = LaunchCallback());
     void relaunch(const std::string& appId, const std::string& params);
 
     std::string getPid(const std::string& appId);
@@ -93,6 +110,9 @@ public:
 
 private Q_SLOTS:
     void onApplicationHasFinished();
+
+private:
+    static bool launchReplyCb(LSHandle *handle, LSMessage *message, void *user_data);
 
 private:
     ApplicationProcessManager();

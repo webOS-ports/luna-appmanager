@@ -93,6 +93,8 @@ expect_contains "getAppInfo missing param rejected"    getAppInfo   '{}'        
 expect_contains "launch null id rejected"              launch       '{"id":null}'              '"returnValue":false'
 alive; report $? "survives launch null id"
 expect_contains "launch unknown app rejected"          launch       '{"id":"com.invalid.notexist"}' '"returnValue":false'
+expect_contains "launch unknown app says why"          launch       '{"id":"com.invalid.notexist"}' '"errorText"'
+expect_contains "open with no handler rejected"        open         '{"target":"file:///media/internal/x.zzznohandler"}' 'Nohandlerfor'
 expect_contains "close replies (fire-and-forget by design)" close   '{"processId":"999999"}'   '"returnValue"'
 expect_contains "getHandlerForMimeType null rejected"  getHandlerForMimeType '{"mimeType":null}' '"returnValue":false'
 expect_contains "getHandlerForUrl null rejected"       getHandlerForUrl '{"url":null}'         '"returnValue":false'
@@ -103,13 +105,12 @@ call searchApps '{"keywords":null}'
 alive; report $? "survives searchApps null keywords"
 
 # ---------- 3. launch / close round trip ----------
-# launch is delegated to SAM; the appmanager reply is a known-upstream false
-# "was not found" (ApplicationProcessManager::launch always returns an empty
-# processId), so success is verified through SAM's running list instead
+# launch is delegated to SAM, and the reply carries SAM's answer: true with
+# SAM's instance id as processId
 call launch "{\"id\":\"$LAUNCH_APP\"}"
 case "$RESP" in
-  *'"returnValue":true'*|*wasnotfound*) report 0 "launch request delegated (reply: known upstream quirk)";;
-  *) report 1 "launch request delegated" "$(echo "$RESP" | cut -c1-160)";;
+  *'"returnValue":true'*'"processId":"'?*) report 0 "launch replies true with a processId";;
+  *) report 1 "launch replies true with a processId" "$(echo "$RESP" | cut -c1-160)";;
 esac
 sleep 2
 sam running '{}'
@@ -119,6 +120,16 @@ sleep 2
 sam running '{}'
 case "$SAMRESP" in *"$LAUNCH_APP"*) report 1 "closed app gone from SAM running" "still running";; *) report 0 "closed app gone from SAM running";; esac
 alive; report $? "survives launch/close cycle"
+
+# open by id goes the same way
+call open "{\"id\":\"$LAUNCH_APP\"}"
+case "$RESP" in
+  *'"returnValue":true'*'"processId":"'?*) report 0 "open by id replies true with a processId";;
+  *) report 1 "open by id replies true with a processId" "$(echo "$RESP" | cut -c1-160)";;
+esac
+sleep 2
+sam close "{\"id\":\"$LAUNCH_APP\"}"
+sleep 1
 
 # ---------- 4. soak: repeated launch/close + query hammering ----------
 echo "# soak: $SOAK_ITERATIONS iterations"
