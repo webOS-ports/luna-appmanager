@@ -15,6 +15,7 @@
     "org.webosports.bootmgr": [
         "accountsservice.management",
         "application.launcher",
+        "application.operation",
         "configurator.management",
         "database.operation",
         "systemsettings.query",

@@ -25,6 +25,7 @@
 #include <QTimer>
 #include <QObject>
 #include <QFileSystemWatcher>
+#include <QList>
 
 #include "Common.h"
 
@@ -41,7 +42,9 @@ enum BootEvent {
 	BOOT_EVENT_COMPOSITOR_AVAILABLE,
 	BOOT_EVENT_COMPOSITOR_NOT_AVAILABLE,
 	BOOT_EVENT_WEBAPPMGR_AVAILABLE,
-	BOOT_EVENT_WEBAPPMGR_NOT_AVAILABLE
+	BOOT_EVENT_WEBAPPMGR_NOT_AVAILABLE,
+	BOOT_EVENT_FIRSTUSE_APP_STOPPED,
+	BOOT_EVENT_FIRSTUSE_PHONE_STOPPED
 };
 
 class DisplayBlocker
@@ -90,9 +93,13 @@ public:
 
 private:
 	DisplayBlocker m_displayBlocker;
+	QList<qint64> m_relaunchTimes[2];
 
 private:
 	void launchFirstUseApp();
+	void launchFirstUse();
+	void launchFirstUsePhone();
+	void relaunchStopped(int which);
 	void createLocalAccount();
 	void runConfigurator();
 
@@ -146,6 +153,9 @@ private:
 
 	void setCompositorAvailabe(bool value);
 
+	static bool cbSamStatus(LSHandle *handle, const char *serviceName, bool connected, void *user_data);
+	static bool cbAppLifeEvents(LSHandle *handle, LSMessage *message, void *user_data);
+
 private Q_SLOTS:
 	void onFileChanged(const QString& path);
 	void onInitialize();
@@ -160,6 +170,7 @@ private:
 	bool m_switchingState;
 	BootState m_pendingState;
 	bool m_hasPendingState;
+	LSMessageToken m_appLifeEventsToken;
 
 	friend class BootStateBase;
 };
