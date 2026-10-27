@@ -97,6 +97,15 @@ set(SOURCES
     Src/remote/WebAppMgrProxy.cpp
     Src/Main.cpp)
 
+# Sanitizers for the test and hardening harness. Never on for an image build -
+# they change the ABI of the binary and cost both size and speed:
+#   cmake -DENABLE_SANITIZERS=address,undefined ...
+if(ENABLE_SANITIZERS)
+    message(STATUS "Building with -fsanitize=${ENABLE_SANITIZERS}")
+    webos_add_compiler_flags(ALL -fsanitize=${ENABLE_SANITIZERS} -fno-omit-frame-pointer -g)
+    link_libraries(-fsanitize=${ENABLE_SANITIZERS})
+endif()
+
 add_executable(LunaAppManager ${SOURCES})
 target_link_libraries(LunaAppManager
     ${LS2_LIBRARIES}
@@ -118,6 +127,13 @@ target_link_libraries(LunaAppManager
 
 webos_build_daemon()
 webos_build_system_bus_files()
+
+# Unit tests, off unless asked for. See tests/README.md.
+option(BUILD_TESTING "Build the luna-appmanager unit tests" OFF)
+if(BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 webos_config_build_doxygen(doc Doxyfile)
 
 set(HELPER_SCRIPTS

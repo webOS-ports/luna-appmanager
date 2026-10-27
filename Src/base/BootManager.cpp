@@ -134,6 +134,8 @@ void DisplayBlocker::acquire(const char *clientName)
 		LSErrorPrint(&lserror, stderr);
 		LSErrorFree(&lserror);
 	}
+
+	g_free(parameters);
 }
 
 bool DisplayBlocker::cbRegistrationResponse(LSHandle *handle, LSMessage *message, void *user_data)
@@ -208,14 +210,67 @@ void BootStateFirstUse::handleEvent(BootEvent event)
 		createLocalAccount();
 	else if (event == BOOT_EVENT_PROFILE_CREATED)
 		runConfigurator();
-	else if (event == BOOT_EVENT_COMPOSITOR_AVAILABLE)
+	else if (event == BOOT_EVENT_COMPOSITOR_AVAILABLE) {
+		// Whatever stopped the apps before, the compositor going away did it
+		// now: they get their relaunches back.
+		m_relaunchTimes[0].clear();
+		m_relaunchTimes[1].clear();
 		launchFirstUseApp();
+	}
+	else if (event == BOOT_EVENT_FIRSTUSE_APP_STOPPED)
+		relaunchStopped(0);
+	else if (event == BOOT_EVENT_FIRSTUSE_PHONE_STOPPED)
+		relaunchStopped(1);
 }
 
 void BootStateFirstUse::launchFirstUseApp()
 {
+	launchFirstUse();
+	launchFirstUsePhone();
+}
+
+void BootStateFirstUse::launchFirstUse()
+{
 	ApplicationProcessManager::instance()->launch("org.webosports.app.firstuse", "");
+}
+
+void BootStateFirstUse::launchFirstUsePhone()
+{
 	ApplicationProcessManager::instance()->launch("org.webosports.app.phone", "{\"mode\":\"first-use\"}");
+}
+
+// A compositor restart takes first use's apps down with it, and
+// BOOT_EVENT_COMPOSITOR_AVAILABLE launches them again - but only when they are
+// gone by then. An old instance still on its way out got that launch from SAM
+// as a relaunch, died anyway, and nothing launched it again: the device was
+// left on the launcher half-way through first use. which: 0 is the first use
+// app, 1 the phone app.
+void BootStateFirstUse::relaunchStopped(int which)
+{
+	// Without a compositor, BOOT_EVENT_COMPOSITOR_AVAILABLE launches them once
+	// it is back. Once first use is done, its app closes for good.
+	if (!BootManager::instance()->compositorAvailable() ||
+	    QFile::exists("/var/luna/preferences/ran-firstuse"))
+		return;
+
+	// An app that keeps crashing on its own is not launched again forever. A
+	// compositor that keeps restarting resets this, see above.
+	const qint64 now = g_get_monotonic_time() / 1000;
+	QList<qint64> &times = m_relaunchTimes[which];
+	while (!times.isEmpty() && now - times.first() > 60000)
+		times.removeFirst();
+	if (times.size() >= 5) {
+		g_warning("%s stopped 5 times within a minute during first use, not launching it again",
+			  which == 0 ? "First use" : "Phone");
+		return;
+	}
+	times.append(now);
+
+	g_message("%s stopped during first use, launching it again", which == 0 ? "First use" : "Phone");
+	if (which == 0)
+		launchFirstUse();
+	else
+		launchFirstUsePhone();
 }
 
 void BootStateFirstUse::createLocalAccount()
@@ -342,7 +397,8 @@ BootManager::BootManager() :
 	m_compositorAvailable(false),
 	m_switchingState(false),
 	m_pendingState(BOOT_STATE_STARTUP),
-	m_hasPendingState(false)
+	m_hasPendingState(false),
+	m_appLifeEventsToken(LSMESSAGE_TOKEN_INVALID)
 {
 	m_states[BOOT_STATE_STARTUP] = new BootStateStartup();
 	m_states[BOOT_STATE_FIRSTUSE] = new BootStateFirstUse();
@@ -372,6 +428,54 @@ BootManager::~BootManager()
 void BootManager::onInitialize()
 {
 	switchState(BOOT_STATE_STARTUP);
+}
+
+bool BootManager::cbSamStatus(LSHandle *handle, const char *serviceName, bool connected, void *user_data)
+{
+	BootManager *self = BootManager::instance();
+
+	if (!connected) {
+		// The subscription went with SAM.
+		self->m_appLifeEventsToken = LSMESSAGE_TOKEN_INVALID;
+		return true;
+	}
+
+	LSError error;
+	LSErrorInit(&error);
+
+	if (!LSCall(handle, "luna://com.webos.service.applicationmanager/getAppLifeEvents",
+		    "{\"subscribe\":true}", cbAppLifeEvents, NULL, &self->m_appLifeEventsToken, &error)) {
+		g_warning("Failed to subscribe to SAM's app life events: %s", error.message);
+		LSErrorFree(&error);
+		self->m_appLifeEventsToken = LSMESSAGE_TOKEN_INVALID;
+	}
+
+	return true;
+}
+
+bool BootManager::cbAppLifeEvents(LSHandle *handle, LSMessage *message, void *user_data)
+{
+	const char *payload = LSMessageGetPayload(message);
+	json_object *json = payload ? json_tokener_parse(payload) : NULL;
+	json_object *value = NULL;
+	std::string event, appId;
+
+	if (json && json_object_object_get_ex(json, "event", &value) && json_object_get_string(value))
+		event = json_object_get_string(value);
+	if (json && json_object_object_get_ex(json, "appId", &value) && json_object_get_string(value))
+		appId = json_object_get_string(value);
+	if (json)
+		json_object_put(json);
+
+	if (event != "stop")
+		return true;
+
+	if (appId == "org.webosports.app.firstuse")
+		BootManager::instance()->handleEvent(BOOT_EVENT_FIRSTUSE_APP_STOPPED);
+	else if (appId == "org.webosports.app.phone")
+		BootManager::instance()->handleEvent(BOOT_EVENT_FIRSTUSE_PHONE_STOPPED);
+
+	return true;
 }
 
 static bool cbCompositorAvailable(LSHandle *handle, const char *serviceName, bool connected, void *user_data)
@@ -414,6 +518,12 @@ void BootManager::startService()
 	if (!LSRegisterServerStatusEx(m_service, "com.webos.surfacemanager-cardshell",
 				cbCompositorAvailable, NULL, NULL, &error)) {
 		g_warning("Failed to register for compositor status");
+		LSErrorFree(&error);
+	}
+
+	if (!LSRegisterServerStatusEx(m_service, "com.webos.service.applicationmanager",
+				cbSamStatus, NULL, NULL, &error)) {
+		g_warning("Failed to register for SAM status");
 		LSErrorFree(&error);
 	}
 }
