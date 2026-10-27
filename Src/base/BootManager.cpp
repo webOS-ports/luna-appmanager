@@ -134,6 +134,8 @@ void DisplayBlocker::acquire(const char *clientName)
 		LSErrorPrint(&lserror, stderr);
 		LSErrorFree(&lserror);
 	}
+
+	g_free(parameters);
 }
 
 bool DisplayBlocker::cbRegistrationResponse(LSHandle *handle, LSMessage *message, void *user_data)
