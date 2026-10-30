@@ -19,6 +19,14 @@ and subscribes again when SAM comes back. `BootManager` is a singleton, so
 the cases build on each other in the order they are written. On a device
 that has finished first use they report that and do nothing.
 
+`test_open_ipk.cpp` checks that `com.palm.applicationManager/open` installs
+a package only for the trusted installer apps: an app's open of a target
+named `.ipk` is refused, and so is the install of a download that only turns
+out to be an ipk once it is done (a redirect renames it), while a trusted
+installer's download and `com.palm.appinstaller/install`'s are still
+installed. The installer runs in minimal mode there, so an install that is
+let through is queued and never run.
+
 Build them with the component:
 
     cmake -DBUILD_TESTING=ON ...
