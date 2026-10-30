@@ -1,6 +1,7 @@
 {
     "application.launcher": [
-        "com.palm.applicationManager/launch"
+        "com.palm.applicationManager/launch",
+        "com.palm.applicationManager/open"
     ],
     "appmanager.management": [
         "com.palm.applicationManager/getHandlerForExtension",
