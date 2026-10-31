@@ -19,6 +19,21 @@ and subscribes again when SAM comes back. `BootManager` is a singleton, so
 the cases build on each other in the order they are written. On a device
 that has finished first use they report that and do nothing.
 
+`test_bootmanager.cpp` then puts `BootManager` in the normal state and
+checks that it launches the boot time apps again once SAM comes back (only
+those not running, with `{"launchedAtBoot":true}`, not an app closed on
+purpose), launches the KeepAlive phone app again when it stops, waits for
+SAM's answer to `running` before launching anything and ignores an answer
+that is missing, malformed or from before SAM went, drops its checks when
+normal operation ends, and gives up on a phone app that keeps stopping
+until SAM comes back.
+
+`test_bootappkeeper.cpp` covers `BootAppKeeper`, which makes those
+decisions, on its own: the wait after SAM came back, apps closed on
+purpose, KeepAlive apps, the back-off (1, 2, 4, 8, 16 seconds), giving up
+after five launches in a minute and what ends that. Every case there has
+its own keeper and clock.
+
 Build them with the component:
 
     cmake -DBUILD_TESTING=ON ...

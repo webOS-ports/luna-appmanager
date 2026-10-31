@@ -28,6 +28,7 @@
 #include <QList>
 
 #include "Common.h"
+#include "BootAppKeeper.h"
 
 enum BootState {
 	BOOT_STATE_STARTUP = 0,
@@ -117,6 +118,7 @@ public:
 private:
 	void activateSuspend(bool enable);
 	void launchBootTimeApps();
+	void keepBootTimeApps();
 };
 
 class BootManager : public QObject
@@ -139,6 +141,11 @@ public:
 
 	LSHandle* service() const;
 
+	//! What decides which boot time and KeepAlive apps to launch again.
+	BootAppKeeper& appKeeper();
+	//! Starts or stops the timer for appKeeper()'s next check.
+	void scheduleAppKeeper();
+
 Q_SIGNALS:
 	void compositorAvailableChanged();
 	void bootFinished();
@@ -155,11 +162,13 @@ private:
 
 	static bool cbSamStatus(LSHandle *handle, const char *serviceName, bool connected, void *user_data);
 	static bool cbAppLifeEvents(LSHandle *handle, LSMessage *message, void *user_data);
+	static bool cbRunningApps(LSHandle *handle, LSMessage *message, void *user_data);
 
 private Q_SLOTS:
 	void onFileChanged(const QString& path);
 	void onInitialize();
 	void onWebAppMgrConnectionStatusChanged();
+	void onAppKeeperTimeout();
 
 private:
     LSHandle* m_service;
@@ -171,6 +180,10 @@ private:
 	BootState m_pendingState;
 	bool m_hasPendingState;
 	LSMessageToken m_appLifeEventsToken;
+	BootAppKeeper m_appKeeper;
+	QTimer m_appKeeperTimer;
+	//! Counts SAM going away, so that an answer from before is not used.
+	unsigned int m_samGeneration;
 
 	friend class BootStateBase;
 };
