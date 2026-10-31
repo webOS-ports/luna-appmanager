@@ -150,6 +150,28 @@ TEST(OpenIpk, DownloadThatIsAnIpkIsInstalledForATrustedInstaller)
     ApplicationInstaller::instance()->oneCommandProcessed();
 }
 
+TEST(OpenIpk, ReplyThatStartsADownloadIsASuccess)
+{
+    setUp();
+    const std::string reply = open(THIRD_PARTY, "http://example.invalid/download");
+    CHECK_STR_CONTAINS(reply, "Download requested");
+    CHECK_EQ(field(reply, "returnValue"), std::string("true"));
+    CHECK_STR_LACKS(reply, "errorText");
+    finishDownload(field(reply, "ticket"), "/media/internal/downloads/doc.pdf");
+    const std::vector<fakels::Call> launches = fakels::callsTo("/launch");
+    CHECK_EQ(launches.size(), 1u);
+    if (!launches.empty())
+        fakels::reply(launches.back(), "{\"returnValue\":true,\"instanceId\":\"fake\"}");
+}
+
+TEST(OpenIpk, ReplyToAnOpenThatFailsIsAFailure)
+{
+    setUp();
+    const std::string reply = open(THIRD_PARTY, "http://example.invalid/app.ipk");
+    CHECK_EQ(field(reply, "returnValue"), std::string("false"));
+    CHECK(!field(reply, "errorText").empty());
+}
+
 TEST(OpenIpk, DownloadThatIsNoIpkIsNotRefused)
 {
     setUp();

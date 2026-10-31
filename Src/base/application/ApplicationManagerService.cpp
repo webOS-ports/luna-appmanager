@@ -1103,8 +1103,7 @@ This returns:
     "ticket": "8",
     "result": "Download requested",
     "subscribed": true,
-    "returnValue": false,
-    "errorText": ""
+    "returnValue": true
 }
 {
     "returnValue": true,
@@ -1417,7 +1416,7 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 					goto done;
 				}
 
-				json_object_object_add(json, "returnValue", json_object_new_boolean(true));
+				success = true;
 				json_object_object_add(json, "ticket", json_object_new_string (ticketStr.c_str()));
 				json_object_object_add(json, "result", json_object_new_string("Download requested"));
 				if (LSMessageIsSubscription (message)) 
