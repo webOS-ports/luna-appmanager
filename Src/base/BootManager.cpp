@@ -238,6 +238,17 @@ void BootStateFirstUse::handleEvent(BootEvent event)
 		m_relaunchTimes[1].clear();
 		launchFirstUseApp();
 	}
+	else if (event == BOOT_EVENT_SAM_CAME_BACK) {
+		// SAM's restart ended both apps: they live in its control group, and
+		// SAM gone, no "stop" came for them. Without a compositor,
+		// BOOT_EVENT_COMPOSITOR_AVAILABLE launches them once it is back.
+		if (!BootManager::instance()->compositorAvailable() ||
+		    QFile::exists("/var/luna/preferences/ran-firstuse"))
+			return;
+		m_relaunchTimes[0].clear();
+		m_relaunchTimes[1].clear();
+		launchFirstUseApp();
+	}
 	else if (event == BOOT_EVENT_FIRSTUSE_APP_STOPPED)
 		relaunchStopped(0);
 	else if (event == BOOT_EVENT_FIRSTUSE_PHONE_STOPPED)
@@ -452,7 +463,8 @@ BootManager::BootManager() :
 	m_pendingState(BOOT_STATE_STARTUP),
 	m_hasPendingState(false),
 	m_appLifeEventsToken(LSMESSAGE_TOKEN_INVALID),
-	m_samGeneration(0)
+	m_samGeneration(0),
+	m_samSeenDown(false)
 {
 	m_states[BOOT_STATE_STARTUP] = new BootStateStartup();
 	m_states[BOOT_STATE_FIRSTUSE] = new BootStateFirstUse();
@@ -496,6 +508,7 @@ bool BootManager::cbSamStatus(LSHandle *handle, const char *serviceName, bool co
 		// they live in sam.service's control group.
 		self->m_appLifeEventsToken = LSMESSAGE_TOKEN_INVALID;
 		++self->m_samGeneration;
+		self->m_samSeenDown = true;
 		self->m_appKeeper.samDown();
 		self->scheduleAppKeeper();
 		return true;
@@ -516,6 +529,11 @@ bool BootManager::cbSamStatus(LSHandle *handle, const char *serviceName, bool co
 	// the phone app stayed gone, and calls went unannounced, until a reboot.
 	self->m_appKeeper.samUp(monotonicMs(), self->m_currentState == BOOT_STATE_NORMAL);
 	self->scheduleAppKeeper();
+
+	if (self->m_samSeenDown) {
+		self->m_samSeenDown = false;
+		self->handleEvent(BOOT_EVENT_SAM_CAME_BACK);
+	}
 
 	return true;
 }

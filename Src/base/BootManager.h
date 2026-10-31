@@ -45,7 +45,8 @@ enum BootEvent {
 	BOOT_EVENT_WEBAPPMGR_AVAILABLE,
 	BOOT_EVENT_WEBAPPMGR_NOT_AVAILABLE,
 	BOOT_EVENT_FIRSTUSE_APP_STOPPED,
-	BOOT_EVENT_FIRSTUSE_PHONE_STOPPED
+	BOOT_EVENT_FIRSTUSE_PHONE_STOPPED,
+	BOOT_EVENT_SAM_CAME_BACK
 };
 
 class DisplayBlocker
@@ -184,6 +185,7 @@ private:
 	QTimer m_appKeeperTimer;
 	//! Counts SAM going away, so that an answer from before is not used.
 	unsigned int m_samGeneration;
+	bool m_samSeenDown;
 
 	friend class BootStateBase;
 };

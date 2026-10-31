@@ -15,7 +15,7 @@ life events, launches first use or the phone app again when it stops, leaves
 that to the compositor coming back while the compositor is gone, gives up
 after five launches in a minute and counts again after the minute or after
 the compositor came back, ignores other events, apps and malformed payloads,
-and subscribes again when SAM comes back. `BootManager` is a singleton, so
+and subscribes again, and launches both apps again, when SAM comes back. `BootManager` is a singleton, so
 the cases build on each other in the order they are written. On a device
 that has finished first use they report that and do nothing.
 

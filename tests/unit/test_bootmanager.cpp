@@ -337,6 +337,49 @@ TEST(BootManager, theCompositorComingBackResetsTheLimit)
     CHECK_EQ(launchesOf(FIRSTUSE), firstUse + 1);
 }
 
+TEST(BootManager, launchesFirstUseAgainWhenSamComesBack)
+{
+    if (skipped())
+        return;
+
+    // Use up the limit; SAM coming back resets it, like the compositor
+    // coming back.
+    for (int i = 0; i < 5; ++i)
+        lifeEvent("stop", FIRSTUSE);
+    int firstUse = launchesOf(FIRSTUSE);
+    int phone = launchesOf(PHONE);
+    lifeEvent("stop", FIRSTUSE);
+    CHECK_EQ(launchesOf(FIRSTUSE), firstUse);
+
+    fakels::serverStatus(SAM, false);
+    fakels::serverStatus(SAM, true);
+    runEvents();
+    answerLaunches();
+    CHECK_EQ(launchesOf(FIRSTUSE), firstUse + 1);
+    CHECK_EQ(launchesOf(PHONE), phone + 1);
+    CHECK_EQ(launchField(launches().back(), "params"), std::string("{\"mode\":\"first-use\"}"));
+
+    firstUse = launchesOf(FIRSTUSE);
+    lifeEvent("stop", FIRSTUSE);
+    CHECK_EQ(launchesOf(FIRSTUSE), firstUse + 1);
+
+    // SAM there all along: nothing came back.
+    firstUse = launchesOf(FIRSTUSE);
+    fakels::serverStatus(SAM, true);
+    CHECK_EQ(launchesOf(FIRSTUSE), firstUse);
+
+    // Without the compositor that is left to the compositor coming back.
+    phone = launchesOf(PHONE);
+    compositor(false);
+    fakels::serverStatus(SAM, false);
+    fakels::serverStatus(SAM, true);
+    CHECK_EQ(launchesOf(FIRSTUSE), firstUse);
+    CHECK_EQ(launchesOf(PHONE), phone);
+    compositor(true);
+    CHECK_EQ(launchesOf(FIRSTUSE), firstUse + 1);
+    CHECK_EQ(launchesOf(PHONE), phone + 1);
+}
+
 TEST(BootManager, subscribesAgainWhenSamComesBack)
 {
     if (skipped())
