@@ -1396,7 +1396,8 @@ static bool servicecallback_open( LSHandle* lshandle, LSMessage *message,
 
 				g_debug ("sending download request to download manager with params: %s\n", json_object_to_json_string (downloadParams));
 
-				ApplicationManager::DownloadRequest* req = new ApplicationManager::DownloadRequest (ticket, ovrHandlerAppId, strMime, LSMessageIsSubscription (message));
+				ApplicationManager::DownloadRequest* req = new ApplicationManager::DownloadRequest (ticket, ovrHandlerAppId, strMime, LSMessageIsSubscription (message),
+						ApplicationManager::instance()->isTrustedInstallerApp (callerAppId));
 				retval = LSCall (lshandle, "palm://com.palm.downloadmanager/download", json_object_to_json_string (downloadParams),
 						ApplicationManager::cbDownloadManagerUpdate, req, NULL, &lserror); 
 				json_object_put (downloadParams);

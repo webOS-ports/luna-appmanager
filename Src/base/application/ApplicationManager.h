@@ -177,13 +177,20 @@ public:
 		std::string m_overrideHandlerAppId;
 		std::string m_mime;
 		bool m_isSubscribed;
+		// May the download be installed if it turns out to be an ipk? Only
+		// for com.palm.appinstaller/install and trusted installer apps: the
+		// name of a download is only known once it is done (a redirect
+		// renames it), so open's check of the target URL is not enough.
+		bool m_mayInstall;
 
-		DownloadRequest (unsigned long ticket, const std::string& ovrHandlerAppId, const std::string& strMime, bool isSubscribed)
-		: m_ticket(ticket), m_overrideHandlerAppId (ovrHandlerAppId), m_mime (strMime), m_isSubscribed (isSubscribed)
+		// For open: the download is installed only if mayInstall.
+		DownloadRequest (unsigned long ticket, const std::string& ovrHandlerAppId, const std::string& strMime, bool isSubscribed, bool mayInstall)
+		: m_ticket(ticket), m_overrideHandlerAppId (ovrHandlerAppId), m_mime (strMime), m_isSubscribed (isSubscribed), m_mayInstall (mayInstall)
 		{  }
 
+		// For com.palm.appinstaller/install: the download is installed.
 		DownloadRequest (unsigned long ticket, bool isSubscribed)
-		: m_ticket (ticket), m_isSubscribed (isSubscribed)
+		: m_ticket (ticket), m_isSubscribed (isSubscribed), m_mayInstall (true)
 		{  }
 	};
 

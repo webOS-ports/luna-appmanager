@@ -2784,6 +2784,12 @@ bool ApplicationManager::cbDownloadManagerUpdate (LSHandle* lshandle, LSMessage*
 
         target = json_object_get_string (targetField);
         if (isAppPackage (target.c_str())) {
+            if (!req->m_mayInstall) {
+                g_warning ("%s: refusing to install %s, downloaded for a caller that may not install packages",
+                           __PRETTY_FUNCTION__, target.c_str());
+                errMsg = "Unauthorized call to open an ipk";
+                goto in_error;
+            }
             if (!ApplicationInstaller::instance()->install (target,0, req->m_ticket)) {
                 errMsg = "installation of ipkg failed";
                 goto in_error;

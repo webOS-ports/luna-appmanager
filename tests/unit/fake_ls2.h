@@ -61,6 +61,21 @@ bool reply(const Call &call, const std::string &payload);
 //! connected or went away. Returns how many watchers there were.
 int serverStatus(const std::string &serviceName, bool connected);
 
+//! Calls method of the category a handle registered as serviceName
+//! (LSRegisterCategory), as the bus would for a client whose application id
+//! is appId (none if empty). Returns false if there is no such method.
+bool callMethod(const std::string &serviceName, const std::string &category,
+                const std::string &method, const std::string &payload,
+                const std::string &appId);
+
+//! Payloads of every LSMessageReply so far, oldest first.
+const std::vector<std::string>& messageReplies();
+
+//! Payloads of every LSSubscriptionReply to key so far, oldest first.
+std::vector<std::string> subscriptionReplies(const std::string &key);
+
+void clearReplies();
+
 } // namespace fakels
 
 //! Monotonic time for the component, in microseconds: the real clock plus
