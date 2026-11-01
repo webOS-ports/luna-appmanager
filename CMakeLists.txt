@@ -64,6 +64,7 @@ set(HEADERS
     Src/base/LsmUtils.h
     Src/base/MemoryMonitor.h
     Src/base/BootManager.h
+    Src/base/BootAppKeeper.h
     Src/base/application/ServiceDescription.h
     Src/base/application/ApplicationStatus.h
     Src/base/application/ApplicationInstaller.h
@@ -83,6 +84,7 @@ set(SOURCES
     Src/base/MemoryMonitor.cpp
     Src/base/LsmUtils.cpp
     Src/base/BootManager.cpp
+    Src/base/BootAppKeeper.cpp
     Src/base/application/ApplicationDescription.cpp
     Src/base/application/MimeSystem.cpp
     Src/base/application/PackageDescription.cpp

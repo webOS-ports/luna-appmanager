@@ -51,6 +51,27 @@
 
 static bool cbGetStatus(LSHandle *handle, LSMessage *message, void* user_data);
 
+namespace {
+
+// How long SAM gets to say which apps run before the check is dropped
+const int kSamRunningTimeoutMs = 10000;
+
+const char *kLaunchedAtBoot = "{\"launchedAtBoot\":true}";
+
+long long monotonicMs()
+{
+	return g_get_monotonic_time() / 1000;
+}
+
+// The apps appKeeper() has found due, waiting for SAM to say what runs.
+struct RunningAppsQuery
+{
+	std::vector<std::string> due;
+	unsigned int samGeneration = 0;
+};
+
+} // namespace
+
 static LSMethod s_methods[]  = {
 	{ "getStatus", cbGetStatus },
 	{ 0, 0 },
@@ -217,6 +238,17 @@ void BootStateFirstUse::handleEvent(BootEvent event)
 		m_relaunchTimes[1].clear();
 		launchFirstUseApp();
 	}
+	else if (event == BOOT_EVENT_SAM_CAME_BACK) {
+		// SAM's restart ended both apps: they live in its control group, and
+		// SAM gone, no "stop" came for them. Without a compositor,
+		// BOOT_EVENT_COMPOSITOR_AVAILABLE launches them once it is back.
+		if (!BootManager::instance()->compositorAvailable() ||
+		    QFile::exists("/var/luna/preferences/ran-firstuse"))
+			return;
+		m_relaunchTimes[0].clear();
+		m_relaunchTimes[1].clear();
+		launchFirstUseApp();
+	}
 	else if (event == BOOT_EVENT_FIRSTUSE_APP_STOPPED)
 		relaunchStopped(0);
 	else if (event == BOOT_EVENT_FIRSTUSE_PHONE_STOPPED)
@@ -320,6 +352,7 @@ bool BootStateFirstUse::cbRunConfigurator(LSHandle *handle, LSMessage *message, 
 void BootStateNormal::enter()
 {
 	activateSuspend(true);
+	keepBootTimeApps();
 	launchBootTimeApps();
 }
 
@@ -363,14 +396,45 @@ void BootStateNormal::activateSuspend(bool enable)
 
 void BootStateNormal::launchBootTimeApps()
 {
-	ApplicationProcessManager::instance()->launch("com.palm.launcher", "{\"launchedAtBoot\":true}");
-	ApplicationProcessManager::instance()->launch("com.palm.systemui", "{\"launchedAtBoot\":true}");
+	ApplicationProcessManager::instance()->launch("com.palm.launcher", kLaunchedAtBoot);
+	ApplicationProcessManager::instance()->launch("com.palm.systemui", kLaunchedAtBoot);
 	ApplicationManager::instance()->launchBootTimeApps();
+}
+
+// Tells appKeeper() which apps launchBootTimeApps() launches and which are to
+// be kept alive, the [LaunchAtBoot] and [KeepAlive] Applications of luna.conf.
+// Everything launchBootTimeApps() launches now, so nothing is due any more.
+void BootStateNormal::keepBootTimeApps()
+{
+	std::vector<BootAppKeeper::App> bootApps;
+	const char *shellApps[] = { "com.palm.launcher", "com.palm.systemui" };
+	for (const char *appId : shellApps) {
+		BootAppKeeper::App app;
+		app.id = appId;
+		app.params = kLaunchedAtBoot;
+		bootApps.push_back(app);
+	}
+	for (const std::string &appId : Settings::LunaSettings()->appsToLaunchAtBoot) {
+		BootAppKeeper::App app;
+		app.id = appId;
+		app.params = kLaunchedAtBoot;
+		bootApps.push_back(app);
+	}
+
+	BootManager *manager = BootManager::instance();
+	manager->appKeeper().setApps(bootApps, Settings::LunaSettings()->appsToKeepAlive);
+	manager->appKeeper().cancelPending();
+	manager->scheduleAppKeeper();
 }
 
 void BootStateNormal::leave()
 {
 	activateSuspend(false);
+
+	// Whatever comes back next goes through the startup state again, and
+	// entering this one launches every boot time app.
+	BootManager::instance()->appKeeper().cancelPending();
+	BootManager::instance()->scheduleAppKeeper();
 }
 
 void BootStateNormal::handleEvent(BootEvent event)
@@ -398,7 +462,9 @@ BootManager::BootManager() :
 	m_switchingState(false),
 	m_pendingState(BOOT_STATE_STARTUP),
 	m_hasPendingState(false),
-	m_appLifeEventsToken(LSMESSAGE_TOKEN_INVALID)
+	m_appLifeEventsToken(LSMESSAGE_TOKEN_INVALID),
+	m_samGeneration(0),
+	m_samSeenDown(false)
 {
 	m_states[BOOT_STATE_STARTUP] = new BootStateStartup();
 	m_states[BOOT_STATE_FIRSTUSE] = new BootStateFirstUse();
@@ -408,6 +474,9 @@ BootManager::BootManager() :
 
 	connect(WebAppMgrProxy::instance(), SIGNAL(connectionStatusChanged()),
 		this, SLOT(onWebAppMgrConnectionStatusChanged()));
+
+	m_appKeeperTimer.setSingleShot(true);
+	connect(&m_appKeeperTimer, SIGNAL(timeout()), this, SLOT(onAppKeeperTimeout()));
 
 	m_fileWatch.addPath("/var/luna/preferences");
 	connect(&m_fileWatch, SIGNAL(directoryChanged(QString)), this, SLOT(onFileChanged(QString)));
@@ -435,8 +504,13 @@ bool BootManager::cbSamStatus(LSHandle *handle, const char *serviceName, bool co
 	BootManager *self = BootManager::instance();
 
 	if (!connected) {
-		// The subscription went with SAM.
+		// The subscription went with SAM, and so did every app it started:
+		// they live in sam.service's control group.
 		self->m_appLifeEventsToken = LSMESSAGE_TOKEN_INVALID;
+		++self->m_samGeneration;
+		self->m_samSeenDown = true;
+		self->m_appKeeper.samDown();
+		self->scheduleAppKeeper();
 		return true;
 	}
 
@@ -448,6 +522,17 @@ bool BootManager::cbSamStatus(LSHandle *handle, const char *serviceName, bool co
 		g_warning("Failed to subscribe to SAM's app life events: %s", error.message);
 		LSErrorFree(&error);
 		self->m_appLifeEventsToken = LSMESSAGE_TOKEN_INVALID;
+	}
+
+	// After a restart of SAM, by hand, by a deploy script or by systemd after
+	// a crash, nothing else launches the boot time apps again: without this
+	// the phone app stayed gone, and calls went unannounced, until a reboot.
+	self->m_appKeeper.samUp(monotonicMs(), self->m_currentState == BOOT_STATE_NORMAL);
+	self->scheduleAppKeeper();
+
+	if (self->m_samSeenDown) {
+		self->m_samSeenDown = false;
+		self->handleEvent(BOOT_EVENT_SAM_CAME_BACK);
 	}
 
 	return true;
@@ -466,6 +551,11 @@ bool BootManager::cbAppLifeEvents(LSHandle *handle, LSMessage *message, void *us
 		appId = json_object_get_string(value);
 	if (json)
 		json_object_put(json);
+
+	BootManager *self = BootManager::instance();
+	self->m_appKeeper.lifeEvent(event, appId, monotonicMs(),
+				    self->m_currentState == BOOT_STATE_NORMAL);
+	self->scheduleAppKeeper();
 
 	if (event != "stop")
 		return true;
@@ -609,6 +699,119 @@ bool BootManager::isBootFinished() const
 LSHandle* BootManager::service() const
 {
 	return m_service;
+}
+
+BootAppKeeper& BootManager::appKeeper()
+{
+	return m_appKeeper;
+}
+
+void BootManager::scheduleAppKeeper()
+{
+	if (!m_appKeeper.hasPending()) {
+		m_appKeeperTimer.stop();
+		return;
+	}
+
+	long long wait = m_appKeeper.nextDueMs() - monotonicMs();
+	if (wait < 0)
+		wait = 0;
+	else if (wait > BootAppKeeper::kWindowMs)
+		wait = BootAppKeeper::kWindowMs;
+	m_appKeeperTimer.start(static_cast<int>(wait));
+}
+
+// Something is due: ask SAM what runs, so that nothing running is launched
+// twice. The answer decides, in cbRunningApps().
+void BootManager::onAppKeeperTimeout()
+{
+	if (m_currentState != BOOT_STATE_NORMAL) {
+		m_appKeeper.cancelPending();
+		return;
+	}
+
+	RunningAppsQuery *query = new RunningAppsQuery;
+	query->due = m_appKeeper.takeDue(monotonicMs());
+	query->samGeneration = m_samGeneration;
+	scheduleAppKeeper();
+
+	if (query->due.empty()) {
+		delete query;
+		return;
+	}
+
+	LSError error;
+	LSErrorInit(&error);
+	LSMessageToken token = LSMESSAGE_TOKEN_INVALID;
+
+	if (!LSCallOneReply(m_service, "luna://com.webos.service.applicationmanager/running", "{}",
+			    cbRunningApps, query, &token, &error)) {
+		g_warning("Failed to ask SAM which apps run: %s", error.message);
+		LSErrorFree(&error);
+		delete query;
+		return;
+	}
+
+	if (!LSCallSetTimeout(m_service, token, kSamRunningTimeoutMs, &error)) {
+		LSErrorPrint(&error, stderr);
+		LSErrorFree(&error);
+	}
+}
+
+bool BootManager::cbRunningApps(LSHandle *handle, LSMessage *message, void *user_data)
+{
+	RunningAppsQuery *query = static_cast<RunningAppsQuery*>(user_data);
+	BootManager *self = BootManager::instance();
+
+	const char *payload = LSMessageGetPayload(message);
+	json_object *json = payload ? json_tokener_parse(payload) : NULL;
+	json_object *value = NULL;
+	bool answered = false;
+	std::set<std::string> running;
+
+	if (json && json_object_is_type(json, json_type_object) &&
+	    json_object_object_get_ex(json, "returnValue", &value) &&
+	    json_object_is_type(value, json_type_boolean) && json_object_get_boolean(value) &&
+	    json_object_object_get_ex(json, "running", &value) && json_object_is_type(value, json_type_array)) {
+		answered = true;
+		const size_t count = json_object_array_length(value);
+		for (size_t i = 0; i < count; ++i) {
+			json_object *entry = json_object_array_get_idx(value, i);
+			json_object *id = NULL;
+			if (entry && json_object_is_type(entry, json_type_object) &&
+			    json_object_object_get_ex(entry, "id", &id) && json_object_is_type(id, json_type_string))
+				running.insert(json_object_get_string(id));
+		}
+	}
+	if (json)
+		json_object_put(json);
+
+	// SAM went away meanwhile (its coming back schedules a check of its own),
+	// or normal operation ended, or SAM did not say: nothing to go by.
+	if (!answered || query->samGeneration != self->m_samGeneration ||
+	    self->m_currentState != BOOT_STATE_NORMAL) {
+		if (!answered)
+			g_warning("SAM did not say which apps run, not launching any again");
+		delete query;
+		return true;
+	}
+
+	// An app being installed or removed is locked; unlocking it launches it
+	// again if it is a boot time app (ApplicationManager::executeLockAppLoaded).
+	const std::vector<BootAppKeeper::App> launches = self->m_appKeeper.launchesFor(
+		query->due, running, monotonicMs(),
+		[](const std::string &appId) {
+			const ApplicationDescription *desc = ApplicationManager::instance()->getAppById(appId);
+			return !desc || desc->canExecute();
+		});
+	delete query;
+
+	for (const BootAppKeeper::App &app : launches) {
+		g_message("%s is not running, launching it again", app.id.c_str());
+		ApplicationProcessManager::instance()->launch(app.id, app.params);
+	}
+
+	return true;
 }
 
 void BootManager::setCompositorAvailabe(bool value)

@@ -31,8 +31,13 @@
 
 #include "BootManager.h"
 
+#include "Settings.h"
+
 #include <QCoreApplication>
+#include <QElapsedTimer>
 #include <QFile>
+#include <QMetaObject>
+#include <QThread>
 
 #include <json.h>
 
@@ -43,6 +48,10 @@ const char *FIRSTUSE = "org.webosports.app.firstuse";
 const char *PHONE = "org.webosports.app.phone";
 const char *COMPOSITOR = "com.webos.surfacemanager-cardshell";
 const char *SAM = "com.webos.service.applicationmanager";
+const char *LAUNCHER = "com.palm.launcher";
+const char *SYSTEMUI = "com.palm.systemui";
+const char *EMAIL = "com.palm.app.email";
+const char *AT_BOOT = "{\"launchedAtBoot\":true}";
 
 bool g_skip = false;
 size_t g_launchesAnswered = 0;
@@ -328,6 +337,49 @@ TEST(BootManager, theCompositorComingBackResetsTheLimit)
     CHECK_EQ(launchesOf(FIRSTUSE), firstUse + 1);
 }
 
+TEST(BootManager, launchesFirstUseAgainWhenSamComesBack)
+{
+    if (skipped())
+        return;
+
+    // Use up the limit; SAM coming back resets it, like the compositor
+    // coming back.
+    for (int i = 0; i < 5; ++i)
+        lifeEvent("stop", FIRSTUSE);
+    int firstUse = launchesOf(FIRSTUSE);
+    int phone = launchesOf(PHONE);
+    lifeEvent("stop", FIRSTUSE);
+    CHECK_EQ(launchesOf(FIRSTUSE), firstUse);
+
+    fakels::serverStatus(SAM, false);
+    fakels::serverStatus(SAM, true);
+    runEvents();
+    answerLaunches();
+    CHECK_EQ(launchesOf(FIRSTUSE), firstUse + 1);
+    CHECK_EQ(launchesOf(PHONE), phone + 1);
+    CHECK_EQ(launchField(launches().back(), "params"), std::string("{\"mode\":\"first-use\"}"));
+
+    firstUse = launchesOf(FIRSTUSE);
+    lifeEvent("stop", FIRSTUSE);
+    CHECK_EQ(launchesOf(FIRSTUSE), firstUse + 1);
+
+    // SAM there all along: nothing came back.
+    firstUse = launchesOf(FIRSTUSE);
+    fakels::serverStatus(SAM, true);
+    CHECK_EQ(launchesOf(FIRSTUSE), firstUse);
+
+    // Without the compositor that is left to the compositor coming back.
+    phone = launchesOf(PHONE);
+    compositor(false);
+    fakels::serverStatus(SAM, false);
+    fakels::serverStatus(SAM, true);
+    CHECK_EQ(launchesOf(FIRSTUSE), firstUse);
+    CHECK_EQ(launchesOf(PHONE), phone);
+    compositor(true);
+    CHECK_EQ(launchesOf(FIRSTUSE), firstUse + 1);
+    CHECK_EQ(launchesOf(PHONE), phone + 1);
+}
+
 TEST(BootManager, subscribesAgainWhenSamComesBack)
 {
     if (skipped())
@@ -359,4 +411,326 @@ TEST(BootManager, survivesASubscriptionTheBusRefuses)
     fakels::serverStatus(SAM, false);
     fakels::serverStatus(SAM, true);
     CHECK_EQ(fakels::callsTo("/getAppLifeEvents").size(), subscriptions + 1);
+}
+
+/*
+ * Normal operation: the boot time and KeepAlive apps launched again when SAM
+ * comes back and when a KeepAlive app stops. These run whether or not first
+ * use could, and put BootManager in the normal state themselves. Apart from
+ * one case that waits for the real timer, the checks are made due by moving
+ * the clock and run by calling the timer's slot.
+ */
+
+namespace
+{
+
+size_t g_runningAnswered = 0;
+
+std::vector<fakels::Call> runningQueries()
+{
+    return fakels::callsTo("/com.webos.service.applicationmanager/running");
+}
+
+//! Runs the check the timer would, now.
+void keeperCheck()
+{
+    QMetaObject::invokeMethod(BootManager::instance(), "onAppKeeperTimeout");
+    runEvents();
+}
+
+//! SAM answers every query for running apps so far with payload.
+int answerRunningWith(const std::string &payload)
+{
+    const std::vector<fakels::Call> all = runningQueries();
+    int answered = 0;
+    for (; g_runningAnswered < all.size(); ++g_runningAnswered, ++answered)
+        fakels::reply(all[g_runningAnswered], payload);
+    runEvents();
+    answerLaunches();
+    return answered;
+}
+
+//! ... with these apps running.
+int answerRunning(const std::vector<const char *> &appIds)
+{
+    std::string list;
+    for (size_t i = 0; i < appIds.size(); ++i) {
+        if (i)
+            list += ",";
+        list += std::string("{\"id\":\"") + appIds[i] + "\",\"processid\":\"1\"}";
+    }
+    return answerRunningWith("{\"running\":[" + list + "],\"returnValue\":true,\"subscribed\":false}");
+}
+
+void samRestarts()
+{
+    fakels::serverStatus(SAM, false);
+    fakels::serverStatus(SAM, true);
+    runEvents();
+}
+
+std::string lastLaunchParamsOf(const char *appId)
+{
+    const std::string quoted = std::string("\"") + appId + "\"";
+    const std::vector<fakels::Call> all = launches();
+    for (size_t i = all.size(); i > 0; --i) {
+        if (launchField(all[i - 1], "id") == quoted)
+            return launchField(all[i - 1], "params");
+    }
+    return "<not launched>";
+}
+
+const long long kSecond = 1000LL * 1000;
+
+} // namespace
+
+TEST(BootManagerNormal, launchesTheShellAppsOnEnteringNormalOperation)
+{
+    ensureApplication();
+    Settings *settings = Settings::LunaSettings();
+    // No /tmp/suspend_active when this runs on a device.
+    settings->hardwareType = Settings::HardwareTypeDesktop;
+    settings->appsToLaunchAtBoot.clear();
+    settings->appsToLaunchAtBoot.insert(PHONE);
+    settings->appsToLaunchAtBoot.insert(EMAIL);
+    settings->appsToKeepAlive.clear();
+    settings->appsToKeepAlive.insert(PHONE);
+
+    BootManager::instance();
+    runEvents();
+    // SAM is up, and subscribed to, before normal operation starts.
+    fakels::serverStatus(SAM, true);
+
+    const int launcher = launchesOf(LAUNCHER);
+    const int systemui = launchesOf(SYSTEMUI);
+    BootManager::instance()->switchState(BOOT_STATE_NORMAL);
+    runEvents();
+    answerLaunches();
+    CHECK_EQ(int(BootManager::instance()->currentState()), int(BOOT_STATE_NORMAL));
+    CHECK_EQ(launchesOf(LAUNCHER), launcher + 1);
+    CHECK_EQ(launchesOf(SYSTEMUI), systemui + 1);
+    // Nothing to check yet.
+    keeperCheck();
+    CHECK_EQ(int(runningQueries().size()), 0);
+}
+
+TEST(BootManagerNormal, launchesTheBootAppsAgainWhenSamComesBack)
+{
+    const int launcher = launchesOf(LAUNCHER);
+    const int systemui = launchesOf(SYSTEMUI);
+    const int phone = launchesOf(PHONE);
+    const int email = launchesOf(EMAIL);
+    const size_t queries = runningQueries().size();
+
+    samRestarts();
+    // SAM gets a while to learn what WebAppMgr runs.
+    keeperCheck();
+    CHECK_EQ(runningQueries().size(), queries);
+
+    advanceMonotonicTime(3 * kSecond);
+    keeperCheck();
+    CHECK_EQ(runningQueries().size(), queries + 1);
+    CHECK_EQ(answerRunning({ LAUNCHER, EMAIL }), 1);
+
+    CHECK_EQ(launchesOf(PHONE), phone + 1);
+    CHECK_EQ(lastLaunchParamsOf(PHONE), std::string(AT_BOOT));
+    CHECK_EQ(launchesOf(SYSTEMUI), systemui + 1);
+    CHECK_EQ(lastLaunchParamsOf(SYSTEMUI), std::string(AT_BOOT));
+    CHECK_EQ(launchesOf(LAUNCHER), launcher);
+    CHECK_EQ(launchesOf(EMAIL), email);
+}
+
+TEST(BootManagerNormal, launchesThePhoneAgainWhenItStops)
+{
+    // This one waits for the timer itself.
+    const int phone = launchesOf(PHONE);
+    const size_t queries = runningQueries().size();
+    CHECK(lifeEvent("stop", PHONE));
+
+    QElapsedTimer waited;
+    waited.start();
+    while (runningQueries().size() == queries && waited.elapsed() < 5000) {
+        QThread::msleep(20);
+        runEvents();
+    }
+    CHECK_EQ(runningQueries().size(), queries + 1);
+    CHECK(waited.elapsed() >= 900);
+    CHECK_EQ(answerRunning({ LAUNCHER, SYSTEMUI }), 1);
+    CHECK_EQ(launchesOf(PHONE), phone + 1);
+    CHECK_EQ(lastLaunchParamsOf(PHONE), std::string(AT_BOOT));
+}
+
+TEST(BootManagerNormal, leavesARunningPhoneAlone)
+{
+    const int phone = launchesOf(PHONE);
+    CHECK(lifeEvent("stop", PHONE));
+    advanceMonotonicTime(20 * kSecond);
+    keeperCheck();
+    CHECK_EQ(answerRunning({ PHONE }), 1);
+    CHECK_EQ(launchesOf(PHONE), phone);
+}
+
+TEST(BootManagerNormal, keepsAnAppClosedOnPurposeClosedWhenSamComesBack)
+{
+    const int phone = launchesOf(PHONE);
+    const int email = launchesOf(EMAIL);
+    CHECK(lifeEvent("close", EMAIL));
+    CHECK(lifeEvent("stop", EMAIL));
+    samRestarts();
+    advanceMonotonicTime(3 * kSecond);
+    keeperCheck();
+    CHECK_EQ(answerRunning({}), 1);
+    CHECK_EQ(launchesOf(EMAIL), email);
+    CHECK_EQ(launchesOf(PHONE), phone + 1);
+
+    // Opened again, it is kept again.
+    CHECK(lifeEvent("launch", EMAIL));
+    samRestarts();
+    advanceMonotonicTime(3 * kSecond);
+    keeperCheck();
+    CHECK_EQ(answerRunning({ PHONE, LAUNCHER, SYSTEMUI }), 1);
+    CHECK_EQ(launchesOf(EMAIL), email + 1);
+}
+
+TEST(BootManagerNormal, launchesNothingWithoutAnAnswerFromSam)
+{
+    const int phone = launchesOf(PHONE);
+    const char *payloads[] = {
+        "",
+        "not json",
+        "null",
+        "[]",
+        "{}",
+        "{\"returnValue\":true}",
+        "{\"returnValue\":true,\"running\":{}}",
+        "{\"returnValue\":true,\"running\":\"org.webosports.app.phone\"}",
+        "{\"returnValue\":false,\"running\":[]}",
+        "{\"returnValue\":\"yes\",\"running\":[]}",
+        "{\"returnValue\":false,\"errorCode\":-1,\"errorText\":\"denied\"}",
+        "{\"serviceName\":\"com.webos.service.applicationmanager\",\"returnValue\":false,"
+            "\"errorCode\":-1,\"errorText\":\"com.webos.service.applicationmanager is not running.\"}",
+        "{\"returnValue\":true,\"running\":[",
+    };
+    for (const char *payload : payloads) {
+        CHECK(lifeEvent("stop", PHONE));
+        advanceMonotonicTime(20 * kSecond);
+        keeperCheck();
+        CHECK_EQ(answerRunningWith(payload), 1);
+    }
+    CHECK_EQ(launchesOf(PHONE), phone);
+}
+
+TEST(BootManagerNormal, readsOnlyTheIdsOfWhatRuns)
+{
+    advanceMonotonicTime(61 * kSecond);
+    const int phone = launchesOf(PHONE);
+    CHECK(lifeEvent("stop", PHONE));
+    advanceMonotonicTime(2 * kSecond);
+    keeperCheck();
+    // Nothing here names the phone app as running.
+    CHECK_EQ(answerRunningWith("{\"returnValue\":true,\"running\":[1,null,\"org.webosports.app.phone\","
+                               "{\"id\":5},{\"id\":null},{\"appId\":\"org.webosports.app.phone\"},[]]}"), 1);
+    CHECK_EQ(launchesOf(PHONE), phone + 1);
+}
+
+TEST(BootManagerNormal, ignoresAnAnswerFromBeforeSamWent)
+{
+    advanceMonotonicTime(61 * kSecond);
+    const int phone = launchesOf(PHONE);
+    CHECK(lifeEvent("stop", PHONE));
+    advanceMonotonicTime(2 * kSecond);
+    keeperCheck();
+    const std::vector<fakels::Call> stale = runningQueries();
+    CHECK(!stale.empty());
+
+    samRestarts();
+    if (!stale.empty())
+        fakels::reply(stale.back(), "{\"running\":[],\"returnValue\":true}");
+    g_runningAnswered = runningQueries().size();
+    runEvents();
+    answerLaunches();
+    CHECK_EQ(launchesOf(PHONE), phone);
+
+    // SAM coming back brings its own check.
+    advanceMonotonicTime(3 * kSecond);
+    keeperCheck();
+    CHECK_EQ(answerRunning({ LAUNCHER, SYSTEMUI, EMAIL }), 1);
+    CHECK_EQ(launchesOf(PHONE), phone + 1);
+}
+
+TEST(BootManagerNormal, survivesAQueryTheBusRefuses)
+{
+    advanceMonotonicTime(61 * kSecond);
+    const int phone = launchesOf(PHONE);
+    const size_t queries = runningQueries().size();
+    CHECK(lifeEvent("stop", PHONE));
+    advanceMonotonicTime(2 * kSecond);
+    fakels::failNextCall();
+    keeperCheck();
+    CHECK_EQ(runningQueries().size(), queries);
+    CHECK_EQ(launchesOf(PHONE), phone);
+
+    // The next stop is checked as usual.
+    CHECK(lifeEvent("stop", PHONE));
+    advanceMonotonicTime(2 * kSecond);
+    keeperCheck();
+    CHECK_EQ(answerRunning({}), 1);
+    CHECK_EQ(launchesOf(PHONE), phone + 1);
+}
+
+TEST(BootManagerNormal, dropsTheChecksWhenNormalOperationEnds)
+{
+    advanceMonotonicTime(61 * kSecond);
+    const int phone = launchesOf(PHONE);
+    const size_t queries = runningQueries().size();
+    CHECK(lifeEvent("stop", PHONE));
+    compositor(false);
+    CHECK_EQ(int(BootManager::instance()->currentState()), int(BOOT_STATE_STARTUP));
+    advanceMonotonicTime(20 * kSecond);
+    keeperCheck();
+    CHECK_EQ(runningQueries().size(), queries);
+
+    // A stop or SAM coming back outside normal operation is no reason either:
+    // entering it launches every boot time app anyway.
+    CHECK(lifeEvent("stop", PHONE));
+    samRestarts();
+    advanceMonotonicTime(20 * kSecond);
+    keeperCheck();
+    CHECK_EQ(runningQueries().size(), queries);
+    CHECK_EQ(launchesOf(PHONE), phone);
+
+    compositor(true);
+    BootManager::instance()->switchState(BOOT_STATE_NORMAL);
+    runEvents();
+    answerLaunches();
+    CHECK_EQ(int(BootManager::instance()->currentState()), int(BOOT_STATE_NORMAL));
+}
+
+TEST(BootManagerNormal, givesUpOnAPhoneThatKeepsStopping)
+{
+    advanceMonotonicTime(61 * kSecond);
+    const int phone = launchesOf(PHONE);
+    // Launched after 1, 2, 4, 8 and 16 seconds: within the minute.
+    for (int i = 0; i < BootAppKeeper::kMaxLaunches; ++i) {
+        CHECK(lifeEvent("stop", PHONE));
+        advanceMonotonicTime((1LL << i) * kSecond);
+        keeperCheck();
+        CHECK_EQ(answerRunning({}), 1);
+        CHECK(lifeEvent("launch", PHONE));
+    }
+    CHECK_EQ(launchesOf(PHONE), phone + BootAppKeeper::kMaxLaunches);
+
+    const size_t queries = runningQueries().size();
+    CHECK(lifeEvent("stop", PHONE));
+    advanceMonotonicTime(16 * kSecond);
+    keeperCheck();
+    CHECK_EQ(runningQueries().size(), queries);
+    CHECK_EQ(launchesOf(PHONE), phone + BootAppKeeper::kMaxLaunches);
+
+    // SAM coming back gives it its launches back.
+    samRestarts();
+    advanceMonotonicTime(3 * kSecond);
+    keeperCheck();
+    CHECK_EQ(answerRunning({ LAUNCHER, SYSTEMUI, EMAIL }), 1);
+    CHECK_EQ(launchesOf(PHONE), phone + BootAppKeeper::kMaxLaunches + 1);
 }
