@@ -20,6 +20,7 @@
 #include <time.h>
 
 #include <list>
+#include <utility>
 
 // The component is built with -fvisibility=hidden; these have to stay
 // visible so that they, not libluna-service2's, are what every caller binds
@@ -34,6 +35,7 @@ struct LSHandle
 struct LSMessage
 {
     std::string payload;
+    std::string appId;
     LSMessageToken token = LSMESSAGE_TOKEN_INVALID;
     int refs = 0;
 };
@@ -58,6 +60,16 @@ std::vector<fakels::Call> g_calls;
 // A list, so that the handles stay where they are while more are added.
 std::list<LSHandle> g_handles;
 std::vector<StatusWatch> g_watches;
+
+struct Category
+{
+    std::string serviceName;
+    std::string category;
+    LSMethod *methods = nullptr;
+};
+std::vector<Category> g_categories;
+std::vector<std::string> g_messageReplies;
+std::vector<std::pair<std::string, std::string> > g_subscriptionReplies;
 LSMessageToken g_nextToken = 1;
 bool g_failNextCall = false;
 long long g_timeOffset = 0;
@@ -154,6 +166,51 @@ int serverStatus(const std::string &serviceName, bool connected)
     return told;
 }
 
+bool callMethod(const std::string &serviceName, const std::string &category,
+                const std::string &method, const std::string &payload,
+                const std::string &appId)
+{
+    for (size_t i = 0; i < g_categories.size(); ++i) {
+        const Category &c = g_categories[i];
+        if (c.serviceName != serviceName || c.category != category || !c.methods)
+            continue;
+        for (LSMethod *m = c.methods; m->name; ++m) {
+            if (method != m->name)
+                continue;
+            LSHandle handle;
+            handle.name = serviceName;
+            LSMessage message;
+            message.payload = payload;
+            message.appId = appId;
+            message.refs = 1;
+            m->function(&handle, &message, NULL);
+            return true;
+        }
+    }
+    return false;
+}
+
+const std::vector<std::string>& messageReplies()
+{
+    return g_messageReplies;
+}
+
+std::vector<std::string> subscriptionReplies(const std::string &key)
+{
+    std::vector<std::string> found;
+    for (size_t i = 0; i < g_subscriptionReplies.size(); ++i) {
+        if (g_subscriptionReplies[i].first == key)
+            found.push_back(g_subscriptionReplies[i].second);
+    }
+    return found;
+}
+
+void clearReplies()
+{
+    g_messageReplies.clear();
+    g_subscriptionReplies.clear();
+}
+
 } // namespace fakels
 
 void advanceMonotonicTime(long long microseconds)
@@ -219,7 +276,14 @@ FAKE_LS2 bool LSUnregister(LSHandle *service, LSError *error)
 FAKE_LS2 bool LSRegisterCategory(LSHandle *sh, const char *category, LSMethod *methods,
                                  LSSignal *signals, LSProperty *properties, LSError *error)
 {
-    return sh != NULL;
+    if (!sh)
+        return false;
+    Category c;
+    c.serviceName = sh->name;
+    c.category = category ? category : "";
+    c.methods = methods;
+    g_categories.push_back(c);
+    return true;
 }
 
 FAKE_LS2 bool LSGmainAttach(LSHandle *sh, GMainLoop *mainLoop, LSError *error)
@@ -276,7 +340,7 @@ FAKE_LS2 const char *LSMessageGetPayload(LSMessage *message)
 
 FAKE_LS2 const char *LSMessageGetApplicationID(LSMessage *message)
 {
-    return NULL;
+    return (message && !message->appId.empty()) ? message->appId.c_str() : NULL;
 }
 
 FAKE_LS2 LSMessageToken LSMessageGetResponseToken(LSMessage *reply)
@@ -309,6 +373,7 @@ FAKE_LS2 void LSMessageUnref(LSMessage *message)
 FAKE_LS2 bool LSMessageReply(LSHandle *sh, LSMessage *message, const char *replyPayload,
                              LSError *error)
 {
+    g_messageReplies.push_back(replyPayload ? replyPayload : "");
     return true;
 }
 
@@ -329,6 +394,8 @@ FAKE_LS2 bool LSSubscriptionAdd(LSHandle *sh, const char *key, LSMessage *messag
 FAKE_LS2 bool LSSubscriptionReply(LSHandle *sh, const char *key, const char *payload,
                                   LSError *error)
 {
+    g_subscriptionReplies.push_back(std::make_pair(std::string(key ? key : ""),
+                                                   std::string(payload ? payload : "")));
     return true;
 }
 
