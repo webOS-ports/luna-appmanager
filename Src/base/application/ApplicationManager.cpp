@@ -2008,7 +2008,7 @@ void ApplicationManager::focusApplication(const std::string& appId)
     // This will let the compositor maximize the existing card for the app. For
     // the case of an headless app this will do nothing so is safe to call.
     if (!LSCallOneReply(m_service,
-                    "palm://com.webos.surfacemanager-cardshell/focusApplication", params,
+                    "palm://com.webos.surfacemanager.cardshell/focusApplication", params,
                     NULL, NULL, NULL, &error))
     {
         g_warning("Failed to focus application %s: %s", appId.c_str(), error.message);
