@@ -46,7 +46,7 @@ namespace
 
 const char *FIRSTUSE = "org.webosports.app.firstuse";
 const char *PHONE = "org.webosports.app.phone";
-const char *COMPOSITOR = "com.webos.surfacemanager-cardshell";
+const char *COMPOSITOR = "com.webos.surfacemanager.cardshell";
 const char *SAM = "com.webos.service.applicationmanager";
 const char *LAUNCHER = "com.palm.launcher";
 const char *SYSTEMUI = "com.palm.systemui";
