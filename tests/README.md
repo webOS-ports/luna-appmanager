@@ -20,7 +20,9 @@ the cases build on each other in the order they are written. On a device
 that has finished first use they report that and do nothing.
 
 `test_bootmanager.cpp` then puts `BootManager` in the normal state and
-checks that it launches the boot time apps again once SAM comes back (only
+checks that entering it opens what first use's hand-off file asked for (the
+Backup app on its restore flow, the Accounts app) and removes the file, that
+it launches the boot time apps again once SAM comes back (only
 those not running, with `{"launchedAtBoot":true}`, not an app closed on
 purpose), launches the KeepAlive phone app again when it stops, waits for
 SAM's answer to `running` before launching anything and ignores an answer
@@ -33,6 +35,12 @@ decisions, on its own: the wait after SAM came back, apps closed on
 purpose, KeepAlive apps, the back-off (1, 2, 4, 8, 16 seconds), giving up
 after five launches in a minute and what ends that. Every case there has
 its own keeper and clock.
+
+`test_firstuse_handoff.cpp` covers `FirstUseHandoff`, which reads that file,
+on its own: what each key launches and in what order, that only a JSON
+`true` turns one on, that the file cannot name an app or parameters, and
+that a malformed, oversized, symlinked, directory or FIFO hand-off launches
+nothing, does not block, and is removed (a symlink's target is left alone).
 
 `test_open_ipk.cpp` checks that `com.palm.applicationManager/open` installs
 a package only for the trusted installer apps: an app's open of a target

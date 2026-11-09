@@ -30,6 +30,7 @@
 #include "fake_ls2.h"
 
 #include "BootManager.h"
+#include "FirstUseHandoff.h"
 
 #include "Settings.h"
 
@@ -40,6 +41,11 @@
 #include <QThread>
 
 #include <json.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 namespace
 {
@@ -52,6 +58,8 @@ const char *LAUNCHER = "com.palm.launcher";
 const char *SYSTEMUI = "com.palm.systemui";
 const char *EMAIL = "com.palm.app.email";
 const char *AT_BOOT = "{\"launchedAtBoot\":true}";
+const char *BACKUP = "com.palm.app.backup";
+const char *ACCOUNTS = "com.palm.app.accounts";
 
 bool g_skip = false;
 size_t g_launchesAnswered = 0;
@@ -501,14 +509,41 @@ TEST(BootManagerNormal, launchesTheShellAppsOnEnteringNormalOperation)
     // SAM is up, and subscribed to, before normal operation starts.
     fakels::serverStatus(SAM, true);
 
+    // First use asked for the restore flow and the Accounts app.
+    const char *base = getenv("TMPDIR");
+    std::string dir = std::string(base && *base ? base : "/tmp") + "/bootmanager-handoff-XXXXXX";
+    CHECK(mkdtemp(&dir[0]) != NULL);
+    const std::string handoff = dir + "/firstuse-handoff.json";
+    FILE *f = fopen(handoff.c_str(), "w");
+    CHECK(f != NULL);
+    if (f) {
+        fputs("{\"restore\":true,\"accounts\":true}", f);
+        fclose(f);
+    }
+    FirstUseHandoff::setPathForTesting(handoff.c_str());
+
     const int launcher = launchesOf(LAUNCHER);
     const int systemui = launchesOf(SYSTEMUI);
+    const int backup = launchesOf(BACKUP);
+    const int accounts = launchesOf(ACCOUNTS);
     BootManager::instance()->switchState(BOOT_STATE_NORMAL);
     runEvents();
     answerLaunches();
     CHECK_EQ(int(BootManager::instance()->currentState()), int(BOOT_STATE_NORMAL));
     CHECK_EQ(launchesOf(LAUNCHER), launcher + 1);
     CHECK_EQ(launchesOf(SYSTEMUI), systemui + 1);
+    CHECK_EQ(launchesOf(BACKUP), backup + 1);
+    CHECK_EQ(launchesOf(ACCOUNTS), accounts + 1);
+    const std::vector<fakels::Call> all = launches();
+    for (size_t i = 0; i < all.size(); ++i) {
+        if (launchField(all[i], "id") == std::string("\"") + BACKUP + "\"")
+            CHECK_EQ(launchField(all[i], "params"), std::string("{\"restore\":true}"));
+    }
+    // Read once: gone, so the next boot does not open them again.
+    struct stat st;
+    CHECK(lstat(handoff.c_str(), &st) != 0);
+    FirstUseHandoff::setPathForTesting(NULL);
+    rmdir(dir.c_str());
     // Nothing to check yet.
     keeperCheck();
     CHECK_EQ(int(runningQueries().size()), 0);
