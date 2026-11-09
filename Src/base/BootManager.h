@@ -120,6 +120,7 @@ private:
 	void activateSuspend(bool enable);
 	void launchBootTimeApps();
 	void keepBootTimeApps();
+	void launchFirstUseHandoff();
 };
 
 class BootManager : public QObject

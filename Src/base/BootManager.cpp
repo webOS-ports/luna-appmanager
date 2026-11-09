@@ -41,6 +41,7 @@
 #include "Logging.h"
 #include "Settings.h"
 #include "BootManager.h"
+#include "FirstUseHandoff.h"
 #include "Utils.h"
 #include "ApplicationProcessManager.h"
 #include "WebAppMgrProxy.h"
@@ -354,6 +355,21 @@ void BootStateNormal::enter()
 	activateSuspend(true);
 	keepBootTimeApps();
 	launchBootTimeApps();
+	launchFirstUseHandoff();
+}
+
+// What first use asked to have opened once setup is over: the Backup app's
+// restore flow and the Accounts app cannot run in first use. Read once and
+// removed, see FirstUseHandoff.h.
+void BootStateNormal::launchFirstUseHandoff()
+{
+	const std::vector<FirstUseHandoff::Launch> launches =
+		FirstUseHandoff::take(FirstUseHandoff::path());
+	for (size_t i = 0; i < launches.size(); ++i) {
+		g_message("First use asked for %s once setup is over, launching it",
+			  launches[i].appId.c_str());
+		ApplicationProcessManager::instance()->launch(launches[i].appId, launches[i].params);
+	}
 }
 
 void BootStateNormal::activateSuspend(bool enable)
