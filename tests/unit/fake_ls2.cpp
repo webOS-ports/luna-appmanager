@@ -132,6 +132,8 @@ std::vector<Call> callsTo(const std::string &uriSuffix)
 void clearCalls()
 {
     g_calls.clear();
+    // A failure a case armed and never used must not fail the next case's call.
+    g_failNextCall = false;
 }
 
 void failNextCall()

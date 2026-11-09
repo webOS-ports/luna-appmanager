@@ -313,6 +313,8 @@ private:
 	bool	startService();
 	void	stopService();
 	void    postLaunchPointChange(const LaunchPoint* lp, const std::string& change);
+	void    keepIconWithSam(const LaunchPoint* lp);
+	static bool cbKeepIconWithSam(LSHandle* lsHandle, LSMessage* message, void* userData);
 	LSHandle*	m_service;
 	static long s_ticketId;
 	bool m_initialScan;

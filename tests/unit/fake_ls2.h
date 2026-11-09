@@ -49,6 +49,7 @@ const std::vector<Call>& calls();
 //! Calls whose uri ends with uriSuffix, oldest first.
 std::vector<Call> callsTo(const std::string &uriSuffix);
 
+//! Forgets the calls so far, and a failNextCall() no call has used.
 void clearCalls();
 
 //! The next LSCall or LSCallOneReply fails, as when the bus refuses it.
