@@ -2211,8 +2211,57 @@ bool ApplicationManager::updateLaunchPointIcon(const std::string& launchPointId,
     success = lp->updateIconPath(newIconPath);
     if (success) {
         postLaunchPointChange(lp, "updated");
+        keepIconWithSam(lp);
     }
     return success;
+}
+
+/*
+ * An icon an application puts on its own launch point - Calendar's date, from
+ * its midnight activity - lives here only in memory, as it did in LunaSysMgr:
+ * LaunchPoint::toFile() keeps dynamic launch points alone. The shell fills
+ * its launcher from SAM's listLaunchPoints, and hears of the new icon only
+ * through launchPointChanges, so a restart of the shell, of this service or
+ * of the device put the app's own icon back until the app set it again - for
+ * Calendar, at the next midnight.
+ *
+ * SAM keeps what updateLaunchPoint gives it for a default launch point in its
+ * database and lists it from then on, so hand it the icon too. SAM's default
+ * launch points have the ids ours have (<appId>_default). A dynamic launch
+ * point is ours alone, persisted by toFile(); SAM has no such id to update.
+ */
+void ApplicationManager::keepIconWithSam(const LaunchPoint* lp)
+{
+    if (!lp || !lp->isDefault() || !m_service)
+        return;
+
+    json_object* payload = json_object_new_object();
+    json_object_object_add(payload, "launchPointId", json_object_new_string(lp->launchPointId().c_str()));
+    json_object_object_add(payload, "icon", json_object_new_string(lp->iconPath().c_str()));
+
+    LSError lserror;
+    LSErrorInit(&lserror);
+    if (!LSCallOneReply(m_service, "luna://com.webos.service.applicationmanager/updateLaunchPoint",
+                        json_object_to_json_string(payload), cbKeepIconWithSam, NULL, NULL, &lserror)) {
+        g_warning("Could not hand the icon of %s to SAM: %s", lp->launchPointId().c_str(),
+                  lserror.message ? lserror.message : "unknown error");
+        LSErrorFree(&lserror);
+    }
+    json_object_put(payload);
+}
+
+bool ApplicationManager::cbKeepIconWithSam(LSHandle* /*lsHandle*/, LSMessage* message, void* /*userData*/)
+{
+    const char* payload = LSMessageGetPayload(message);
+    json_object* reply = payload ? json_tokener_parse(payload) : NULL;
+    json_object* value = NULL;
+    const bool ok = reply && json_object_object_get_ex(reply, "returnValue", &value)
+                    && json_object_get_boolean(value);
+    if (!ok)
+        g_warning("SAM did not keep a launch point icon: %s", payload ? payload : "(no reply)");
+    if (reply)
+        json_object_put(reply);
+    return true;
 }
 
 std::string ApplicationManager::findUniqueFileName(const std::string& folder)
